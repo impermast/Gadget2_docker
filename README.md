@@ -3,7 +3,6 @@
 This repository contains a Docker environment for building and running **GADGET-2**, a cosmological N-body/SPH simulation code. It includes all necessary dependencies, including:
 
 - **MPI** (OpenMPI)
-- **HDF5** with MPI support
 - **FFTW 2.1.5** (compiled from source)
 - **GSL 1.16** (compiled from source)
 - **Geany** editor and other common CLI tools
@@ -11,9 +10,7 @@ This repository contains a Docker environment for building and running **GADGET-
 ## 🧱 What's inside
 
 - `Dockerfile`: Installs dependencies, compiles GSL, FFTW2, GADGET-2
-- `Makefile.systype`: Configuration for building GADGET-2 with MPI, FFTW2, and GSL
-- `parameterfiles/`: Includes a working `example.param` file and `outputs_lcdm_gas.txt`
-- `ICs/`: Includes initial conditions (example: `lcdm_gas_littleendian.dat`)
+- `Makefile`: Configuration for building GADGET-2 with MPI, FFTW2, and GSL
 - `run_test/run_gadget.sh`: Script to launch a sample simulation
 
 ---
@@ -31,7 +28,7 @@ docker build -t gadget2 .
 ### 2. Run the container
 
 ```bash
-docker run -it --rm -v $(pwd)/output:/workspace/run_test/output gadget2
+docker run -it gadget2
 ```
 
 ### 3. Run the test simulation
