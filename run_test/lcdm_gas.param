@@ -1,7 +1,8 @@
 %  Relevant files
 
-InitCondFile  	   ICs/lcdm_gas_littleendian.dat
-OutputDir          lcdm_gas/
+InitCondFile  	   lcdm_gas_littleendian.dat
+OutputDir          /workspace/run_test
+
 
 EnergyFile         energy.txt
 InfoFile           info.txt
@@ -11,7 +12,7 @@ CpuFile            cpu.txt
 RestartFile        restart
 SnapshotFileBase   snapshot
 
-OutputListFilename parameterfiles/outputs_lcdm_gas.txt
+OutputListFilename outputs_lcdm_gas.txt
 
 % CPU time -limit
 

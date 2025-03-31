@@ -41,7 +41,15 @@ COPY Makefile /workspace/Gadget-2.0.7/Gadget2/Makefile
 WORKDIR /workspace/Gadget-2.0.7/Gadget2
 RUN make clean && make
 
+#Downloading snapshot visual
+WORKDIR /workspace
+RUN git clone https://github.com/spthm/glio
+WORKDIR /workspace/glio
+RUN pip install 2to3
+RUN 2to3 -w ./
+
+#TestRun
 WORKDIR /workspace
 COPY run_test /workspace/run_test
-
+RUN echo -e "\nInstallation completed\n\n Execute ./run_gadget"
 CMD ["bash"]
