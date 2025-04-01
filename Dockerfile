@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     openmpi-bin libopenmpi-dev \
     libx11-dev libgtk-3-dev \
     nano vim htop mc geany \
+    python3 python3-pip python3-venv\
     && apt-get clean
 
 # Build and install GSL 1.16
