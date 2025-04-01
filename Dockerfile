@@ -46,11 +46,13 @@ RUN make clean && make
 WORKDIR /workspace
 RUN git clone https://github.com/spthm/glio
 WORKDIR /workspace/glio
-RUN pip install 2to3
+RUN pip install 2to3 matplotlib numpy pandas
 RUN 2to3 -w ./
+ENV PYTHONPATH=/workspace:$PYTHONPATH
 
 #TestRun
-WORKDIR /workspace
 COPY run_test /workspace/run_test
+WORKDIR /workspace/run_test
 RUN echo -e "\nInstallation completed\n\n Execute ./run_gadget"
+RUN chmod +x run_gadget.sh
 CMD ["bash"]

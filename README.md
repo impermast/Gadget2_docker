@@ -30,7 +30,11 @@ docker build -t gadget2 .
 ```bash
 docker run -it gadget2
 ```
-
+or if you work in linux and want gui
+```bash
+chmod +x run_gadget_gui_linux.sh 
+./run_gadget_gui_linux.sh
+```
 ### 3. Run the test simulation
 
 Inside the container:
@@ -39,7 +43,7 @@ Inside the container:
 ./run_gadget.sh
 ```
 
-Output will be written to `/workspace/run_test/output`.
+Output will be written to `/workspace/dockerData`.
 
 ---
 
