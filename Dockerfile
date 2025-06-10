@@ -42,6 +42,14 @@ COPY Makefile /workspace/Gadget-2.0.7/Gadget2/Makefile
 WORKDIR /workspace/Gadget-2.0.7/Gadget2
 RUN make clean && make
 
+# --- Install GIZMO ---
+WORKDIR /workspace
+RUN git clone https://github.com/pfhopkins/gizmo-public.git
+
+# Build GIZMO
+WORKDIR /workspace/gizmo-public
+RUN make -j$(nproc)
+
 #Downloading snapshot visual
 WORKDIR /workspace
 RUN git clone https://github.com/spthm/glio
