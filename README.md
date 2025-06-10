@@ -2,16 +2,16 @@
 
 This repository contains a Docker environment for building and running **GADGET-2**, a cosmological N-body/SPH simulation code. It includes all necessary dependencies, including:
 
-- **MPI** (OpenMPI)
-- **FFTW 2.1.5** (compiled from source)
-- **GSL 1.16** (compiled from source)
-- **Geany** editor and other common CLI tools
+* **MPI** (OpenMPI)
+* **FFTW 2.1.5** (compiled from source)
+* **GSL 1.16** (compiled from source)
+* **Geany** editor and other common CLI tools
 
 ## 🧱 What's inside
 
-- `Dockerfile`: Installs dependencies, compiles GSL, FFTW2, GADGET-2
-- `Makefile`: Configuration for building GADGET-2 with MPI, FFTW2, and GSL
-- `run_test/run_gadget.sh`: Script to launch a sample simulation
+* `Dockerfile`: Installs dependencies, compiles GSL, FFTW2, GADGET-2
+* `Makefile`: Configuration for building GADGET-2 with MPI, FFTW2, and GSL
+* `run_test/run_gadget.sh`: Script to launch a sample simulation
 
 ---
 
@@ -30,11 +30,14 @@ docker build -t gadget2 .
 ```bash
 docker run -it gadget2
 ```
+
 or if you work in linux and want gui
+
 ```bash
-chmod +x run_gadget_gui_linux.sh 
+chmod +x run_gadget_gui_linux.sh
 ./run_gadget_gui_linux.sh
 ```
+
 ### 3. Run the test simulation
 
 Inside the container:
@@ -44,6 +47,20 @@ Inside the container:
 ```
 
 Output will be written to `/workspace/dockerData`.
+
+### 4. `dockerData/` directory
+
+To exchange files (e.g. input data, output snapshots, logs) between the Docker container and the host system, use the mounted directory:
+
+`/workspace/dockerData`
+
+This directory is accessible both inside and outside the container, and is ideal for persistent storage and communication with your host environment. You can mount this folder when starting the container with:
+
+```bash
+docker run -it -v $(pwd)/dockerData:/workspace/dockerData gadget2
+```
+
+Make sure `/dockerData`  exists on the host side before running.
 
 ---
 
@@ -65,16 +82,53 @@ Simple wrapper to call GADGET-2 with MPI:
 mpirun -n 1 /opt/Gadget-2.0.7/Gadget2/Gadget2 /workspace/parameterfiles/example.param
 ```
 
+This script also automatically:
+
+* Copies the selected Makefile and parameter file into the GADGET source directory
+* Rebuilds the code with `make`
+* Copies the executable back and runs it with the given parameter file
+* **Creates the output directory if it doesn't exist** (based on `OutputDir` from the `.param` file)
+
 ---
 
-## 📎 Credits
+## 📌 Modeling notes
 
-- GADGET-2 by Volker Springel: [wwwmpa.mpa-garching.mpg.de/gadget](https://wwwmpa.mpa-garching.mpg.de/gadget/)
-- Installation guide partially inspired by lecture materials by Sergey Pilipenko (HSE)
+### Makefile
+
+The project uses a clean Makefile with:
+
+* `mpicc` as compiler
+* GSL and FFTW paths fixed to `/workspace/gsl` and `/workspace/fftw`
+* `OPT = NOTYPEPREFIX_FFTW` (used by default)
+
+Only physics modeling parameters should be defined in `.param` files.
+
+### Parameter file (`.param`)
+
+For every simulation, make sure to:
+
+* Provide a correct `InitCondFile`, e.g.:
+
+  ```
+  InitCondFile lcdm_gas_littleendian.dat
+  ```
+* Set an `OutputDir`, e.g.:
+
+  ```
+  OutputDir /workspace/run_test/galaxy
+  ```
+
+> **Note:** GADGET-2 does *not* create the output directory automatically. If it does not exist, the simulation will crash. The `run_gadget.sh` script takes care of this automatically by parsing `OutputDir` and creating the directory before launch.
+
+---
+
+## 📌 Credits
+
+* GADGET-2 by Volker Springel: [wwwmpa.mpa-garching.mpg.de/gadget](https://wwwmpa.mpa-garching.mpg.de/gadget/)
+* Installation guide partially inspired by lecture materials by Sergey Pilipenko (HSE)
 
 ---
 
 ## 📬 License
 
 This project is open for educational and research purposes. GADGET-2 itself is licensed for scientific, non-commercial use.
-

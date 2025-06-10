@@ -1,2 +1,0 @@
-This file is in shared folder between docker and your computer.
-Use it to transfer files and look and pictures
