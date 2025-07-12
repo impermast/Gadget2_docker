@@ -24,7 +24,7 @@ class SnapshotVisualizer:
 		"""
 		self.snapshot_path = snapshot_path
 		self.ds = yt.load(snapshot_path)
-		self.graph_path = "graph/"
+		self.graph_path = "run_test/graph/"
 		
 		# ⚙️ Основные параметры визуализации
 		self.cmap = "inferno"                        # цветовая карта
@@ -33,7 +33,7 @@ class SnapshotVisualizer:
 		self.color_back = "black"
 		self.color_text = 'white'
 
-		self.width = unyt_quantity(200.0,"kpc") 
+		self.width = unyt_quantity(400.0,"kpc") 
 
                  # ширина области обзора
 		self.resolution = 1600
@@ -54,7 +54,6 @@ class SnapshotVisualizer:
 		print(f"Redshift:            {self.ds.current_redshift:.5f}")
 		print(f"Domain center:       {self.ds.domain_center.to('kpc')}")
 		print(f"Domain width:        {self.ds.domain_width.to('kpc')}")
-		print(f"Доступные частицы:   {self.ds.ptypes}")
 		
 		print("Основные параметры:")
 		for key, val in self.ds.parameters.items():
@@ -93,31 +92,36 @@ class SnapshotVisualizer:
 		plot.set_xlabel("R [kpc]")
 		plot.save(self.graph_path + f"{ptype}_SpeedProfile1D.png")
 
-	def plot_density_profile(self, ptype = "Halo"):
-		field_name = (ptype, f'{ptype}_r')
+	def plot_density_profile(self, ptype1 = "Halo", ptype2 = "Disk"):
+		field_name1 = (ptype1, f'{ptype1}_r')
+		field_name2 = (ptype2, f'{ptype2}_r')
 
 		profile =[]
 		labels = []
+		plot_specs = [dict(color="red", linestyle="-"), dict(color="green", linestyle="-")]
 		ad = self.ds.all_data()
 		profile.append(yt.create_profile(
 			ad,
-			bin_fields=[field_name],
-       		fields=[field_name],
+			bin_fields=[field_name1],
+       		fields=[field_name1],
         	weight_field=None,
-			n_bins=15))
+			n_bins=20))
 		profile.append(yt.create_profile(
 			ad,
-			bin_fields=[field_name],
-        	fields=[field_name],
+			bin_fields=[field_name2],
+        	fields=[field_name2],
         	weight_field=None,
-			n_bins=self.dim))
+			n_bins=20))
 			
 		labels.append(f"Count in bins")
 		labels.append(f"Count particles")
-		plot = yt.ProfilePlot.from_profiles(profile, labels=labels)
-		plot.set_log(field_name, False)
+		plot = yt.ProfilePlot.from_profiles(profile, 
+									  labels=labels,
+									  plot_specs=plot_specs)
+		plot.set_log(field_name1, False)
+		plot.set_log(field_name2, False)
 		plot.set_xlabel("R [kpc]")
-		plot.save(self.graph_path + f"{ptype}_PartProfile1D.png")
+		plot.save(self.graph_path + f"PartProfile1D.png")
 
 	def plot_phase_vr(self, ptype = "Halo"):
 		field_r = (ptype, f'{ptype}_r')
@@ -176,6 +180,127 @@ class SnapshotVisualizer:
 			p.render()
 			
 		plt.savefig(self.graph_path+ptype+"_"+output_file)
+
+	def plot_radial_distribution(
+		self,
+		ptype_list=["Halo", "Disk"],
+		field_name_template="{ptype}_r", 
+		n_bins=40
+	):
+		"""
+		Строит график распределения по радиусу для разных ptype.
+
+		Args:
+			ptype_list: список типов частиц, например ["Halo", "Disk"]
+			field_name_template: шаблон названия поля радиуса
+			plot_styles: dict кастомизации графика для каждого ptype
+			n_bins: число бинов
+		"""
+		import matplotlib.pyplot as plt
+
+		ad = self.ds.all_data()
+		fig, ax = plt.subplots()
+		plot_styles =dict(
+        {"Halo": {"color": self.color_dm, "linestyle": "-", "linewidth": 1.5},
+        "Disk": {"color": self.color_gas, "linestyle": "-", "linewidth": 1.5}}
+		)
+		for ptype in ptype_list:
+			radius_field = f"{ptype}_r"
+
+			r = ad[radius_field].to("kpc").ndarray_view()
+			
+			# Создаём гистограмму
+			hist, edges = np.histogram(r, bins=n_bins)
+			centers = 0.5 * (edges[1:] + edges[:-1])
+
+			# Настройки стиля
+			style = plot_styles.get(ptype, {}) if plot_styles else {}
+			label = f"{ptype}"
+
+			ax.plot(centers, hist, label=label, **style)
+
+
+		ax.spines["top"].set_visible(False)
+		ax.spines["right"].set_visible(False)
+
+		ax.set_xlabel("Radius [kpc]")
+		ax.set_xscale("log")
+		ax.set_ylabel("Particle count")
+		ax.legend(loc="best")
+		ax.grid(False)
+
+		out_path = self.graph_path + "RadialProfile.png"
+		fig.savefig(out_path)
+		print(f"[yt] Saved radial profile plot to {out_path}")
+		plt.close(fig)
+
+
+	def plot_rotation_curves(
+		self,
+		ptype_list=["Halo", "Disk"],
+		n_bins=30,
+		r_units="kpc",
+		v_units="km/s"
+	):
+		"""
+		Вручную строит speed-профили аналогично yt.create_profile(...),
+		для каждого ptype в ptype_list.
+		"""
+		import matplotlib.pyplot as plt
+		import numpy as np
+
+		ad = self.ds.all_data()
+		fig, ax = plt.subplots()
+
+		plot_styles = {
+			"Halo": {"color": self.color_dm, "linestyle": "-", "linewidth": 3},
+			"Disk": {"color": self.color_gas, "linestyle": "-", "linewidth": 3},
+		}
+
+		for ptype in ptype_list:
+			# Радиус и модуль скорости
+			r = ad[(ptype, f"{ptype}_r")].to(r_units).ndarray_view()
+			v = ad[(ptype, f"{ptype}_v")].to(v_units).ndarray_view()
+
+			bins = np.linspace(r.min(), r.max(), n_bins + 1)
+			indices = np.digitize(r, bins)
+
+			v_mean = []
+			r_centers = []
+
+			for i in range(1, len(bins)):
+				mask = indices == i
+				if np.any(mask):
+					v_bin = v[mask]
+					v_mean.append(np.mean(v_bin))  # аналог weight_field=None
+					r_centers.append(0.5 * (bins[i] + bins[i - 1]))
+			style = plot_styles.get(ptype, {})
+
+			# 1. Полупрозрачные точки: r-v (сырые данные)
+			ax.scatter(r, v, alpha=0.1, color=style.get("color", "gray"), s=1, label=f"{ptype} particles")
+
+			# 2. Жирная линия: средняя скорость по радиусу
+			line_style = {
+				"color": style.get("color", "black"),
+				"linestyle": style.get("linestyle"),
+				"linewidth": 3,
+			}
+			ax.plot(r_centers, v_mean, label=f"{ptype} mean", **line_style)
+
+		ax.set_xlabel(f"R [{r_units}]")
+		ax.set_ylabel(f"Mean |v| [{v_units}]")
+		ax.set_yscale("log")
+		ax.legend()
+		ax.grid(False)
+		fig.tight_layout()
+
+		out_path = self.graph_path + "rotcurve.png"
+		fig.savefig(out_path, dpi=300)
+		print(f"[yt] Saved speed profile to {out_path}")
+		plt.close(fig)
+
+
+
 
 	def plot_disk_halo_3d(self, elev=30, azim=310, output_file="disk_halo_3d.png"):
 		"""
@@ -253,36 +378,38 @@ class SnapshotVisualizer:
 
 	def plot_density_yt3d(self, grid, ptype = "Halo", output_file="_density_yt3D.png"):
 		sc = yt.create_scene(grid, field=("stream", f"{ptype}_density"))
-
+		# tf = yt.ColorTransferFunction([-28, -25])
+		# tf.clear()
+		# tf.add_layers(4, 0.02, alpha=np.logspace(-3, -1, 4), colormap="winter")
+		# source.set_transfer_function(tf)
 		
-		sc.camera.position = grid.arr([2, 1.5, -1.5 ], "unitary")
+		sc.camera.position = grid.arr([+0.5, -0.5, 0.5 ], "unitary")
 		sc.camera.resolution = (1*self.resolution, 1*self.resolution)
-		sc.camera.focus = grid.arr([0, 0,0], "unitary")
-		sc.camera.zoom(2)
+		sc.camera.focus = grid.arr([0, 0, 0], "unitary")
+		sc.camera.zoom(3)
 
 		# Добавляет веса разным событиям по массе
 		# source = sc[0]
-		#mn, mx = int(grid.all_data()["density"].min().to("Msun/kpc**3").value), int(grid.all_data()["density"].max().to("Msun/kpc**3").value)
+		# mn, mx = int(grid.all_data()[f"{ptype}_density"].min().to("Msun/kpc**3").value), int(grid.all_data()[f"{ptype}_density"].max().to("Msun/kpc**3").value)
 		# source.set_log(True)
-		# bounds = (mn+1,mx*10)
+		# bounds = (mx/1000,mx*10)
 		# tf = yt.ColorTransferFunction(np.log10(bounds))
-		# tf.sample_colormap(np.log10(mx)-0.5, w=0.05, colormap="hot")
+		# tf.sample_colormap(np.log10(mx)-0.5, w=0.08, colormap=self.cmap)
 		# source.tfh.tf = tf
 		# source.tfh.bounds = bounds
-		# source.tfh.plot("transfer_function.png", profile_field=("stream", "density"))				
+		# source.tfh.plot("transfer_function.png", profile_field=("stream", f"{ptype}_density"))				
 		
 
 
 		text_annot = f"z = {self.redshift:.2f}"+"   "+f"t = {self.cosmtime:.2f}"
-		sc.annotate_axes(alpha=0.01)
-		sc.annotate_domain(grid)
-		sc.annotate_mesh_lines(grid)
+		sc.annotate_axes(alpha=0.03)
+		sc.annotate_mesh_lines(grid, alpha = 0.03)
 		# sc.save(ptype+output_file, sigma_clip=1.0)
 		sc.save_annotated(self.graph_path+ptype+output_file,
-					 sigma_clip=1.0, 
+					 sigma_clip=2.0, 
 					 text_annotate=[[
 						 (0.15, 0.95), text_annot,
-						 dict(color="y", fontsize="24", horizontalalignment="center")]]
+						 dict(color="y", fontsize="24", horizontalalignment="left")]]
 					)
 		
 		print(f"[yt] Сохранено рендер: {ptype+output_file}")
@@ -348,7 +475,7 @@ class SnapshotVisualizer:
 		basis = np.array([x_axis, y_axis, z_axis])
 
 
-		output_file = f"analysis/finder/{ptype}_frame.json"
+		output_file = f"{self.graph_path}/../analysis/finder/{ptype}_frame.json"
 		out_data = {
 			"center_kpc": center.tolist(),
 			"basis_rows": basis.tolist(),  # [x_axis, y_axis, z_axis]
@@ -365,15 +492,25 @@ class SnapshotVisualizer:
 
 if __name__ == "__main__":
 	
-	for i, snap in enumerate([f"snaps/snapshot_00{i}" for i in range(8)]):
-		vis = SnapshotVisualizer(snap)		
-		for ptype in ["Disk", "Halo"]:
-			# vis.make_coord_fields(ptype)
-			grid = vis.make_density_field(ptype=ptype)
+	# for i, snap in enumerate([f"run_test/snaps/snapshot_00{i}" for i in range(7,8)]):
+	# 	vis = SnapshotVisualizer(snap)		
+	# 	vis.print_header_info()
+		# for ptype in ["Disk", "Halo"]:
+		# 	# vis.make_coord_fields(ptype)
+		# 	grid = vis.make_density_field(ptype=ptype)
 
-			vis.plot_density_yt3d(grid,ptype=ptype, output_file = f"_density_yt3D_{i}.png")
+		# 	vis.plot_density_yt3d(grid,ptype=ptype, output_file = f"_density_yt3D_{i}.png")
+	
+	snap = "run_test/snaps/snapshot_007"
+	vis = SnapshotVisualizer(snap)
+	vis.make_coord_fields("Halo")
+	vis.make_coord_fields("Disk")
+	# vis.plot_radial_distribution(n_bins=25)
+	vis.plot_rotation_curves(n_bins=30)
+	
 	
 	# vis.plot_speed_profile(ptype)
+	
 
 	# vis.plot_inplane2d(grid, zaxis="z", ptype =ptype)
 	# vis.plot_phase_vr(ptype)

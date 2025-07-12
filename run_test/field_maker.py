@@ -43,7 +43,7 @@ def make_vrad(field_pos, field_vel):
     def _func(field, data):
         x,y,z = np.moveaxis(data[field_pos],1,0)
         vx,vy,vz = np.moveaxis(data[field_vel],1,0)
-        eps = unyt_quantity(1e-15, r.units)
+        eps = unyt_quantity(1e-15, x.units)
         r = np.sqrt(x*x + y*y + z*z) + eps
         return (x*vx + y*vy + z*vz)/r
     return _func
@@ -64,6 +64,7 @@ def make_angular_momentum(field_pos, field_vel):
         Jz = x*vy - y*vx
         return np.vstack([Jx, Jy, Jz]).T
     return _func
+
 
 # … (можно аналогично сделать функции для Jx, Jy, Jz, |J|, массы и т.п.) …
 
@@ -89,7 +90,7 @@ def register_particle_fields(ds, ptype):
         f"{ptype}_vz":    (make_scalar_component(parent_vel, 2), "km/s",       "particle"),
         f"{ptype}_v":   (make_radius(parent_vel),             "km/s",       "particle"),
         # f"{ptype}_v_r":   (make_vrad(parent_pos, parent_vel),    "km/s",       "particle"),
-        # f"{ptype}_v_t":   (make_vtan(parent_pos, parent_vel),    "km/s",       "particle"),
+        f"{ptype}_vtan":   (make_vtan(parent_pos, parent_vel),    "km/s",       "particle"),
     }
 
     for fname, (func, units, sampling) in fields.items():
