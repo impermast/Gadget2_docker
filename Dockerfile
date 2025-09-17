@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     openmpi-bin libopenmpi-dev \
     libhdf5-openmpi-dev \
     hdf5-tools \
-    libx11-dev libgtk-3-dev \
+    libx11-dev libgtk-3-dev hicolor-icon-theme \
     nano vim htop mc geany \
     python3 python3-pip python3-venv \
     && apt-get clean

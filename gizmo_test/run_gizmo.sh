@@ -43,13 +43,25 @@ fi
 # --- Copy files to GIZMO directory ---
 echo "[INFO] Preparing GIZMO build..."
 cp "$CONFIG_FILE_SRC" "$GIZMO_DIR/Config.sh"
-cp "$MAKEFILE_SRC" "$GIZMO_DIR/Makefile"
+# REMOVED: cp "$MAKEFILE_SRC" "$GIZMO_DIR/Makefile" - This was overwriting the original GIZMO Makefile
 PARAM_BASENAME=$(basename "$PARAMFILE_SRC")
 cp "$PARAMFILE_SRC" "$GIZMO_DIR/$PARAM_BASENAME"
 
+# --- Extract CFLAGS_EXTRA and LIBS_EXTRA from the wrapper Makefile ---
+# This parses the Makefile in gizmo_test to get the build flags.
+# It's important to use the Makefile from gizmo_test as the source of truth for these flags.
+CFLAGS_VAL=$(grep -E '^CFLAGS\s*=' "$MAKEFILE_SRC" | cut -d'=' -f2- | xargs)
+INCL_VAL=$(grep -E '^INCL\s*=' "$MAKEFILE_SRC" | cut -d'=' -f2- | xargs)
+CFLAGS_EXTRA_VAL="$CFLAGS_VAL $INCL_VAL"
+
+LIBS_VAL=$(grep -E '^LIBS\s*=' "$MAKEFILE_SRC" | cut -d'=' -f2- | xargs)
+LIBS_EXTRA_VAL="$LIBS_VAL"
+
 # --- Compile ---
 echo "[INFO] Building GIZMO in $GIZMO_DIR..."
-make -C "$GIZMO_DIR" clean && make -C "$GIZMO_DIR" -j$(nproc)
+# Now, we execute the original GIZMO Makefile (Makefile.gizmo) directly
+# and pass the extracted flags.
+make -C "$GIZMO_DIR" clean && make -C "$GIZMO_DIR" -f Makefile.gizmo CFLAGS_EXTRA="$CFLAGS_EXTRA_VAL" LIBS_EXTRA="$LIBS_EXTRA_VAL" -j$(nproc)
 if [ $? -ne 0 ]; then
     echo "[ERROR] Compilation failed."
     exit 5
