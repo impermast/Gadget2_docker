@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CONTAINER_NAME="gadget2"
-HOST_PATH="/home/kds/sci/threebody/GadgetDocker/dockerData"
+HOST_PATH="$(pwd)/dockerData"
 
 if [ -z "$DISPLAY" ]; then
     echo "WARNING: DISPLAY is not set. GUI applications may not work."

@@ -8,11 +8,18 @@ testGraphs/*.png
 testGraphs/*.pdf
 testGraphs/*.gif
 
-run_test/graph/*
+gizmo_test/graph/*
+gizmo_test/snapshot*
+gizmo_test/snaps/*
+gizmo_test/__pycache__/
 
-run_test/snapshot*
-run_test/snaps/*
+gadget_test/graph/*
 
-run_test/__pycache__/
+gadget_test/snapshot*
+
+gadget_test/snaps/*
+
+gadget_test/__pycache__/
+
 
 test_graph_*

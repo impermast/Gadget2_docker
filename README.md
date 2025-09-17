@@ -1,134 +1,97 @@
-# GADGET-2 Docker Environment
+# Dockerized GADGET-2 and GIZMO Environment
 
-This repository contains a Docker environment for building and running **GADGET-2**, a cosmological N-body/SPH simulation code. It includes all necessary dependencies, including:
+This repository provides a Docker-based environment for building and running cosmological N-body/SPH simulations with **GADGET-2** and **GIZMO**.
 
-* **MPI** (OpenMPI)
-* **FFTW 2.1.5** (compiled from source)
-* **GSL 1.16** (compiled from source)
-* **Geany** editor and other common CLI tools
-
-## 🧱 What's inside
-
-* `Dockerfile`: Installs dependencies, compiles GSL, FFTW2, GADGET-2
-* `Makefile`: Configuration for building GADGET-2 with MPI, FFTW2, and GSL
-* `run_test/run_gadget.sh`: Script to launch a sample simulation
+The environment is designed for flexibility, allowing you to compile the simulation codes at runtime with custom configurations without needing to rebuild the entire Docker image.
 
 ---
 
-## 🚀 Quick Start
+## Features
 
-### 1. Clone and build the image
+- **Reproducible Environment:** Includes Ubuntu 20.04 with all necessary scientific libraries (MPI, GSL 1.16, FFTW 2.1.5, HDF5).
+- **Flexible Compilation:** Compile GADGET-2 and GIZMO at runtime using simple shell scripts.
+- **Parallel Ready:** `mpicc` and `mpirun` are configured and ready to use.
+- **GIZMO & GADGET-2:** Contains the source code for both simulation packages.
+- **Helper Tools:** Includes Python 3, `numpy`, `matplotlib`, `pandas`, and the `glio` visualization library.
+
+---
+
+## How to Build the Image
+
+From the root of the project directory, run:
 
 ```bash
-git clone https://github.com/impermast/gadget2-docker.git
-cd gadget2-docker
 docker build -t gadget2 .
 ```
 
-### 2. Run the container
+---
+
+## How to Run Simulations
+
+### 1. Start the Container
+
+Run the container interactively using the provided script. This script handles mounting the `dockerData` directory for simulation outputs and enables GUI applications.
 
 ```bash
-docker run -it gadget2
+./run_docker_gui_linux.sh
 ```
 
-or if you work in linux and want gui
+This script will start a container named `gadget2`. If a container with that name already exists, it will simply start it.
 
-```bash
-chmod +x run_gadget_gui_linux.sh
-./run_gadget_gui_linux.sh
-```
+### 2. Execute a Simulation
 
-### 3. Run the test simulation
+The environment uses a special workflow. You do not run the simulation code directly. Instead, you use wrapper scripts that first compile the code with your desired configuration and then run it.
 
-Inside the container:
+#### Running GADGET-2
 
-```bash
-./run_gadget.sh
-```
+1.  Navigate to the GADGET-2 test directory:
+    ```bash
+    cd /workspace/gadget_test
+    ```
+2.  Modify the `Makefile` and parameter file (`lcdm_gas.param`) for your specific needs.
+3.  Execute the run script:
+    ```bash
+    ./run_gadget.sh
+    ```
+    This will copy your `Makefile`, recompile GADGET-2, and run it with your parameter file. The output will appear in `/workspace/dockerData` which is mounted from the `dockerData` directory on your host machine.
 
-Output will be written to `/workspace/dockerData`.
+#### Running GIZMO
 
-### 4. `dockerData/` directory
-
-To exchange files (e.g. input data, output snapshots, logs) between the Docker container and the host system, use the mounted directory:
-
-`/workspace/dockerData`
-
-This directory is accessible both inside and outside the container, and is ideal for persistent storage and communication with your host environment. You can mount this folder when starting the container with:
-
-```bash
-docker run -it -v $(pwd)/dockerData:/workspace/dockerData gadget2
-```
-
-Make sure `/dockerData`  exists on the host side before running.
+1.  Navigate to the GIZMO test directory:
+    ```bash
+    cd /workspace/gizmo_test
+    ```
+2.  Modify the `Config.sh` file to enable the physics modules you need.
+3.  Modify the `Makefile` if you have special compilation requirements.
+4.  Modify the parameter file (`gizmo.param`).
+5.  Execute the run script:
+    ```bash
+    ./run_gizmo.sh
+    ```
+    This will copy your `Config.sh` and `Makefile`, recompile GIZMO, and run it.
 
 ---
 
-## 🛠 File descriptions
+## Project Structure
 
-### `example.param`
-
-Parameter file controlling the simulation. Includes paths to ICs and output directory.
-
-### `outputs_lcdm_gas.txt`
-
-List of scale factors at which snapshots will be written.
-
-### `run_gadget.sh`
-
-Simple wrapper to call GADGET-2 with MPI:
-
-```bash
-mpirun -n 1 /opt/Gadget-2.0.7/Gadget2/Gadget2 /workspace/parameterfiles/example.param
-```
-
-This script also automatically:
-
-* Copies the selected Makefile and parameter file into the GADGET source directory
-* Rebuilds the code with `make`
-* Copies the executable back and runs it with the given parameter file
-* **Creates the output directory if it doesn't exist** (based on `OutputDir` from the `.param` file)
+-   `Dockerfile`: Defines the Docker image, installs all dependencies, and copies the source codes.
+-   `gadget_test/`: Contains configuration (`Makefile`, `.param`) and the run script (`run_gadget.sh`) for **GADGET-2**.
+-   `gizmo_test/`: Contains configuration (`Config.sh`, `Makefile`, `.param`) and the run script (`run_gizmo.sh`) for **GIZMO**.
+-   `dockerData/`: A place to store simulation data on your host machine, mounted into the container at `/workspace/dockerData`.
 
 ---
 
-## 📌 Modeling notes
+## Credits
 
-### Makefile
-
-The project uses a clean Makefile with:
-
-* `mpicc` as compiler
-* GSL and FFTW paths fixed to `/workspace/gsl` and `/workspace/fftw`
-* `OPT = NOTYPEPREFIX_FFTW` (used by default)
-
-Only physics modeling parameters should be defined in `.param` files.
-
-### Parameter file (`.param`)
-
-For every simulation, make sure to:
-
-* Provide a correct `InitCondFile`, e.g.:
-
-  ```
-  InitCondFile lcdm_gas_littleendian.dat
-  ```
-* Set an `OutputDir`, e.g.:
-
-  ```
-  OutputDir /workspace/run_test/galaxy
-  ```
-
-> **Note:** GADGET-2 does *not* create the output directory automatically. If it does not exist, the simulation will crash. The `run_gadget.sh` script takes care of this automatically by parsing `OutputDir` and creating the directory before launch.
+-   **GADGET-2:** Volker Springel
+    -   [https://wwwmpa.mpa-garching.mpg.de/gadget/](https://wwwmpa.mpa-garching.mpg.de/gadget/)
+-   **GIZMO:** Philip F. Hopkins
+    -   Paper: [Hopkins, P. F. (2015), MNRAS, 450, 53](https://ui.adsabs.harvard.edu/abs/2015MNRAS.450...53H/abstract)
+    -   [https://github.com/pfhopkins/gizmo-public](https://github.com/pfhopkins/gizmo-public)
+-   Initial Docker setup inspired by Sergey Pilipenko (HSE).
 
 ---
 
-## 📌 Credits
+## License
 
-* GADGET-2 by Volker Springel: [wwwmpa.mpa-garching.mpg.de/gadget](https://wwwmpa.mpa-garching.mpg.de/gadget/)
-* Installation guide partially inspired by lecture materials by Sergey Pilipenko (HSE)
-
----
-
-## 📬 License
-
-This project is open for educational and research purposes. GADGET-2 itself is licensed for scientific, non-commercial use.
+For educational and research use only. GADGET-2 and GIZMO are licensed for scientific, non-commercial use.

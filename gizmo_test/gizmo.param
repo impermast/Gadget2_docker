@@ -1,0 +1,32 @@
+# GIZMO Parameter File for a test run
+
+InitCondFile         = lcdm_gas_littleendian.dat
+OutputDir            = output
+EnergyFile           = "energy.txt"
+InfoFile             = "info.txt"
+TimingsFile          = "timings.txt"
+
+TimeLimitCPU         = 36000
+ComovingIntegrationOn = 1
+TimeBegin            = 0.02
+TimeMax              = 1.0
+
+Omega0               = 0.3
+OmegaLambda          = 0.7
+OmegaBaryon          = 0.04
+HubbleParam          = 0.7
+BoxSize              = 60000.0
+
+OutputListOn = 1
+OutputList = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+
+PartAllocFactor = 2.0
+TreeAllocFactor = 0.8
+BufferSize      = 100
+
+SofteningGas         = 2.0
+SofteningHalo        = 2.0
+SofteningDisk        = 2.0
+SofteningBulge       = 2.0
+SofteningStars       = 2.0
+SofteningBndry       = 2.0

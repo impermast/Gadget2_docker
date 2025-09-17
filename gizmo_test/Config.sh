@@ -1,0 +1,17 @@
+# GIZMO CONFIGURATION OPTIONS
+
+# -- Basic code options --
+#PERIODIC
+#COOLING
+#HYDRO_MESHLESS_FINITE_MASS
+
+# -- Physics modules --
+#SFR
+#BLACKHOLES
+
+# -- Precision --
+#DOUBLEPRECISION=1
+#DOUBLEPRECISION_FFTW
+
+# -- Output formats --
+HDF5
