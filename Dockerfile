@@ -26,12 +26,14 @@ RUN wget https://ftp.gnu.org/gnu/gsl/gsl-1.16.tar.gz \
     && make -j$(nproc) && make install \
     && cd .. && rm -rf gsl-1.16*
 
+# Установка FFTW 2.1.5 (MPI, double & single precision)
 RUN wget http://www.fftw.org/fftw-2.1.5.tar.gz \
-    && tar -xzf fftw-2.1.5.tar.gz \
-    && cd fftw-2.1.5 \
-    && ./configure --prefix=/workspace/fftw --enable-mpi \
-    && make -j$(nproc) && make install \
-    && cd .. && rm -rf fftw-2.1.5*
+ && tar -xzf fftw-2.1.5.tar.gz && cd fftw-2.1.5 \
+ && ./configure --prefix=/workspace/fftw --enable-mpi --enable-type-prefix --enable-shared \
+ && make -j$(nproc) && make install && make clean \
+ && ./configure --prefix=/workspace/fftw --enable-mpi --enable-float --enable-type-prefix --enable-shared \
+ && make -j$(nproc) && make install \
+ && cd .. && rm -rf fftw-2.1.5*
 
 # Download and extract GADGET-2
 RUN wget https://wwwmpa.mpa-garching.mpg.de/gadget/gadget-2.0.7.tar.gz \
@@ -55,6 +57,8 @@ ENV PYTHONPATH=/workspace:$PYTHONPATH
 
 # Copy GIZMO test configuration and run script
 COPY gizmo_test /workspace/gizmo_test
+COPY /workspace/gizmo_test/Makefile /workspace/gizmo-public/Makefile
+
 RUN chmod +x /workspace/gizmo_test/run_gizmo.sh
 
 # Copy GADGET test configuration and run script

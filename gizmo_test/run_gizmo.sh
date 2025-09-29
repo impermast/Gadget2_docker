@@ -13,7 +13,7 @@ CALL_DIR="$(pwd)"
 # --- Argument handling ---
 if [ "$#" -eq 0 ]; then
     echo "[INFO] No arguments passed. Using defaults."
-    CONFIG_FILE_SRC="$DEFAULT_CONFIG_FILE"
+    CONFIG_FILE_SRC="$DEFAULT_ CONFIG_FILE"
     MAKEFILE_SRC="$DEFAULT_MAKEFILE"
     PARAMFILE_SRC="$DEFAULT_PARAMFILE"
 elif [ "$#" -eq 3 ]; then
