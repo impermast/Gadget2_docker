@@ -36,6 +36,11 @@ if [ -z "$DISPLAY" ]; then
     echo "WARNING: DISPLAY is not set. GUI applications may not work."
 fi
 
+if ! systemctl is-active --quiet docker; then
+    echo ">>> Docker daemon is not running. Starting it..."
+    sudo systemctl start docker
+fi
+
 # Разрешаем доступ X-сервера
 if command -v xhost >/dev/null 2>&1; then
     xhost +local:root
