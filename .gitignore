@@ -1,8 +1,10 @@
 
 .history
+**/.local/
+**/.bash*
 
-dockerData/*
-
+**/dockerData/*
+**/output/
 
 testGraphs/*.png
 testGraphs/*.pdf
@@ -21,7 +23,12 @@ gadget_test/snaps/*
 
 gadget_test/__pycache__/
 
+*.hdf5
+*snapshot_*
 
 test_graph_*
+*.png
+*.jpeg
+*.gif
 
 GEMINI.md
