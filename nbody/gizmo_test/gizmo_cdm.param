@@ -33,7 +33,7 @@
 % 
 
 %----  Relevant files
-InitCondFile   halo_part3grain_ic
+InitCondFile halo_10000_sidm_ic
 OutputDir      output_halo_cdm
 
 
@@ -180,3 +180,7 @@ BAL_v_outflow                30000	    % velocity (code units) of BAL outflow (B
 
 %-------------- Grackle UVB file (GRACKLE on)
 GrackleDataFile		     CloudyData_UVB=HM2012.h5
+
+DM_DissipationFactor 0.0
+DM_KickPerCollision 0.0
+DM_InteractionVelocityScale 0.0

@@ -1,4 +1,4 @@
-InitCondFile                                      halo_part3grain_ic
+InitCondFile                                      halo_10000_sidm_ic
 OutputDir                                         /nbody/gizmo_test/output/
 TimeBetSnapshot                                   0.01
 TimeBegin                                         0
@@ -21,3 +21,6 @@ SofteningStars                                    0.05
 SofteningBndry                                    0.05
 AGS_DesNumNgb                                     32
 DM_InteractionCrossSection                        0
+DM_DissipationFactor                              0
+DM_KickPerCollision                               0
+DM_InteractionVelocityScale                       0

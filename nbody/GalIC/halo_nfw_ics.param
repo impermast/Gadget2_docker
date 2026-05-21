@@ -28,7 +28,7 @@ BulgeStretch   1.0        % should be one for a spherical bulge, smaller than on
 
 %------   Particle numbers in target model
 
-N_HALO         100000           % desired number of particles in dark halo 
+N_HALO         10000
 N_DISK         0                % desired number of collisionless particles in disk 
 N_BULGE        0                % number of bulge particles 
 
