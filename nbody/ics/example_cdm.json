@@ -1,0 +1,15 @@
+{
+  "run_name": "example_cdm",
+  "output_dir": "/nbody/ics/example_cdm",
+  "galic_param": "nbody/GalIC/halo_nfw_ics.param",
+  "components": [
+    {
+      "name": "dm",
+      "n": 10000,
+      "cc": 10,
+      "v200": 200,
+      "map_to": 3,
+      "sigma": 0
+    }
+  ]
+}
