@@ -5,6 +5,7 @@
 
 **/dockerData/*
 **/output/
+**/restartfiles
 
 testGraphs/*.png
 testGraphs/*.pdf
@@ -17,6 +18,7 @@ gizmo_test/__pycache__/
 
 *.dat
 nbody/GalIC/halo_nfw_ics/
+nbody/runs/**
 
 gadget_test/graph/*
 gadget_test/snapshot*
@@ -31,4 +33,9 @@ test_graph_*
 *.jpeg
 *.gif
 
+
 GEMINI.md
+.clineignore
+.clinerules/
+memory-bank/
+llm/

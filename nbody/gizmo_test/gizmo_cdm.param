@@ -33,7 +33,7 @@
 % 
 
 %----  Relevant files
-InitCondFile halo_10000_sidm_ic
+InitCondFile /nbody/gizmo_test/halo_10000_sidm_ic
 OutputDir      output_halo_cdm
 
 

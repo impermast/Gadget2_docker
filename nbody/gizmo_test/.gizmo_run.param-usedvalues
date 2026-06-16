@@ -1,4 +1,4 @@
-InitCondFile                                      halo_10000_sidm_ic
+InitCondFile                                      /nbody/gizmo_test/halo_10000_sidm_ic
 OutputDir                                         /nbody/gizmo_test/output/
 TimeBetSnapshot                                   0.01
 TimeBegin                                         0

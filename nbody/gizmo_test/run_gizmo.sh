@@ -61,7 +61,7 @@ if grep -q '^OutputDir' "$TMP_PARAM"; then
 fi
 
 echo "=== Running GIZMO ==="
-mpirun --allow-run-as-root -np 1 ./GIZMO "$TMP_PARAM"
+mpirun --allow-run-as-root -np 4 ./GIZMO "$TMP_PARAM"
 
 echo
 echo "=== Done ==="
