@@ -1,41 +1,63 @@
-
-.history
+# Editor / local history
+.history/
 **/.local/
 **/.bash*
 
+# Docker runtime
 **/dockerData/*
+
+# Generated simulation outputs
 **/output/
+**/outputs/
+**/graph/*
+**/graphs/*
+**/testGraphs/*
+**/snaps/*
+**/snapshots/*
+**/snapshot*
+*snapshot_*
+
+# GIZMO runtime
+**/.gizmo_run*
+**/*-usedvalues
+
+# GalIC generated output (keep param files, ignore generated dirs)
+nbody/GalIC/halo_nfw_ics/
+nbody/ics/*/galic_*/
+
+# Generated IC data (HDF5)
+*.hdf5
+*.h5
+
+# Simulation data
+*.dat
+nbody/runs/**
 **/restartfiles
 
+# Generated plots
 testGraphs/*.png
 testGraphs/*.pdf
 testGraphs/*.gif
-
 gizmo_test/graph/*
-gizmo_test/snapshot*
 gizmo_test/snaps/*
-gizmo_test/__pycache__/
-
-*.dat
-nbody/GalIC/halo_nfw_ics/
-nbody/runs/**
-
 gadget_test/graph/*
-gadget_test/snapshot*
 gadget_test/snaps/*
-gadget_test/__pycache__/
-
-*.hdf5
-*snapshot_*
-
 test_graph_*
 *.png
 *.jpeg
+*.jpg
 *.gif
+*.pdf
 
+# Python caches
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
 
+# LLM infrastructure (not committed)
+llm/
+
+# Misc
 GEMINI.md
 .clineignore
-.clinerules/
-memory-bank/
-llm/
+.clinerules/00-entrypoint.md
