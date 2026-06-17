@@ -60,4 +60,4 @@ llm/
 # Misc
 GEMINI.md
 .clineignore
-.clinerules/00-entrypoint.md
+.clinerules/
