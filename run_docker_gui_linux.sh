@@ -110,10 +110,13 @@ if [[ -z "$container_id" ]]; then
         --workdir "$CONTAINER_PATH" \
         --volume "$HOST_PATH":"$CONTAINER_PATH" \
         --volume /tmp/.X11-unix:/tmp/.X11-unix:rw \
+        --cpus=10 \
+        --memory=8g \
         "$IMAGE_NAME"
 else
     if docker ps -q -f name=^/${CONTAINER_NAME}$ >/dev/null 2>&1 && [[ -n "$(docker ps -q -f name=^/${CONTAINER_NAME}$)" ]]; then
-        echo ">>> Container '$CONTAINER_NAME' is already running. Opening shell..."
+        echo ">>> Container '$CONTAINER_NAME' is already running. Applying resource limits and opening shell..."
+        docker update --cpus=10 --memory=8g "$CONTAINER_NAME" 2>/dev/null || true
         docker exec -it "$CONTAINER_NAME" bash
     else
         echo ">>> Container '$CONTAINER_NAME' already exists. Starting it..."

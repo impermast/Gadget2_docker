@@ -1,6 +1,6 @@
 {
-  "run_name": "sidm_N1e6",
-  "output_dir": "/nbody/ics/sidm_N1e6",
+  "run_name": "cdm_N1e6",
+  "output_dir": "/nbody/ics/cdm_N1e6",
   "galic_param": "nbody/GalIC/halo_nfw_ics.param",
   "components": [
     {
@@ -9,8 +9,8 @@
       "cc": 10,
       "v200": 200,
       "map_to": 3,
-      "sigma": 0.1,
-      "input_file": "/nbody/ics/sidm_N1e6/dm.hdf5"
+      "sigma": 0,
+      "input_file": "/nbody/ics/cdm_N1e6/dm.hdf5"
     }
   ]
 }

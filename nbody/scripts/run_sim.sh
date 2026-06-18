@@ -238,20 +238,129 @@ rebuild_gizmo() {
     info "Сборка завершена: $GIZMO_BIN"
 }
 
+# ======== Watcher — обновление run.state раз в минуту ========
+start_watcher() {
+    local run_dir="$1"
+    local param_file="${run_dir}/.gizmo_run.param"
+    local state_file="${run_dir}/run.state"
+    local start_epoch
+    start_epoch=$(date +%s)
+
+    # Читаем TimeMax из .gizmo_run.param
+    local time_max
+    time_max=$(grep -i '^TimeMax[[:space:]]' "$param_file" 2>/dev/null | awk '{print $2}' || echo "N/A")
+
+    (
+    while true; do
+        # Проверяем, жив ли mpirun
+        local pid=""
+        local alive=0
+        pid=$(pgrep -f "mpirun.*${run_dir}" 2>/dev/null | head -1)
+        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+            alive=1
+        fi
+        if [[ "$alive" -eq 0 ]]; then
+            # возможно mpirun уже завершился — проверяем последнюю запись в .gizmo_run.param-usedvalues
+            if [[ -f "${run_dir}/.gizmo_run.param-usedvalues" ]]; then
+                # симуляция завершилась — выходим
+                break
+            fi
+        fi
+
+        # Последний Sync-Point из run.log
+        local time_val=""
+        local sync_point=""
+        local last_line
+        last_line=$(grep "Sync-Point" "${run_dir}/run.log" 2>/dev/null | tail -1)
+        if [[ -n "$last_line" ]]; then
+            sync_point=$(echo "$last_line" | awk -F', ' '{print $1}' | awk '{print $3}')
+            time_val=$(echo "$last_line" | awk -F', ' '{print $2}' | awk '{print $2}')
+        fi
+
+        # Количество снапшотов
+        local snaps=0
+        snaps=$(ls "${run_dir}/output"/snapshot_*.hdf5 2>/dev/null | wc -l)
+
+        # Прогресс
+        local progress="N/A"
+        if [[ "$time_max" != "N/A" && -n "$time_val" ]]; then
+            progress=$(echo "scale=1; $time_val / $time_max * 100" | bc -l 2>/dev/null || echo "N/A")
+        fi
+
+        # Потребление памяти (RSS первого MPI процесса)
+        local mem_mb="N/A"
+        local gismo_pid
+        gismo_pid=$(pgrep -f "^$GIZMO_BIN" 2>/dev/null | head -1)
+        if [[ -n "$gismo_pid" ]]; then
+            mem_mb=$(ps -o rss= -p "$gismo_pid" 2>/dev/null | awk '{printf "%.0f", $1/1024}' || echo "N/A")
+        fi
+
+        # Прошло минут
+        local now_epoch
+        now_epoch=$(date +%s)
+        local elapsed_min=$(( (now_epoch - start_epoch) / 60 ))
+
+        # Статус
+        local status="RUNNING"
+        if [[ -n "$pid" ]] && ! kill -0 "$pid" 2>/dev/null; then
+            status="STOPPED"
+        fi
+
+        # Пишем state-файл
+        cat > "$state_file" << EOF
+STATUS=${status}
+RUN_NAME=${RUN_NAME}
+SIM_TYPE=$(echo "$SIM_TYPE" | tr '[:lower:]' '[:upper:]')
+SIGMA=${SIGMA:-N/A}
+TIME=${time_val:-N/A}
+TIME_MAX=${time_max}
+PROGRESS=${progress}
+SYNC_POINT=${sync_point:-N/A}
+SNAPSHOTS=${snaps}
+MEM_MB=${mem_mb}
+ELAPSED_MIN=${elapsed_min}
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+EOF
+
+        sleep 60
+    done
+    ) &
+    WATCHER_PID=$!
+    info "Watcher запущен (PID=$WATCHER_PID), state: ${run_dir}/run.state"
+}
+
+stop_watcher() {
+    if [[ -n "${WATCHER_PID:-}" ]]; then
+        kill "$WATCHER_PID" 2>/dev/null || true
+        wait "$WATCHER_PID" 2>/dev/null || true
+        info "Watcher остановлен"
+    fi
+}
+
 # ======== Запуск симуляции ========
 run_simulation() {
     info "Запуск симуляции..."
     info "Лог: ${RUN_DIR}/run.log"
 
+    # Запускаем watcher
+    start_watcher "${RUN_DIR}"
+
     cd "${RUN_DIR}"
     mpirun --allow-run-as-root -np "$MPI_PROCS" "$GIZMO_BIN" ".gizmo_run.param" 2>&1 | tee "run.log"
     local status=$?
 
+    # Останавливаем watcher
+    stop_watcher
+
+    # Обновляем state-файл финальным статусом
     if [[ "$status" -eq 0 ]]; then
+        sed -i 's/^STATUS=.*/STATUS=COMPLETED/' "${RUN_DIR}/run.state" 2>/dev/null || true
         info "Симуляция завершена успешно"
     else
+        sed -i 's/^STATUS=.*/STATUS=FAILED/' "${RUN_DIR}/run.state" 2>/dev/null || true
         warn "Симуляция завершилась с кодом $status"
     fi
+
     return "$status"
 }
 
