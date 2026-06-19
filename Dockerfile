@@ -64,7 +64,7 @@ RUN git clone https://github.com/spthm/glio \
     && rm -rf glio/.git
 
 WORKDIR /opt/glio
-RUN pip3 install --no-cache-dir matplotlib numpy pandas h5py
+RUN pip3 install --no-cache-dir matplotlib numpy pandas h5py python-telegram-bot
 RUN python3 -m lib2to3 -w .
 
 ENV PYTHONPATH=/opt:/opt/glio:$PYTHONPATH

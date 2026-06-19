@@ -1,0 +1,8 @@
+# Telegram bot configuration
+# Copy this file to telegram.conf and fill in your values.
+# Get token from https://t.me/BotFather
+# Get chat_id from https://t.me/userinfobot or by sending a message to your bot and visiting
+#   https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+
+BOT_TOKEN=123456:ABC-DEF...
+CHAT_ID=-1001234567890

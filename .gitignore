@@ -54,6 +54,11 @@ test_graph_*
 **/.pytest_cache/
 **/.mypy_cache/
 
+#tg bot
+telegram.conf
+.tgbot_state.json
+*.log
+
 # LLM infrastructure (not committed)
 llm/
 
