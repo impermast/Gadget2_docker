@@ -14,6 +14,8 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from plot_config import COLORS, SIZES, apply as style_ax
+S = SIZES
 
 
 # ─────────────────────────── I/O helpers ────────────────────────────────────
@@ -77,15 +79,12 @@ def centered_phase(data):
     pos = data["pos"].copy()
     vel = data["vel"].copy()
     mass = data["mass"]
-
     pos -= center_of_mass(pos, mass)
     vel -= center_velocity(vel, mass)
-
     r = np.linalg.norm(pos, axis=1)
     vr = np.zeros_like(r)
     mask = r > 0
     vr[mask] = np.einsum("ij,ij->i", pos[mask], vel[mask]) / r[mask]
-
     return pos, vel, r, vr
 
 
@@ -128,14 +127,12 @@ def radial_sigma_profile(data, nbins=40):
 
 
 def log_slope_profile(r_centers, rho):
-    """d log rho / d log r — should be ~0 in core, ~-3 in NFW cusp."""
     valid = np.isfinite(rho) & (rho > 0) & (r_centers > 0)
     slope = np.full_like(rho, np.nan)
     if np.sum(valid) < 3:
         return slope
     log_r = np.log10(r_centers[valid])
     log_rho = np.log10(rho[valid])
-    # central difference
     d_log_rho = np.gradient(log_rho, log_r)
     slope[valid] = d_log_rho
     return slope
@@ -158,17 +155,14 @@ def nfw_profile(r, rho0, rs):
 
 
 def core_profile(r, rho0, rc):
-    """Isothermal core: rho0 / (1 + (r/rc)^2)"""
     return rho0 / (1.0 + (r / rc) ** 2)
 
 
 def _lm_fit(func, r, rho, p0, n_iter=2000, lam=1e-3):
-    """Levenberg-Marquardt style fitter without scipy. Works in log-space."""
     log_rho = np.log(rho)
     p = np.array(p0, dtype=float)
     lam_val = lam
     best_p, best_res = p.copy(), np.inf
-
     for _ in range(n_iter):
         try:
             pred = func(r, *p)
@@ -177,10 +171,8 @@ def _lm_fit(func, r, rho, p0, n_iter=2000, lam=1e-3):
             res = np.sum((np.log(pred) - log_rho) ** 2)
         except Exception:
             break
-
         if res < best_res:
             best_res, best_p = res, p.copy()
-
         eps = np.abs(p) * 1e-5 + 1e-10
         J = np.zeros((len(r), len(p)))
         for k in range(len(p)):
@@ -189,29 +181,24 @@ def _lm_fit(func, r, rho, p0, n_iter=2000, lam=1e-3):
                 J[:, k] = (np.log(func(r, *(p + dp))) - np.log(func(r, *(p - dp)))) / (2 * eps[k])
             except Exception:
                 return best_p, func
-
         JtJ = J.T @ J
         g = J.T @ (np.log(func(r, *p)) - log_rho)
         try:
             dp = np.linalg.solve(JtJ + lam_val * np.diag(np.diag(JtJ) + 1e-10), -g)
         except np.linalg.LinAlgError:
             break
-
         p_new = np.abs(p + dp)
         try:
             pred_new = func(r, *p_new)
             res_new = np.sum((np.log(pred_new) - log_rho) ** 2) if np.all(np.isfinite(pred_new)) and np.all(pred_new > 0) else np.inf
         except Exception:
             res_new = np.inf
-
         if res_new < res:
             p, lam_val = p_new, lam_val * 0.5
         else:
             lam_val = lam_val * 2.0
-
         if np.max(np.abs(dp) / (np.abs(p) + 1e-10)) < 1e-7:
             break
-
     return best_p, func
 
 
@@ -257,19 +244,6 @@ def phase_hist_r_vr(data, nbins=250):
     return H.T + 1e-20, [0, rmax, -vmax, vmax]
 
 
-# ──────────────────────────── Plot helpers ──────────────────────────────────
-
-def style_ax(ax, title=None):
-    ax.set_facecolor("#111111")
-    for sp in ax.spines.values():
-        sp.set_color("#888888")
-    ax.tick_params(colors="#BBBBBB")
-    ax.xaxis.label.set_color("#DDDDDD")
-    ax.yaxis.label.set_color("#DDDDDD")
-    if title:
-        ax.set_title(title, color="#DDDDDD", fontsize=11)
-
-
 # ──────────────────────────── Plot functions ────────────────────────────────
 
 def plot_surface_density_compare(cdm, sidm, outpath):
@@ -277,80 +251,69 @@ def plot_surface_density_compare(cdm, sidm, outpath):
     H2, ext2 = projected_density_map(sidm, width=ext1[1] - ext1[0])
     vmin = min(np.nanmin(H1[H1 > 0]), np.nanmin(H2[H2 > 0]))
     vmax = max(np.nanmax(H1), np.nanmax(H2))
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), facecolor="#111111")
-    for ax, H, title in zip(axes, [H1, H2], ["CDM-like: projected density", "SIDM-like: projected density"]):
+    fig, axes = plt.subplots(1, 2, figsize=S["wide"])
+    for ax, H, title in zip(axes, [H1, H2], ["CDM: projected density", "SIDM: projected density"]):
         im = ax.imshow(H, origin="lower", extent=ext1,
                        norm=LogNorm(vmin=vmin, vmax=vmax), cmap="inferno")
-        ax.set_xlabel("x"); ax.set_ylabel("y")
-        style_ax(ax, title)
+        style_ax(ax, title=title, xlabel="x", ylabel="y")
     fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.85).set_label("Projected mass")
     fig.tight_layout()
-    fig.savefig(outpath, dpi=250, facecolor=fig.get_facecolor())
+    fig.savefig(outpath, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_density_profiles(cdm, sidm, outpath):
     rc, rhoc = radial_density_profile(cdm)
     rs, rhos = radial_density_profile(sidm)
-
-    # fits
     popt_nfw, func_nfw = fit_profile(rc, rhoc, "nfw")
     popt_core, func_core = fit_profile(rs, rhos, "core")
-
-    fig, ax = plt.subplots(figsize=(7, 5), facecolor="#111111")
-    ax.plot(rc, rhoc, lw=2, label="CDM-like")
-    ax.plot(rs, rhos, lw=2, label="SIDM-like")
+    fig, ax = plt.subplots(figsize=S["page"])
+    ax.plot(rc, rhoc, color=COLORS.palette[0], lw=1.5, label="CDM")
+    ax.plot(rs, rhos, color=COLORS.palette[1], lw=1.5, label="SIDM")
     if popt_nfw is not None:
         r_fine = np.logspace(np.log10(rc[0]), np.log10(rc[-1]), 200)
-        ax.plot(r_fine, func_nfw(r_fine, *popt_nfw), "--", lw=1.2,
-                color="steelblue", alpha=0.7, label=f"NFW fit (rs={popt_nfw[1]:.1f})")
+        ax.plot(r_fine, func_nfw(r_fine, *popt_nfw), "--", lw=1.0,
+                color=COLORS.mono[2], alpha=0.7, label=f"NFW fit (rs={popt_nfw[1]:.1f})")
     if popt_core is not None:
         r_fine = np.logspace(np.log10(rs[0]), np.log10(rs[-1]), 200)
-        ax.plot(r_fine, func_core(r_fine, *popt_core), "--", lw=1.2,
-                color="orange", alpha=0.7, label=f"Core fit (rc={popt_core[1]:.1f})")
-    ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_xlabel("r"); ax.set_ylabel(r"$\rho(r)$")
-    ax.legend(fontsize=9)
-    style_ax(ax, "Radial density profile")
+        ax.plot(r_fine, func_core(r_fine, *popt_core), "--", lw=1.0,
+                color=COLORS.mono[3], alpha=0.7, label=f"Core fit (rc={popt_core[1]:.1f})")
+    style_ax(ax, "Radial density profile", xlabel="r", ylabel=r"$\rho(r)$",
+             xscale="log", yscale="log", legend=True)
     fig.tight_layout()
-    fig.savefig(outpath, dpi=250, facecolor=fig.get_facecolor())
+    fig.savefig(outpath, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_log_slope(cdm, sidm, outpath):
-    """d log rho / d log r — диагностика core vs cusp."""
     rc, rhoc = radial_density_profile(cdm)
     rs, rhos = radial_density_profile(sidm)
     sc = log_slope_profile(rc, rhoc)
     ss = log_slope_profile(rs, rhos)
-    fig, ax = plt.subplots(figsize=(7, 5), facecolor="#111111")
-    ax.plot(rc, sc, lw=2, label="CDM-like")
-    ax.plot(rs, ss, lw=2, label="SIDM-like")
-    ax.axhline(-1, color="#888", lw=0.8, ls="--", label="slope = -1")
-    ax.axhline(-3, color="#555", lw=0.8, ls="--", label="slope = -3 (NFW outer)")
-    ax.axhline(0,  color="#aaa", lw=0.8, ls=":",  label="slope = 0 (core)")
-    ax.set_xscale("log")
+    fig, ax = plt.subplots(figsize=S["page"])
+    ax.plot(rc, sc, color=COLORS.palette[0], lw=1.5, label="CDM")
+    ax.plot(rs, ss, color=COLORS.palette[1], lw=1.5, label="SIDM")
+    ax.axhline(-1, color=COLORS.mono[3], lw=0.8, ls="--", label="slope = -1")
+    ax.axhline(-3, color=COLORS.mono[4], lw=0.8, ls="--", label="slope = -3")
+    ax.axhline(0,  color=COLORS.mono[5], lw=0.8, ls=":",  label="slope = 0 (core)")
+    style_ax(ax, "Log-slope profile (core vs cusp)", xlabel="r",
+             ylabel=r"$d\log\rho/d\log r$", xscale="log", legend=True)
     ax.set_ylim(-5, 1)
-    ax.set_xlabel("r"); ax.set_ylabel(r"$d\log\rho/d\log r$")
-    ax.legend(fontsize=9)
-    style_ax(ax, "Log-slope profile (core=0, cusp<-1)")
     fig.tight_layout()
-    fig.savefig(outpath, dpi=250, facecolor=fig.get_facecolor())
+    fig.savefig(outpath, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_sigma_profiles(cdm, sidm, outpath):
     rc, sc = radial_sigma_profile(cdm)
     rs, ss = radial_sigma_profile(sidm)
-    fig, ax = plt.subplots(figsize=(7, 5), facecolor="#111111")
-    ax.plot(rc, sc, lw=2, label="CDM-like")
-    ax.plot(rs, ss, lw=2, label="SIDM-like")
-    ax.set_xscale("log")
-    ax.set_xlabel("r"); ax.set_ylabel(r"$\sigma_{1D}(r)$")
-    ax.legend()
-    style_ax(ax, "1D velocity dispersion profile")
+    fig, ax = plt.subplots(figsize=S["page"])
+    ax.plot(rc, sc, color=COLORS.palette[0], lw=1.5, label="CDM")
+    ax.plot(rs, ss, color=COLORS.palette[1], lw=1.5, label="SIDM")
+    style_ax(ax, "1D velocity dispersion profile", xlabel="r",
+             ylabel=r"$\sigma_{1D}(r)$", xscale="log", legend=True)
     fig.tight_layout()
-    fig.savefig(outpath, dpi=250, facecolor=fig.get_facecolor())
+    fig.savefig(outpath, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -359,16 +322,15 @@ def plot_phase_compare(cdm, sidm, outpath):
     H2, ext2 = phase_hist_r_vr(sidm)
     vmin = min(np.nanmin(H1[H1 > 0]), np.nanmin(H2[H2 > 0]))
     vmax = max(np.nanmax(H1), np.nanmax(H2))
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), facecolor="#111111")
+    fig, axes = plt.subplots(1, 2, figsize=S["wide"])
     for ax, H, ext, title in zip(axes, [H1, H2], [ext1, ext2],
-                                  ["CDM-like: phase space (r, vr)", "SIDM-like: phase space (r, vr)"]):
+                                  ["CDM: phase space (r, vr)", "SIDM: phase space (r, vr)"]):
         im = ax.imshow(H, origin="lower", extent=ext,
                        norm=LogNorm(vmin=vmin, vmax=vmax), cmap="magma", aspect="auto")
-        ax.set_xlabel("r"); ax.set_ylabel(r"$v_r$")
-        style_ax(ax, title)
+        style_ax(ax, title=title, xlabel="r", ylabel=r"$v_r$")
     fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.85).set_label("Counts per pixel")
     fig.tight_layout()
-    fig.savefig(outpath, dpi=250, facecolor=fig.get_facecolor())
+    fig.savefig(outpath, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -386,24 +348,16 @@ def core_density_evolution(run_dir, ptype=3, rcore=50.0):
 def plot_core_density_evolution(cdm_dir, sidm_dir, outpath, ptype=3, rcore=50.0):
     tc, rc, _ = core_density_evolution(cdm_dir, ptype=ptype, rcore=rcore)
     ts, rs, ni = core_density_evolution(sidm_dir, ptype=ptype, rcore=rcore)
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4), facecolor="#111111")
-
-    axes[0].plot(tc, rc, "-o", ms=3, lw=1.7, label="CDM-like")
-    axes[0].plot(ts, rs, "-o", ms=3, lw=1.7, label="SIDM-like")
-    axes[0].set_yscale("log")
-    axes[0].set_xlabel("time"); axes[0].set_ylabel(rf"$\rho(r<{rcore})$")
-    axes[0].legend()
-    style_ax(axes[0], "Core density evolution")
-
-    # NInteractions per snapshot — SIDM diagnostics
+    fig, axes = plt.subplots(1, 2, figsize=S["wide"])
+    axes[0].plot(tc, rc, "-o", color=COLORS.palette[0], ms=4, lw=1.5, label="CDM")
+    axes[0].plot(ts, rs, "-o", color=COLORS.palette[1], ms=4, lw=1.5, label="SIDM")
+    style_ax(axes[0], "Core density evolution", xlabel="time",
+             ylabel=rf"$\rho(r<{rcore})$", yscale="log", legend=True)
     ni_vals = [x if x is not None else 0 for x in ni]
-    axes[1].plot(ts, ni_vals, "-o", ms=3, lw=1.7, color="orange")
-    axes[1].set_xlabel("time"); axes[1].set_ylabel("Total NInteractions")
-    style_ax(axes[1], "Cumulative SIDM interactions")
-
+    axes[1].plot(ts, ni_vals, "-o", color=COLORS.palette[2], ms=4, lw=1.5)
+    style_ax(axes[1], "Cumulative SIDM interactions", xlabel="time", ylabel="Total NInteractions")
     fig.tight_layout()
-    fig.savefig(outpath, dpi=250, facecolor=fig.get_facecolor())
+    fig.savefig(outpath, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -412,46 +366,31 @@ def plot_core_density_evolution(cdm_dir, sidm_dir, outpath, ptype=3, rcore=50.0)
 def write_summary(cdm, sidm, outpath, rcore=50.0):
     rc_val = core_density(cdm, rcore=rcore)
     rs_val = core_density(sidm, rcore=rcore)
-
     _, cdm_rho = radial_density_profile(cdm)
     _, sidm_rho = radial_density_profile(sidm)
     cdm_r, _ = radial_density_profile(cdm)
     sidm_r, _ = radial_density_profile(sidm)
-
     cdm_slope = log_slope_profile(cdm_r, cdm_rho)
     sidm_slope = log_slope_profile(sidm_r, sidm_rho)
-
-    # inner slope: median of innermost 3 valid bins
     def inner_slope(slope_arr):
         valid = slope_arr[np.isfinite(slope_arr)]
         return float(np.median(valid[:3])) if len(valid) >= 3 else np.nan
-
-    _, func_nfw   = fit_profile(cdm_r, cdm_rho, "nfw")
     popt_nfw, _   = fit_profile(cdm_r, cdm_rho, "nfw")
     popt_core, _  = fit_profile(sidm_r, sidm_rho, "core")
-
     with open(outpath, "w", encoding="utf-8") as f:
-        f.write("Halo compare summary\n")
-        f.write("=" * 40 + "\n\n")
-        f.write(f"CDM snapshot : {cdm['path']}\n")
-        f.write(f"SIDM snapshot: {sidm['path']}\n")
-        f.write(f"CDM  time    : {cdm['time']:.4f}\n")
-        f.write(f"SIDM time    : {sidm['time']:.4f}\n\n")
-
+        f.write("Halo compare summary\n"); f.write("=" * 40 + "\n\n")
+        f.write(f"CDM snapshot : {cdm['path']}\n"); f.write(f"SIDM snapshot: {sidm['path']}\n")
+        f.write(f"CDM  time    : {cdm['time']:.4f}\n"); f.write(f"SIDM time    : {sidm['time']:.4f}\n\n")
         f.write(f"Core radius used : {rcore}\n")
-        f.write(f"rho_core CDM     : {rc_val:.4e}\n")
-        f.write(f"rho_core SIDM    : {rs_val:.4e}\n")
+        f.write(f"rho_core CDM     : {rc_val:.4e}\n"); f.write(f"rho_core SIDM    : {rs_val:.4e}\n")
         if np.isfinite(rc_val) and np.isfinite(rs_val) and rc_val > 0:
             f.write(f"ratio SIDM/CDM   : {rs_val/rc_val:.4f}\n\n")
-
         f.write(f"Inner log-slope CDM  : {inner_slope(cdm_slope):.3f}  (0=core, -1..-3=cusp)\n")
         f.write(f"Inner log-slope SIDM : {inner_slope(sidm_slope):.3f}\n\n")
-
         if popt_nfw is not None:
             f.write(f"NFW fit CDM  : rho0={popt_nfw[0]:.3e}, rs={popt_nfw[1]:.2f}\n")
         if popt_core is not None:
             f.write(f"Core fit SIDM: rho0={popt_core[0]:.3e}, rc={popt_core[1]:.2f}\n\n")
-
         ni = sidm.get("n_interact")
         f.write(f"NInteractions (last snap): {ni if ni is not None else 'not saved — check DM_SIDM flag'}\n")
 
@@ -467,67 +406,37 @@ def main():
     parser.add_argument("--rcore", type=float, default=50.0,
                         help="Core radius for rho_core(t). Use ~5x softening.")
     args = parser.parse_args()
-
     os.makedirs(args.outdir, exist_ok=True)
-
     cdm = read_snapshot(latest_snapshot(args.cdm), ptype=args.ptype)
-
     if args.sidm:
         sidm = read_snapshot(latest_snapshot(args.sidm), ptype=args.ptype)
-        plot_surface_density_compare(cdm, sidm,
-            os.path.join(args.outdir, "01_surface_density_compare.png"))
-        plot_density_profiles(cdm, sidm,
-            os.path.join(args.outdir, "02_density_profile_compare.png"))
-        plot_log_slope(cdm, sidm,
-            os.path.join(args.outdir, "03_log_slope_compare.png"))
-        plot_sigma_profiles(cdm, sidm,
-            os.path.join(args.outdir, "04_sigma1d_profile_compare.png"))
-        plot_phase_compare(cdm, sidm,
-            os.path.join(args.outdir, "05_phase_r_vr_compare.png"))
-        plot_core_density_evolution(args.cdm, args.sidm,
-            os.path.join(args.outdir, "06_core_density_evolution.png"),
-            ptype=args.ptype, rcore=args.rcore)
-        write_summary(cdm, sidm,
-            os.path.join(args.outdir, "summary.txt"), rcore=args.rcore)
+        plot_surface_density_compare(cdm, sidm, os.path.join(args.outdir, "01_surface_density_compare.png"))
+        plot_density_profiles(cdm, sidm, os.path.join(args.outdir, "02_density_profile_compare.png"))
+        plot_log_slope(cdm, sidm, os.path.join(args.outdir, "03_log_slope_compare.png"))
+        plot_sigma_profiles(cdm, sidm, os.path.join(args.outdir, "04_sigma1d_profile_compare.png"))
+        plot_phase_compare(cdm, sidm, os.path.join(args.outdir, "05_phase_r_vr_compare.png"))
+        plot_core_density_evolution(args.cdm, args.sidm, os.path.join(args.outdir, "06_core_density_evolution.png"), ptype=args.ptype, rcore=args.rcore)
+        write_summary(cdm, sidm, os.path.join(args.outdir, "summary.txt"), rcore=args.rcore)
         print(f"Saved to: {args.outdir}")
     else:
-        # single-run fallback — базовые 4 графика
         r, rho = radial_density_profile(cdm)
-        r2, sig = radial_sigma_profile(cdm)
         H, ext = projected_density_map(cdm)
-        P, pext = phase_hist_r_vr(cdm)
-
-        fig, ax = plt.subplots(figsize=(6, 5), facecolor="#111111")
+        fig, ax = plt.subplots(figsize=S["square"])
         ax.imshow(H, origin="lower", extent=ext, norm=LogNorm(), cmap="inferno")
-        ax.set_xlabel("x"); ax.set_ylabel("y")
-        style_ax(ax, "Projected density")
-        fig.tight_layout()
-        fig.savefig(os.path.join(args.outdir, "01_surface_density.png"), dpi=250, facecolor=fig.get_facecolor())
-        plt.close(fig)
-
-        fig, ax = plt.subplots(figsize=(7, 5), facecolor="#111111")
-        ax.plot(r, rho, lw=2)
-        ax.set_xscale("log"); ax.set_yscale("log")
-        ax.set_xlabel("r"); ax.set_ylabel(r"$\rho(r)$")
-        style_ax(ax, "Density profile")
-        fig.tight_layout()
-        fig.savefig(os.path.join(args.outdir, "02_density_profile.png"), dpi=250, facecolor=fig.get_facecolor())
-        plt.close(fig)
-
+        style_ax(ax, "Projected density", xlabel="x", ylabel="y")
+        fig.tight_layout(); fig.savefig(os.path.join(args.outdir, "01_surface_density.png"), dpi=300, bbox_inches="tight"); plt.close(fig)
+        fig, ax = plt.subplots(figsize=S["page"])
+        ax.plot(r, rho, color=COLORS.palette[0], lw=1.5)
+        style_ax(ax, "Density profile", xlabel="r", ylabel=r"$\rho(r)$", xscale="log", yscale="log")
+        fig.tight_layout(); fig.savefig(os.path.join(args.outdir, "02_density_profile.png"), dpi=300, bbox_inches="tight"); plt.close(fig)
         slope = log_slope_profile(r, rho)
-        fig, ax = plt.subplots(figsize=(7, 5), facecolor="#111111")
-        ax.plot(r, slope, lw=2)
-        ax.axhline(0, color="#aaa", ls=":", lw=0.8, label="core")
-        ax.set_xscale("log"); ax.set_ylim(-5, 1)
-        ax.set_xlabel("r"); ax.set_ylabel(r"$d\log\rho/d\log r$")
-        ax.legend()
-        style_ax(ax, "Log-slope profile")
-        fig.tight_layout()
-        fig.savefig(os.path.join(args.outdir, "03_log_slope.png"), dpi=250, facecolor=fig.get_facecolor())
-        plt.close(fig)
-
+        fig, ax = plt.subplots(figsize=S["page"])
+        ax.plot(r, slope, color=COLORS.palette[0], lw=1.5)
+        ax.axhline(0, color=COLORS.mono[5], ls=":", lw=0.8, label="core")
+        style_ax(ax, "Log-slope profile", xlabel="r", ylabel=r"$d\log\rho/d\log r$", xscale="log", legend=True)
+        ax.set_ylim(-5, 1)
+        fig.tight_layout(); fig.savefig(os.path.join(args.outdir, "03_log_slope.png"), dpi=300, bbox_inches="tight"); plt.close(fig)
         print(f"Saved to: {args.outdir}")
-
 
 if __name__ == "__main__":
     main()
