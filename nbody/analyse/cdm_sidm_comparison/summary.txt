@@ -6,33 +6,33 @@ CDM:
   Time:            5.0000
   Particles:       1000000
   Core density:    1.2426e-04
-  Inner log-slope: -1.428
+  Inner log-slope: -1.392
 
 $\sigma$=0.1:
   Snapshot:        runs/sidm_sigma0.1_N1e6/output/snapshot_051.hdf5
   Time:            5.0000
   Particles:       1000000
   Core density:    1.2424e-04
-  Inner log-slope: -1.366
+  Inner log-slope: -1.218
 
 $\sigma$=1.0:
   Snapshot:        runs/sidm_sigma1_N1e6/output/snapshot_051.hdf5
   Time:            5.0000
   Particles:       1000000
   Core density:    1.2455e-04
-  Inner log-slope: -0.920
+  Inner log-slope: -0.575
 
 $\sigma$=2.0:
   Snapshot:        runs/sidm_sigma2_N1e6/output/snapshot_051.hdf5
   Time:            5.0000
   Particles:       1000000
   Core density:    1.2483e-04
-  Inner log-slope: -0.924
+  Inner log-slope: -0.892
 
 $\sigma$=5.0:
   Snapshot:        runs/sidm_sigma5_N1e6/output/snapshot_051.hdf5
   Time:            5.0000
   Particles:       1000000
   Core density:    1.2367e-04
-  Inner log-slope: -0.997
+  Inner log-slope: -1.038
 

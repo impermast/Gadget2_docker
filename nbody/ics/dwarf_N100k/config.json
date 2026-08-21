@@ -1,0 +1,16 @@
+{
+  "run_name": "dwarf_N100k",
+  "output_dir": "/nbody/ics/dwarf_N100k",
+  "galic_param": "nbody/GalIC/halo_nfw_ics.param",
+  "components": [
+    {
+      "name": "dm",
+      "n": 100000,
+      "cc": 15,
+      "v200": 30,
+      "map_to": 3,
+      "sigma": 0,
+      "input_file": "/nbody/ics/dwarf_N100k/dm.hdf5"
+    }
+  ]
+}
