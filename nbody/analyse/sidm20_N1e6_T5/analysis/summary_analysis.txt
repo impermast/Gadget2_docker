@@ -1,0 +1,25 @@
+Snapshot: /nbody/runs/sidm20_dwarf_N1e6_T5/output/snapshot_051.hdf5
+Time: 5.0000   CrossSection: 20.0
+Particles: 1000000   Mtot=6.2763e-01
+COM(all): (-0.743, -0.623, -1.164)
+Shrink-center: (-1.145, -0.808, -1.526)
+Core density (r<2.0): 2.6483e-03
+Inner log-slope (median first bins): -0.144
+
+NInteractions TOTAL: 8147390
+Particles interacted: 513991/1000000 (51.40%)
+Per-interacted: mean=15.85 median=13 p90=36 max=94
+Radial NI profile (r_center, mean_ni, %_interacted):
+  r=    0.08  ni_mean=  29.086  pct= 100.0%
+  r=    0.20  ni_mean=  29.158  pct= 100.0%
+  r=    0.52  ni_mean=  27.719  pct= 100.0%
+  r=    1.34  ni_mean=  24.165  pct=  99.6%
+  r=    3.42  ni_mean=  14.334  pct=  89.9%
+  r=    8.74  ni_mean=   4.928  pct=  52.0%
+  r=   22.34  ni_mean=   1.674  pct=  21.9%
+  r=   57.13  ni_mean=   1.014  pct=  14.2%
+  r=  146.07  ni_mean=   0.601  pct=  13.4%
+  r=  373.47  ni_mean=   0.095  pct=   2.2%
+  r=  954.94  ni_mean=   0.001  pct=   0.0%
+  r= 2441.69  ni_mean=   0.000  pct=   0.0%
+[CHAIN RESULT] Time=5.000 NInteractions_total=8147390 interacted=513991/1000000

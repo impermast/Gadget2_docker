@@ -186,14 +186,16 @@ print_status_table
 echo ""
 
 # ----------------------------------------------------------------------
-# Post‑processing: run halo analysis (dry‑run prints commands)
+# Post‑processing: multi-run comparison via plot_scripts (dry-run prints command)
 # ----------------------------------------------------------------------
-for sigma in "${SIGMAS[@]}"; do
-    SIDM_DIR="runs/sidm_sigma${sigma}_N1e6"
-    CDM_DIR="runs/cdm_N1e6"
-    if [ $DRY_RUN -eq 0 ]; then
-        python3 scripts/analyze_halo.py --cdm "${CDM_DIR}" --sidm "${SIDM_DIR}" --rcore 50
-    else
-        echo "[DRY]  python3 scripts/analyze_halo.py --cdm ${CDM_DIR} --sidm ${SIDM_DIR} --rcore 50"
-    fi
-done
+if [ $DRY_RUN -eq 0 ]; then
+    RUN_ARGS=""
+    for sigma in "${SIGMAS[@]}"; do
+        RUN_ARGS="$RUN_ARGS runs/sidm_sigma${sigma}_N1e6"
+    done
+    python3 scripts/plot_scripts/compare_runs.py runs/cdm_N1e6 $RUN_ARGS \
+        --labels CDM ${SIGMAS[@]/#/SIDM} --rcore 50 \
+        --outdir analyse/cdm_sidm_all
+else
+    echo "[DRY]  python3 scripts/plot_scripts/compare_runs.py runs/cdm_N1e6 <sidm runs> --rcore 50 --outdir analyse/cdm_sidm_all"
+fi
