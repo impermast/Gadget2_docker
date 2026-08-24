@@ -1,0 +1,17 @@
+CDM vs SIDM comparison summary
+==================================================
+
+CDM:
+  Snapshot:        /nbody/runs/cdm_dwarf_N100k/output/snapshot_020.hdf5
+  Time:            2.0000
+  Particles:       100000
+  Core density:    1.0337e-06
+  Inner log-slope: -2.706
+
+$\sigma$=20.0:
+  Snapshot:        /nbody/runs/sidm20_dwarf_N100k/output/snapshot_020.hdf5
+  Time:            2.0000
+  Particles:       100000
+  Core density:    1.0301e-06
+  Inner log-slope: -2.894
+

@@ -4,7 +4,6 @@
 # Использование:
 #   bash run_sim.sh --name myrun --type sidm --time-max 5.0 --sigma 10
 #   bash run_sim.sh --name myrun --type cdm  --time-max 0.1 --dry-run
-#   bash run_sim.sh --name myrun --type sidm --tg
 #
 # Обязательные:
 #   --name <name>     имя прогона (создаётся nbody/runs/<name>/)
@@ -19,9 +18,12 @@
 #   --rebuild            принудительная пересборка GIZMO
 #   --dry-run            только показать что будет сделано
 #   --skip-viz           пропустить check_snapshot.py после прогона
-#   --tg                 включить Telegram-уведомления
-#   --tg-interval <n>    интервал прогресса в минутах (по умолчанию 10, только с --tg)
-#   --tg-skip-progress   не отправлять прогресс-уведомления (только старт/финиш)
+#   --no-tg              отключить Telegram-уведомления (по умолчанию ВКЛ,
+#                        если существует nbody/tg/telegram.conf)
+#   --tg-progress        включить периодические прогресс-уведомления
+#                        (по умолчанию только старт/финиш)
+#   --tg-interval <n>    интервал прогресса в минутах (по умолчанию 10,
+#                        подразумевает --tg-progress)
 
 set -euo pipefail
 
@@ -46,10 +48,11 @@ MPI_PROCS=4
 REBUILD=0
 DRY_RUN=0
 SKIP_VIZ=0
-TG_FLAG=0
+TG_FLAG=1           # по умолчанию ВКЛ; авто-отключится, если нет скрипта или конфига
 TG_INTERVAL=10
-TG_SKIP_PROGRESS=0
+TG_SKIP_PROGRESS=1  # прогресс по умолчанию выключен: отправляются только START/FINISH
 TG_SCRIPT="/nbody/tg/tg_event.py"
+TG_CONF="/nbody/tg/telegram.conf"
 
 usage() {
     cat << 'EOF'
@@ -68,9 +71,11 @@ usage() {
   --rebuild           принудительная пересборка GIZMO
   --dry-run           только показать команды без запуска
   --skip-viz          не запускать check_snapshot.py после прогона
-  --tg                включить Telegram-уведомления
-  --tg-interval <n>   интервал прогресса в минутах (по умолч. 10, только с --tg)
-  --tg-skip-progress  не отправлять прогресс-уведомления (только старт/финиш)
+  --no-tg             отключить Telegram-уведомления (по умолчанию ВКЛ
+                      при наличии /nbody/tg/telegram.conf)
+  --tg-progress       включить периодические прогресс-уведомления
+  --tg-interval <n>   интервал прогресса в минутах (по умолч. 10,
+                      подразумевает --tg-progress)
 EOF
 }
 
@@ -135,13 +140,16 @@ validate() {
         SKIP_VIZ=1
     fi
 
-    # Telegram-скрипт
+    # Telegram: скрипт и конфиг (уведомления ВКЛ по умолчанию)
     if [[ "$TG_FLAG" -eq 1 ]]; then
         if [[ ! -f "$TG_SCRIPT" ]]; then
-            warn "--tg включён, но $TG_SCRIPT не найден. Отключаю TG."
+            warn "Telegram: $TG_SCRIPT не найден — уведомления отключены"
+            TG_FLAG=0
+        elif [[ ! -f "$TG_CONF" ]]; then
+            warn "Telegram: $TG_CONF не найден — уведомления отключены"
             TG_FLAG=0
         else
-            info "Telegram-уведомления включены"
+            info "Telegram-уведомления включены (конфиг: $TG_CONF)"
         fi
     fi
 
@@ -168,8 +176,15 @@ preflight() {
     [[ -n "$TIME_BET" ]] && info "TimeBetSnapshot:  $TIME_BET"
     [[ -n "$SIGMA" ]]    && info "SIDM sigma:       $SIGMA"
     [[ "$REBUILD" -eq 1 ]] && info "Пересборка:       да"
-    [[ "$TG_FLAG" -eq 1 ]] && info "Telegram:         вкл (прогресс: раз в ${TG_INTERVAL} мин)"
-    [[ "$TG_FLAG" -eq 1 && "$TG_SKIP_PROGRESS" -eq 1 ]] && info "Telegram:         прогресс отключён"
+    if [[ "$TG_FLAG" -eq 1 ]]; then
+        if [[ "$TG_SKIP_PROGRESS" -eq 1 ]]; then
+            info "Telegram:         вкл (только старт/финиш)"
+        else
+            info "Telegram:         вкл (прогресс: раз в ${TG_INTERVAL} мин)"
+        fi
+    else
+        info "Telegram:         выкл (--no-tg или нет конфига)"
+    fi
     if [[ -f "$GIZMO_BIN" ]]; then
         info "Бинарник:         $GIZMO_BIN (существует)"
     else
@@ -541,9 +556,10 @@ main() {
             --rebuild)        REBUILD=1;            shift ;;
             --dry-run)        DRY_RUN=1;            shift ;;
             --skip-viz)       SKIP_VIZ=1;           shift ;;
-            --tg)             TG_FLAG=1;            shift ;;
-            --tg-interval)    TG_INTERVAL="$2";     shift 2 ;;
-            --tg-skip-progress) TG_SKIP_PROGRESS=1; shift ;;
+            --no-tg)          TG_FLAG=0;            shift ;;
+            --tg)             TG_FLAG=1;            shift ;;   # совместимость, теперь вкл по умолчанию
+            --tg-progress)    TG_SKIP_PROGRESS=0;   shift ;;
+            --tg-interval)    TG_INTERVAL="$2"; TG_SKIP_PROGRESS=0; shift 2 ;;
             --help|-h)   usage; exit 0 ;;
             *)           echo "ERROR: Unknown option $1"; usage; exit 1 ;;
         esac

@@ -62,6 +62,7 @@ telegram.conf
 
 # LLM infrastructure (not committed)
 llm/
+skills/
 
 # Misc
 GEMINI.md

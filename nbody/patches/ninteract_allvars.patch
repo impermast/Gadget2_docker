@@ -1,0 +1,10 @@
+--- /opt/gizmo-public/.backup_ninteract_20260823/allvars.h	2026-08-23 10:50:07.796096836 +0000
++++ /opt/gizmo-public/allvars.h	2026-08-23 10:53:56.000000000 +0000
+@@ -3600,6 +3600,7 @@
+   IO_ACRB,
+   IO_SINKRAD,
+   IO_SINK_FORM_MASS,
++  IO_NINTERACTIONS,
+   IO_POT,
+   IO_ACCEL,
+   IO_HYDROACCEL,

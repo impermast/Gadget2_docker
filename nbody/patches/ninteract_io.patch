@@ -1,0 +1,109 @@
+--- /opt/gizmo-public/.backup_ninteract_20260823/io.c	2026-08-23 10:50:07.795492173 +0000
++++ /opt/gizmo-public/io.c	2026-08-23 11:07:30.000000000 +0000
+@@ -186,6 +186,7 @@
+     MyOutputPosFloat *fp_pos;
+     MyIDType *ip;
+     int *ip_int;
++    unsigned long long *ip_ull;
+     float *fp_single;
+ #ifdef OUTPUT_COOLRATE
+     double tcool, u;
+@@ -208,6 +209,7 @@
+     fp_pos = (MyOutputPosFloat *) CommBuffer;
+     ip = (MyIDType *) CommBuffer;
+     ip_int = (int *) CommBuffer;
++    ip_ull = (unsigned long long *) CommBuffer;
+     pindex = *startindex;
+ 
+     switch (blocknr)
+@@ -768,6 +770,17 @@
+ #endif
+             break;
+ 
++        case IO_NINTERACTIONS:		/* SIDM number of interactions (DM_SIDM only) */
++#ifdef DM_SIDM
++            for(n = 0; n < pc; pindex++)
++                if(P[pindex].Type == type)
++                {
++                    *ip_ull++ = (unsigned long long) P[pindex].NInteractions;
++                    n++;
++                }
++#endif
++            break;
++
+         case IO_BH_DIST:
+ #if defined(BH_CALC_DISTANCES) && defined(OUTPUT_BH_DISTANCES)
+             for(n = 0; n < pc; pindex++)
+@@ -1851,6 +1864,10 @@
+             bytes_per_blockelement = sizeof(MyIDType);
+             break;
+ 
++        case IO_NINTERACTIONS:
++            bytes_per_blockelement = sizeof(long unsigned int);
++            break;
++
+         case IO_BHPROGS:
+         case IO_GRAINTYPE:
+         case IO_EOSCOMP:
+@@ -2141,7 +2158,11 @@
+         case IO_STAGE_PROTOSTAR:
+             typekey = 0;		/* native int */
+             break;
+-            
++
++        case IO_NINTERACTIONS:
++            typekey = 2;		/* native unsigned long long (без потери точности счётчика) */
++            break;
++
+         default:
+             typekey = 1;		/* native MyOutputFloat */
+             break;
+@@ -2205,6 +2226,7 @@
+         case IO_DELAYTIME:
+         case IO_HSMS:
+         case IO_POT:
++        case IO_NINTERACTIONS:
+         case IO_DTENTR:
+         case IO_TSTP:
+         case IO_VDIV:
+@@ -2428,6 +2450,7 @@
+         case IO_CHILD_ID:
+         case IO_GENERATION_ID:
+         case IO_POT:
++        case IO_NINTERACTIONS:
+         case IO_SOFT:
+         case IO_AGS_HKERN:
+         case IO_AGS_RHO:
+@@ -2855,6 +2878,12 @@
+ #endif
+             break;
+ 
++        case IO_NINTERACTIONS:
++#ifdef DM_SIDM
++            return 1;
++#endif
++            break;
++
+         case IO_VSTURB_DISS:
+         case IO_VSTURB_DRIVE:
+ #if defined(TURB_DRIVING)
+@@ -3399,6 +3428,9 @@
+         case IO_POT:
+             strncpy(label, "POT ", 4);
+             break;
++        case IO_NINTERACTIONS:
++            strncpy(label, "NIN ", 4);
++            break;
+         case IO_ACCEL:
+             strncpy(label, "ACCE", 4);
+             break;
+@@ -3839,6 +3871,9 @@
+         case IO_POT:
+             strcpy(buf, "Potential");
+             break;
++        case IO_NINTERACTIONS:
++            strcpy(buf, "NInteractions");
++            break;
+         case IO_ACCEL:
+             strcpy(buf, "Acceleration");
+             break;

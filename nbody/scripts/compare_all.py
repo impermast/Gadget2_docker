@@ -52,6 +52,7 @@ def read_snapshot(path, ptype=3):
             "mass":    g["Masses"][:].astype(np.float64) if "Masses" in g else None,
             "n_interact": n_interact,
             "time":    float(f["Header"].attrs.get("Time", 0.0)),
+            "sigma":   float(f["Header"].attrs.get("DM_InteractionCrossSection", 0.0)),
             "path":    path,
         }
     return data
@@ -85,7 +86,7 @@ def make_common_log_edges(all_data, rmin=5.0, rmax=500.0, nbins=70):
     return np.logspace(np.log10(rmin), np.log10(rmax), nbins + 1)
 
 
-def radial_density_profile(data, edges=None, nbins=70, rmin=5.0, rmax=500.0):
+def radial_density_profile(data, bins=None, nbins=70, rmin=5.0, rmax=500.0):
     _, _, r, _ = centered_phase(data)
     mass = data["mass"] if data["mass"] is not None else np.ones_like(r)
 
@@ -93,15 +94,15 @@ def radial_density_profile(data, edges=None, nbins=70, rmin=5.0, rmax=500.0):
     r = r[mask]
     mass = mass[mask]
 
-    if edges is None:
-        edges = np.logspace(np.log10(rmin), np.log10(rmax), nbins + 1)
+    if bins is None:
+        bins = np.logspace(np.log10(rmin), np.log10(rmax), nbins + 1)
 
-    centers = np.sqrt(edges[:-1] * edges[1:])
+    centers = np.sqrt(bins[:-1] * bins[1:])
 
-    shell_mass, _ = np.histogram(r, bins=edges, weights=mass)
-    counts, _ = np.histogram(r, bins=edges)
+    shell_mass, _ = np.histogram(r, bins=bins, weights=mass)
+    counts, _ = np.histogram(r, bins=bins)
 
-    shell_volume = 4.0 / 3.0 * np.pi * (edges[1:]**3 - edges[:-1]**3)
+    shell_volume = 4.0 / 3.0 * np.pi * (bins[1:]**3 - bins[:-1]**3)
 
     rho = np.full_like(centers, np.nan, dtype=float)
     good = counts > 0
@@ -742,8 +743,12 @@ def main():
         print(f"Reading SIDM: {sidm_dir}  (name={name})")
         d = read_snapshot(latest_snapshot(sidm_dir), ptype=3)
         all_data.append(d)
-        m = re.search(r"sigma([\d.]+)", name)
-        sigma_val = float(m.group(1)) if m else None
+        # Сначала смотрим на cross-section из заголовка снапшота (самый надёжный),
+        # иначе парсим из имени папки (sigmaX или sidmX).
+        sigma_val = d["sigma"] if d["sigma"] > 0 else None
+        if sigma_val is None:
+            m = re.search(r"(?:sigma|sidm)([\d.]+)", name)
+            sigma_val = float(m.group(1)) if m else None
         labels.append(sigma_label(sigma_val))
 
     # Собираем профили
@@ -766,7 +771,7 @@ def main():
     for i, (d, label) in enumerate(zip(all_data, labels)):
         c = next(color_iter)
 
-        r, rho, counts = radial_density_profile(d, edges=edges)
+        r, rho, counts = radial_density_profile(d, bins=edges)
         all_profiles.append((r, rho, counts, label, c))
 
         rs, sig = radial_sigma_profile(d, nbins=70)
