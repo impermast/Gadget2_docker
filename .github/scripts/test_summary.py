@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Render a JUnit XML report into a human-readable test statistics table.
 
-Usage: python test_summary.py <junit_xml_path>
+Usage: python test_summary.py <junit_xml_path> [group_title]
 
 Writes a markdown table to $GITHUB_STEP_SUMMARY when running inside GitHub
 Actions, and always prints it to stdout (so it is visible in the job log too).
 
-Table format:
+Output format:
 
-| Test                          | Result   | Time |
-|-------------------------------|----------|------|
-| test_read_sigma_from_header   | ✅ passed | 0.01s|
-...
-**Total: 23 passed, 0 failed, 0 errors, 0 skipped in 0.24s**
+    ### 🧪 Test report — math
+
+    | Test                        | Result   | Time |
+    |-----------------------------|----------|------|
+    | test_read_sigma_from_header | ✅ passed | 0.01s|
+    ...
+    **Total: 23 passed, 0 failed, 0 errors, 0 skipped in 0.24s**
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ def short_name(classname: str, name: str) -> str:
     return f"{module}::{name}" if module else name
 
 
-def main(xml_path: str) -> int:
+def main(xml_path: str, group_title: str = "") -> int:
     tree = ET.parse(xml_path)
     suite = tree.getroot()
     if not suite.tag.endswith("testsuite"):
@@ -70,7 +72,8 @@ def main(xml_path: str) -> int:
     total = (f"**Total: {counts['passed']} passed, {counts['failed']} failed,"
              f" {counts['error']} errors, {counts['skipped']} skipped"
              f" in {total_time:.2f}s**")
-    report = "\n".join(header + ["", total]) + "\n"
+    title = f"### 🧪 Test report — {group_title}\n\n" if group_title else ""
+    report = title + "\n".join(header + ["", total]) + "\n"
 
     print(report)
     summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
@@ -81,4 +84,5 @@ def main(xml_path: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    title_arg = sys.argv[2] if len(sys.argv) > 2 else ""
+    sys.exit(main(sys.argv[1], title_arg))

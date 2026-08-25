@@ -1,9 +1,10 @@
 # Fast test suite: synthetic fixtures only, no simulations (~1 s total).
-# Tests are split into groups via pytest markers; each group runs as its own
-# matrix job -> separate green/red row in the Actions UI.
-#   math   — level 1: loaders math on synthetic fixtures (analytic answers)
-#   golden — level 2: answer testing against tests/golden/values.json
-# Add a new group by registering a marker in pytest.ini and extending matrix.
+# Pipeline runs groups FROM SIMPLE TO COMPLEX — each stage starts only after
+# the previous one succeeds (needs:). A failing stage skips everything after.
+#   1. math   — level 1: loaders math on synthetic fixtures (analytic answers)
+#   2. golden — level 2: answer testing against tests/golden/values.json
+# To add a stage: register a marker in pytest.ini, add a job with
+# needs: [previous stages], extend the chain below (e.g. render smoke later).
 name: tests
 
 on:
@@ -12,14 +13,17 @@ on:
   pull_request:
   workflow_dispatch: {}   # allow manual runs from the Actions tab
 
+# outdated runs on the same branch are canceled automatically
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  pytest:
+  # ─── Stage 1: cheapest, most diagnostic tests ─────────────────────────────
+  math:
+    name: "1 · math — loaders unit tests"
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false          # one failing group must not hide others
-      matrix:
-        group: [math, golden]
     steps:
       - uses: actions/checkout@v5
 
@@ -30,9 +34,32 @@ jobs:
       - name: Install test dependencies
         run: pip install numpy h5py pytest
 
-      - name: "Run tests (group: ${{ matrix.group }})"
-        run: python -m pytest tests/ -m ${{ matrix.group }} -v -ra --junitxml=test-results-${{ matrix.group }}.xml
+      - name: Run math tests
+        run: python -m pytest tests/ -m math -v -ra --junitxml=test-results-math.xml
 
-      - name: "Publish test summary (group: ${{ matrix.group }})"
+      - name: Publish test summary
         if: always()
-        run: python .github/scripts/test_summary.py test-results-${{ matrix.group }}.xml
+        run: python .github/scripts/test_summary.py test-results-math.xml math
+
+  # ─── Stage 2: documented reference values ─────────────────────────────────
+  golden:
+    name: "2 · golden — answer testing"
+    needs: math                # runs only if stage 1 passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install numpy h5py pytest
+
+      - name: Run golden tests
+        run: python -m pytest tests/ -m golden -v -ra --junitxml=test-results-golden.xml
+
+      - name: Publish test summary
+        if: always()
+        run: python .github/scripts/test_summary.py test-results-golden.xml golden

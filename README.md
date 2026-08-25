@@ -1,5 +1,7 @@
 # Dockerized GADGET-2 / GIZMO Environment
 
+![tests](https://github.com/impermast/Gadget2_docker/actions/workflows/tests.yml/badge.svg)
+
 This repository provides a Docker-based environment for building and running cosmological N-body/SPH simulations with **GADGET-2**, **GIZMO**, and **GalIC**.
 
 The main goal of this setup is to remove the need for manual system preparation on each machine. After a single Docker build, all required dependencies, compiler toolchains, libraries, helper Python packages, and bundled third-party source trees are installed automatically inside the image.
