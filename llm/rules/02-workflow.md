@@ -63,6 +63,9 @@ tracked (bot process history), on `master` it stays untracked.
 ## Testing policy
 
 - Fast unit tests live in `tests/` and run with `.venv/bin/python -m pytest tests/ -q`.
+- Tests are split into marker groups (`pytest.ini`): `math` (level 1 loaders
+  math) and `golden` (level 2 answer tests). Run a single group with
+  `-m <group>`. CI runs each group as a separate matrix job.
 - The full suite must stay fast (<30 s): synthetic HDF5 fixtures only,
   no simulations. The agent may run pytest freely without confirmation.
 - Golden/reference values (`tests/golden/values.json`) are regenerated ONLY

@@ -5,6 +5,8 @@ Golden values are computed from the SAME deterministic synthetic fixture
 If a test fails here after an intentional loaders.py change, regenerate the
 golden file with `python tests/make_golden.py` and document why in
 tests/golden/README.md (yt-style answer-version discipline).
+
+Group marker: 'golden' (run alone via `pytest tests/ -m golden`).
 """
 
 from __future__ import annotations
@@ -15,6 +17,8 @@ from pathlib import Path
 import pytest
 
 import make_golden
+
+pytestmark = pytest.mark.golden
 
 GOLDEN_PATH = Path(__file__).resolve().parent / "golden" / "values.json"
 

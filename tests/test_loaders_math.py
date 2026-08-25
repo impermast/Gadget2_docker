@@ -2,6 +2,8 @@
 
 Every test uses analytic or exactly known expectations (see tests/synth_snap).
 Fast, deterministic, no simulations involved.
+
+Group marker: 'math' (run alone via `pytest tests/ -m math`).
 """
 
 from __future__ import annotations
@@ -12,6 +14,8 @@ import pytest
 import synth_snap
 from synth_snap import (CENTER, MTOT, NI_COUNT, NI_TOTAL, N_PARTICLES,
                         PARTICLE_MASS, RADIUS, SIGMA, TIME)
+
+pytestmark = pytest.mark.math
 
 TOL_CENTER = 3.5  # shrink_center is statistical: cut keeps only 10% of
                   # particles, compounding noise gives ~1-2.5 kpc scatter at

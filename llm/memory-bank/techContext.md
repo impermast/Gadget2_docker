@@ -94,6 +94,10 @@ Test infrastructure (2026-08-25):
   осознанно через `python tests/make_golden.py` + запись причины в
   `tests/golden/README.md`.
 - Уровень 3 (render smoke тесты графиков) — отложен.
+- Группы тестов через маркеры (pytest.ini): `math` (уровень 1) и `golden`
+  (уровень 2); запуск группы — `pytest tests/ -m <group>`. В CI каждая группа
+  — отдельная matrix-джоба (своя строка в Actions UI); новая группа =
+  маркер в pytest.ini + элемент в strategy.matrix.group в tests.yml.
 
 Auto-run of tests:
 

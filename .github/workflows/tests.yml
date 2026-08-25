@@ -1,5 +1,9 @@
-# Fast test suite: synthetic fixtures only, no simulations (~1 s).
-# Runs on every push/PR touching anything; free on GitHub for public repos.
+# Fast test suite: synthetic fixtures only, no simulations (~1 s total).
+# Tests are split into groups via pytest markers; each group runs as its own
+# matrix job -> separate green/red row in the Actions UI.
+#   math   — level 1: loaders math on synthetic fixtures (analytic answers)
+#   golden — level 2: answer testing against tests/golden/values.json
+# Add a new group by registering a marker in pytest.ini and extending matrix.
 name: tests
 
 on:
@@ -12,6 +16,10 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false          # one failing group must not hide others
+      matrix:
+        group: [math, golden]
     steps:
       - uses: actions/checkout@v5
 
@@ -22,9 +30,9 @@ jobs:
       - name: Install test dependencies
         run: pip install numpy h5py pytest
 
-      - name: Run tests
-        run: python -m pytest tests/ -v -ra --junitxml=test-results.xml
+      - name: Run tests (group: ${{ matrix.group }})
+        run: python -m pytest tests/ -m ${{ matrix.group }} -v -ra --junitxml=test-results-${{ matrix.group }}.xml
 
-      - name: Publish test summary
+      - name: Publish test summary (group: ${{ matrix.group }})
         if: always()
-        run: python .github/scripts/test_summary.py test-results.xml
+        run: python .github/scripts/test_summary.py test-results-${{ matrix.group }}.xml
