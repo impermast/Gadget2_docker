@@ -30,9 +30,9 @@ jobs:
       - name: Install test dependencies
         run: pip install numpy h5py pytest
 
-      - name: Run tests (group: ${{ matrix.group }})
+      - name: "Run tests (group: ${{ matrix.group }})"
         run: python -m pytest tests/ -m ${{ matrix.group }} -v -ra --junitxml=test-results-${{ matrix.group }}.xml
 
-      - name: Publish test summary (group: ${{ matrix.group }})
+      - name: "Publish test summary (group: ${{ matrix.group }})"
         if: always()
         run: python .github/scripts/test_summary.py test-results-${{ matrix.group }}.xml
