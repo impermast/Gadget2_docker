@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Pre-commit hook: auto-run the fast test suite before every commit.
+# Installed repo-wide via:  git config core.hooksPath githooks
+# Bypass a single commit with:  git commit --no-verify
+
+set -u
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+if [ ! -x ".venv/bin/python" ]; then
+    echo "pre-commit: .venv not found — skipping tests (commit proceeds)"
+    exit 0
+fi
+
+echo "pre-commit: running pytest (tests/)"
+if ! .venv/bin/python -m pytest tests/ -q; then
+    echo ""
+    echo "pre-commit: TESTS FAILED — commit aborted."
+    echo "  fix the failures, or bypass once with: git commit --no-verify"
+    exit 1
+fi

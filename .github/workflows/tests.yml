@@ -1,0 +1,26 @@
+# Fast test suite: synthetic fixtures only, no simulations (~1 s).
+# Runs on every push/PR touching anything; free on GitHub for public repos.
+name: tests
+
+on:
+  push:
+    branches: [master, agent/dev]
+  pull_request:
+  workflow_dispatch: {}   # allow manual runs from the Actions tab
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install numpy h5py pytest
+
+      - name: Run tests
+        run: python -m pytest tests/ -v

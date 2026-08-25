@@ -70,3 +70,8 @@ tracked (bot process history), on `master` it stays untracked.
   on purpose; the reason must be recorded in `tests/golden/README.md`.
 - Long smoke simulations of GIZMO/GADGET remain manual procedures via the
   `gizmo-sim` skill and are NOT part of pytest.
+- Auto-run: pre-commit hook `githooks/pre-commit` runs the suite before every
+  commit. Enable after fresh clone with:
+      git config core.hooksPath githooks
+- CI: `.github/workflows/tests.yml` runs the same suite on every push/PR
+  (GitHub Actions).
