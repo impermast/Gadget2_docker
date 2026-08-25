@@ -23,3 +23,9 @@ Agent goal:
 - launch visualization scripts after runs;
 - avoid reading large simulation data;
 - avoid destructive commands and long simulations without explicit approval.
+
+Quality pipeline (2026-08-25):
+
+- all agent work happens on the single branch `agent/dev` (merge to master by documented procedure);
+- fast pytest suite in `tests/` validates analysis code without simulations;
+- tests auto-run locally on every commit (pre-commit hook) and on GitHub (Actions CI).

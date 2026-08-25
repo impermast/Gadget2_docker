@@ -2,6 +2,38 @@
 
 Use this file to record completed or attempted simulations.
 
+### 2026-08-25 git policy + fast test suite + CI auto-runs (infrastructure)
+
+Goal:
+
+- Безопасный git-workflow с ИИ-агентом и быстрая валидация кода анализа без запуска симуляций.
+
+Type:
+
+- Infrastructure (git policy, testing, CI) — не симуляция
+
+What was done:
+
+- Ветка `agent/dev` (единственная ветка агента), push agent/* разрешён, master защищён правилами.
+- Шаблон коммитов `llm/gitmessage.txt` (RUN/TEST/RESULT), включён через git config.
+- `.gitignore`: llm/ трекается в agent/dev; на master снимается при мерже (процедура в 02-workflow.md).
+- Тесты: `tests/` по паттерну answer-testing yt — синтетическая HDF5-фикстура (`synth_snap.py`, однородный шар N=2000 seed=42), 22 юнит-теста математики loaders + 1 golden-тест против `tests/golden/values.json` (регенерация через `make_golden.py`).
+- Автопрогон: pre-commit hook `githooks/pre-commit` + GitHub Actions `.github/workflows/tests.yml` (checkout@v5 / setup-python@v6, junit → markdown-таблица статистики в Step Summary через `.github/scripts/test_summary.py`).
+
+Test:
+
+- `pytest tests/ -q`: 23 passed (~0.25 s локально); CI runs #1, #2 — success (~15–17 s);
+- failure-path проверен: ❌ FAILED + сообщение assertion корректно попадают в таблицу.
+
+Status:
+
+- completed
+
+Notes:
+
+- Полезные находки: `loaders.write_summary()` падает на снапшотах без датасета Masses; `shrink_center` статистически разбрасывает центр на ~1–2.5 kpc при N=2000 (не баг, природа алгоритма).
+- PyPI напрямую недоступен с этой машины — ставить пакеты через зеркало tuna.
+
 ### 2026-08-24 dwarf_N1e6 series CDM/SIDM0.1/1/5 (IN PROGRESS)
 
 Goal:

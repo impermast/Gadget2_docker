@@ -47,3 +47,4 @@ TODO:
 - [ ] Add mixed CDM+SIDM example to the `gizmo-sim` skill (generate-ic mode JSON config).
 - [x] Git policy: agent/dev branch, push rules relaxed for agent/*, commit template (2026-08-25).
 - [x] Fast test suite: synthetic fixtures + loaders math tests + golden answer tests (`tests/`, 23 tests, ~1 s).
+- [x] Auto test runs: pre-commit hook (`githooks/`) + GitHub Actions CI with junit statistics table (2026-08-25, runs #1–#2 green).

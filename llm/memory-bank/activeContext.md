@@ -2,41 +2,38 @@
 
 Current focus:
 
-- Git policy + fast test infrastructure implemented (2026-08-25):
-  - single long-lived branch `agent/dev` for all agent work; merge to master
-    by documented procedure (llm/rules/02-workflow.md) which untracks llm/
-    on master;
-  - commit template `llm/gitmessage.txt` enabled via git config
-    (fields RUN / TEST / RESULT linking commits with experimentLog.md);
-  - `tests/` — yt-style answer testing: deterministic synthetic HDF5 fixture
-    (`synth_snap.py`, uniform sphere seed=42 N=2000), unit tests of loaders
-    math (`test_loaders_math.py`, 22 tests) and golden values
-    (`test_golden.py` + `golden/values.json`, regenerate ONLY deliberately
-    via `tests/make_golden.py`). Full suite runs in ~1 s; agent may run
-    pytest freely.
-  - pytest installed into .venv (9.1.1; direct PyPI unreachable, used
-    tuna mirror).
+- Pipeline hardening done (2026-08-25): git policy (`agent/dev`), fast test
+  suite (`tests/`, 23 tests ~1 s), pre-commit auto-run, GitHub Actions CI
+  (runs #1, #2 green). Memory bank synced with this state.
 
 Current decision:
 
-- Most AI-agent files live under `llm/`.
-- Root keeps only minimal Cline entrypoint files:
-  - `.clineignore`
-  - `.clinerules/00-entrypoint.md`
+- Most AI-agent files live under `llm/` (tracked ONLY on `agent/dev`).
+- Git model: single long-lived branch `agent/dev` for all agent work;
+  no per-task branches; merge to master by documented procedure in
+  `llm/rules/02-workflow.md` (untracks `llm/` on master).
+- Commits follow template `llm/gitmessage.txt` (enabled via
+  `git config commit.template`): fields RUN / TEST / RESULT.
 - Cline should start nontrivial tasks in Plan mode.
-- Cline should read `.clinerules/00-entrypoint.md`, then `llm/rules/` and `llm/memory-bank/`.
-- Operational protocols (simulation run, IC generation, debugging, onboarding summary, plotting) are captured in the repo skills `gizmo-sim` and `make-plots` under `skills/`. They are installed into the agent discovery roots (`~/.codex/skills/` and `~/.agents/skills/`) as real copies via `skills/install.sh` — run that script after any skill edit. The former `llm/prompts/` and `llm/workflows/` folders were removed.
-- Cline should avoid large simulation outputs and binary data.
-- Controlled simulations should be created under `nbody/runs/<run_name>/`.
+- Operational protocols live in repo skills `gizmo-sim` and `make-plots`
+  (`skills/`, installed into `~/.codex/skills/` and `~/.agents/skills/` via
+  `skills/install.sh` — run that script after any skill edit).
+- Cline avoids large simulation outputs and binary data.
+- Controlled simulations go under `nbody/runs/<run_name>/`.
+- Fast tests may be run by the agent freely: `.venv/bin/python -m pytest tests/ -q`.
 
 Current expected workflow:
 
-- For code edits: inspect relevant files, propose patch, edit only after approval.
-- For simulation tasks: invoke the `gizmo-sim` skill (run/debug/generate-ic/summarize modes); for visualization invoke `make-plots`.
+- For code edits: inspect relevant files, propose patch, edit only after
+  approval, validate with `pytest tests/`, commit on `agent/dev` per template.
+- For simulation tasks: invoke the `gizmo-sim` skill (run/debug/generate-ic/
+  summarize modes); for visualization invoke `make-plots`.
 
 Next step:
 
-- Verify actual repository file paths and update this memory file with concrete files used for GIZMO, GADGET, GalIC, and visualization.
+- Merge accumulated `agent/dev` work into `master` (user decides when);
+- deferred: level-3 plot tests (render smoke / contracts), CI annotations
+  via third-party action if needed.
 
 Known issues (broken paths):
 
@@ -44,6 +41,14 @@ Known issues (broken paths):
 - `nbody/gadget_test/Makefile` uses `/workspace/gsl` and `/workspace/fftw` instead of `/opt/gsl` and `/opt/fftw`.
 - `nbody/gadget_test/run_gadget.sh` expects `galaxy.Makefile` and `galaxy.param` by default — only `lcdm_gas.param` and `Makefile` exist in the repo.
 - GIZMO `Config_cdm_sidm.sh` enables `DM_SIDM=8` (particle type 3).
+
+Known issues (tests/analysis, found while writing tests):
+
+- `loaders.write_summary()` CRASHES on snapshots without the `Masses` dataset
+  (`d["mass"][:, None]`) — documented by tests; fix loaders if needed later.
+- `shrink_center` is statistical: at N=2000 the 10% cut gives ~1–2.5 kpc
+  center scatter (measured over seeds); exact reproduction covered by golden
+  values instead.
 
 Known file paths:
 
