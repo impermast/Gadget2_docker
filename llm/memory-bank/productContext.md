@@ -1,0 +1,2 @@
+# Product Context
+This repository provides a Dockerized environment for GADGET-2, GIZMO, and GalIC scientific simulations. The primary goal is to maintain a reproducible workflow by keeping system dependencies and third-party source trees inside the Docker image, while allowing user-editable simulation configs, run scripts, parameter files, and analysis scripts in the nbody/ directory. This setup supports controlled, reproducible simulations through isolated run folders.

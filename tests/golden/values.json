@@ -1,0 +1,26 @@
+{
+  "_provenance": {
+    "generator_module": "tests/synth_snap.py",
+    "seed": 42,
+    "n_particles": 2000,
+    "git_commit_at_generation": "07a2ba4ca226dc9ddbcda432f72123b917d4f536",
+    "note": "regenerate only when loaders math changes deliberately"
+  },
+  "shrink_center": [
+    10.646740663920081,
+    19.2161015586845,
+    30.201171423368866
+  ],
+  "mtot": 0.20000000000000007,
+  "time": 0.5,
+  "sigma": 20.0,
+  "rho_core_r2": 5.0730638110541644e-05,
+  "inner_log_slope": -0.04432205015579009,
+  "ni_total": 5050,
+  "ni_nonzero": 100,
+  "ni_nonzero_pct": 5.0,
+  "ni_mean_interacted": 50.5,
+  "ni_median_interacted": 50.5,
+  "ni_p90_interacted": 90.10000000000001,
+  "ni_max_interacted": 100
+}

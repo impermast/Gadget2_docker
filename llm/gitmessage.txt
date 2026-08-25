@@ -1,0 +1,13 @@
+<type>(<scope>): краткое описание
+
+Типы: feat|fix|refactor|test|docs|chore
+
+RUN:    nbody/runs/<run_name> | -
+TEST:   pytest tests/test_<file>.py::<test> | pytest tests/ -q | -
+RESULT: <метрика или вывод одной строкой>
+
+Правила:
+- RUN — путь к run-каталогу, если задача включала симуляцию/анализ; иначе "-".
+- TEST — как валидировалось; иначе "-".
+- RESULT — ключевая метрика или короткий вывод (связывает историю git
+  с llm/memory-bank/experimentLog.md).
