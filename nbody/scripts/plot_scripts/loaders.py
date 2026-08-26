@@ -116,11 +116,19 @@ def prepare_profile_data(snapshot_path, rcore: float = 2.0) -> Dict[str, object]
 
     rho_core = float(mass[r < rcore].sum() / (4.0 / 3.0 * np.pi * rcore ** 3))
 
+    # --- rot curve: v_circ(r) = sqrt(G * M(<r) / r) — в km/s ---------------
+    # Единицы кода GIZMO: 1 кпк, 1e10 М_sun, 1 км/с → G_code ≈ 43009.2
+    G_CODE = 43009.17
+    m_enc = np.cumsum(shell_m)                       # масса внутри edges[i+1]
+    m_enc_center = 0.5 * (np.concatenate([[0.0], m_enc[:-1]]) + m_enc)
+    v_circ = np.sqrt(np.clip(G_CODE * m_enc_center / centers, 0.0, None))
+
     out = {
         "r": centers,
         "rho": rho,
         "slope": slope,
         "sigma_v": sv,
+        "v_circ": v_circ,
         "time": float(d["time"]),
         "cross_section": float(d["sigma"]),
         "rho_core": rho_core,

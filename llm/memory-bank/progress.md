@@ -42,7 +42,7 @@ TODO:
 - [x] Multi-run comparison в registry + compare_runs.py; сводка -> loaders.write_summary; удалить analyze_final_snapshot.py, analyze_halo.py, compare_all.py; переключить run_sidm_batch.sh.
 - [ ] Fix broken `/workspace/` paths in GADGET files (`run_gadget.sh`, `Makefile`).
 - [ ] Test GADGET-2 workflow (requires path fixes first).
-- [ ] Add CDM vs SIDM comparison run with `compare_runs.py` (на свежих данных).
+- [x] Add CDM vs SIDM comparison run with `compare_runs.py` (dwarf_N1e6 series: CDM/SIDM0.1/1/5 + sidm20, 2026-08-26).
 - [ ] Test mixed IC generation (CDM + SIDM via multi-component JSON config).
 - [ ] Add mixed CDM+SIDM example to the `gizmo-sim` skill (generate-ic mode JSON config).
 - [x] Git policy: agent/dev branch, push rules relaxed for agent/*, commit template (2026-08-25).

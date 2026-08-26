@@ -359,6 +359,149 @@ class SigmaVComparePlot(_MultiSeriesPlot):
         return self._render_series(data, config, "sigma_v")
 
 
+class _DeltaComparePlot(BasePlot):
+    """
+    Compare-график с нижним сабплотом разностей Δ относительно базовой серии
+    (по умолчанию первая, обычно CDM; либо config['baseline_label']).
+    Верхний сабплот — значения, нижний — Δ (для log-шкалы в dex).
+    Общая ось X = r. Shared helper: НЕ уровень иерархии,
+    конкретные plots остаются самостоятельными (BasePlot -> Concrete).
+    """
+
+    value_field: str = ""
+    diff_in_log: bool = False   # True: низ = log10(y) - log10(base)
+
+    def validate_data(self, data):
+        contract = dict(self.inner_contract)
+        contract[self.value_field] = F(("R",))
+        _validate_series_list(self.name, data, contract)
+
+    def _render_delta(self, data, config):
+        import numpy as np
+
+        series = data["series"]
+        baseline_label = config.get("baseline_label")
+        base_idx = 0
+        if baseline_label is not None:
+            for i, s in enumerate(series):
+                if s.get("label") == baseline_label:
+                    base_idx = i
+                    break
+
+        base = series[base_idx]
+        ref_r = np.asarray(base["r"], dtype=float)
+        base_y = np.asarray(base[self.value_field], dtype=float)
+        grid = (ref_r > 0) & np.isfinite(base_y)
+        log_ref = np.log10(ref_r)
+
+        fig, (ax_top, ax_diff) = plt.subplots(
+            2, 1, sharex=True,
+            figsize=self.settings.figsize(config["figsize_key"]))
+
+        for i, s in enumerate(series):
+            r_s = np.asarray(s["r"], dtype=float)
+            y_s = np.asarray(s[self.value_field], dtype=float)
+            label = str(s.get("label", f"series_{i}"))
+            sel = (r_s > 0) & np.isfinite(y_s)
+            if not np.any(sel):
+                continue
+            y_grid = np.interp(log_ref[grid], np.log10(r_s[sel]),
+                               y_s[sel], left=np.nan, right=np.nan)
+            color = self.settings.palette[i % len(self.settings.palette)]
+            if self.diff_in_log:
+                y_plot = np.where(y_grid > 0, y_grid, np.nan)
+                ax_top.plot(ref_r[grid], y_plot, color=color,
+                            lw=self.settings.line_width_main, label=label)
+                delta = np.log10(y_plot) - np.log10(base_y[grid])
+            else:
+                y_plot = y_grid
+                ax_top.plot(ref_r[grid], y_plot, color=color,
+                            lw=self.settings.line_width_main, label=label)
+                delta = y_grid - base_y[grid]
+            if i != base_idx:
+                ax_diff.plot(ref_r[grid], delta, color=color,
+                             lw=self.settings.line_width, label=label)
+
+        ax_diff.axhline(0.0, ls=":", color="0.4", lw=0.9)
+        self.settings.style_axis(
+            ax_top, title=config.get("title"),
+            ylabel=config.get("top_ylabel"),
+            yscale=config.get("top_yscale"), grid=True)
+        self.settings.style_axis(
+            ax_diff, xlabel=config.get("xlabel"),
+            ylabel=config.get("diff_ylabel"),
+            xscale=config.get("xscale"), grid=True)
+        if config.get("legend"):
+            ax_top.legend(frameon=False,
+                          fontsize=self.settings.legend_font_size)
+        fig.tight_layout()
+        path = self.settings.save_figure(fig, config["filename"],
+                                         dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class LogRhoComparePlot(_DeltaComparePlot):
+    name = "log_rho_compare"
+    description = (
+        "Сравнение radial density profiles (log rho vs r) нескольких прогонов "
+        "с нижним сабплотом разностей Δlog10(rho) относительно CDM. "
+        "Серии из prepare_profile_data() (r, rho, label); базовый CDM — "
+        "первая серия либо config['baseline_label']."
+    )
+    value_field = "rho"
+    diff_in_log = True
+    inner_contract = {"r": F(("R",)), "rho": F(("R",)),
+                      "label": F((), dtype="str", required=False)}
+    data_contract = _series_list_contract()
+    default_config = {
+        "title": "Log density profiles: CDM vs SIDM",
+        "top_ylabel": r"$\rho(r)$",
+        "diff_ylabel": r"$\Delta\log_{10}\rho$ vs CDM",
+        "xlabel": "r [kpc]",
+        "xscale": "log",
+        "top_yscale": "log",
+        "legend": True,
+        "baseline_label": None,
+        "figsize_key": "page_tall",
+        "dpi": None,
+        "filename": "log_rho_compare.png",
+    }
+
+    def render(self, data, config):
+        return self._render_delta(data, config)
+
+
+class RotCurveComparePlot(_DeltaComparePlot):
+    name = "rot_curve_compare"
+    description = (
+        "Кривые вращения v_circ(r) нескольких прогонов (v_circ из "
+        "prepare_profile_data, sqrt(G M(<r)/r)) с нижним сабплотом разностей "
+        "Δv = v_sigma - v_CDM. Общая ось X = r."
+    )
+    value_field = "v_circ"
+    diff_in_log = False
+    inner_contract = {"r": F(("R",)), "v_circ": F(("R",)),
+                      "label": F((), dtype="str", required=False)}
+    data_contract = _series_list_contract()
+    default_config = {
+        "title": "Rotation curves: CDM vs SIDM",
+        "top_ylabel": r"$v_{\rm circ}(r)$ [km/s]",
+        "diff_ylabel": r"$\Delta v_{\rm circ}$ [km/s]",
+        "xlabel": "r [kpc]",
+        "xscale": "log",
+        "top_yscale": "linear",
+        "legend": True,
+        "baseline_label": None,
+        "figsize_key": "page_tall",
+        "dpi": None,
+        "filename": "rot_curve_compare.png",
+    }
+
+    def render(self, data, config):
+        return self._render_delta(data, config)
+
+
 class CoreDensityVsSigmaPlot(BasePlot):
     name = "core_density_vs_sigma"
     description = (
@@ -413,6 +556,7 @@ class CoreDensityVsSigmaPlot(BasePlot):
 
 
 COMPARE_PLOT_CLASSES = [DensityComparePlot, LogSlopeComparePlot,
-                        SigmaVComparePlot, CoreDensityVsSigmaPlot]
+                        SigmaVComparePlot, LogRhoComparePlot,
+                        RotCurveComparePlot, CoreDensityVsSigmaPlot]
 
 

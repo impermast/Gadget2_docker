@@ -12,7 +12,11 @@ core_density_vs_sigma по финальным snapshot'ам указанных �
         /nbody/runs/cdm_N1e6 \
         /nbody/runs/sidm_sigma0.1_N1e6 \
         /nbody/runs/sidm_sigma1_N1e6 /nbody/runs/sidm_sigma2_N1e6 \
-        /nbody/runs/sidm_sigma5_N1e6
+        /nbody/runs/sidm_sigma5_N1e6 \
+        --labels CDM SIDM0.1 SIDM1 SIDM2 SIDM5
+
+ВНИМАНИЕ: позиционные run-каталоги указывать ДО --labels (nargs='*' у
+--labels жадно поглощает всё, что стоит после него).
 
 Подписи серий берутся из --labels (по порядку) или из имени каталога.
 core_density_vs_sigma строится, если среди прогонов есть SIDM (sigma>0).
@@ -73,7 +77,12 @@ def main() -> int:
             rho_cores.append(prof["rho_core"])
             used_labels.append(label)
 
-    jobs = {name: {"data": {"series": series}} for name in COMPARE_PLOTS[:3]}
+    # Все compare-plots из registry: profile compare (3) + delta-графики
+    # (log_rho_compare, rot_curve_compare) — последний элемент коллекции
+    # (core_density_vs_sigma) обрабатывается отдельно ниже.
+    profile_plot_names = [n for n in COMPARE_PLOTS
+                          if n != "core_density_vs_sigma"]
+    jobs = {name: {"data": {"series": series}} for name in profile_plot_names}
     results = plotter.make_plots(jobs, output_dir=outdir)
 
     if len(sigmas) >= 2:

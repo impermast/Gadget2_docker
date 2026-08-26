@@ -34,7 +34,36 @@ Notes:
 - Полезные находки: `loaders.write_summary()` падает на снапшотах без датасета Masses; `shrink_center` статистически разбрасывает центр на ~1–2.5 kpc при N=2000 (не баг, природа алгоритма).
 - PyPI напрямую недоступен с этой машины — ставить пакеты через зеркало tuna.
 
-### 2026-08-24 dwarf_N1e6 series CDM/SIDM0.1/1/5 (IN PROGRESS)
+### 2026-08-26 add log_rho_compare + rot_curve_compare (delta subplot)
+
+Goal:
+
+- Новые коллективные compare-графики CDM vs SIDM с нижним сабплотом разностей относительно CDM.
+
+Type:
+
+- Plotting pipeline extension (registry)
+
+What was done:
+
+- loaders.prepare_profile_data: +v_circ (rot curve) = sqrt(G_code·M(<r)/r), G_code=43009.17 (ед. GIZMO: кпк, 1e10 Msun, км/с).
+- analysis_plots.py: +_DeltaComparePlot (shared helper: 2 сабплота sharex, верх — значения по σ, низ — Δ от базовой серии; интерполяция на общую сетку в log10 r; baseline = первая серия или config['baseline_label']).
+- +LogRhoComparePlot (log_rho_compare: верх log ρ(r), низ Δlog10ρ vs CDM), +RotCurveComparePlot (rot_curve_compare: верх v_circ, низ Δv vs CDM). Зарегистрированы в COMPARE_PLOT_CLASSES; COMPARE_PLOTS += 2 (registry = 12 plots).
+- compare_runs.py: все profile-plot'ы кроме core_density_vs_sigma строятся из одних series (лог ρ и rot curve включены автоматически).
+- Обновлены: skills/make-plots/SKILL.md (+переустановка), memory-bank/techContext.md.
+
+Test:
+
+- compare_runs на 5 сериях dwarf (CDM/0.1/1/5/20): + log_rho_compare.png (216k), rot_curve_compare.png (253k) в nbody/analyse/dwarf_series/; структура подтверждена программно (2 оси, 5 серий верх, Δ+нулевая линия внизу).
+- negative: серия без rho/v_circ → "log_rho_compare.series[0]: missing required field ...".
+- run_full_test на sidm5_dwarf_N1e6_T5: ALL CHECKS PASSED (однопрогоночный pipeline цел).
+- v_circ (пример r=0.37 kpc): CDM 22.9 km/s, SIDM20 20.2 km/s — физически согласовано.
+
+Status:
+
+- completed
+
+### 2026-08-24 dwarf_N1e6 series CDM/SIDM0.1/1/5 (completed)
 
 Goal:
 
@@ -44,11 +73,36 @@ Type:
 
 - SIDM/CDM production series + автоматический анализ + TG-репорт
 
+Key parameters:
+
+- IC: `/nbody/ics/dwarf_N1e6/dwarf_N1e6` (1e6 частиц, GalIC V200=30, cc=15)
+- TimeMax=5, TimeBet=0.1 → 52 снапшота (000–051) на прогон
+- 10 MPI-процессов (8 физ. ядер + 2 HT), OMPI_MCA_hwloc_base_use_hwthreads_as_cpus=1
+- Оркестратор: `nbody/scripts/run_series_dwarf.sh` (промежуточные TG-уведомления с ETA между прогонами, финальный анализ + TG-репорт с графиками)
+
+Results (финальные снапшоты, t=5):
+
+| Прогон | Wall time | NInteractions total | interacted | ρ_core (r<2 kpc) | inner slope |
+|--------|-----------|--------------------:|-----------:|------------------:|------------:|
+| cdm_dwarf_N1e6_T5 | 9ч 33м | 0 | 0% | 2.196e-3 | −0.360 |
+| sidm0.1_dwarf_N1e6_T5 | 11ч 14м | 39 428 | 3.43% | 2.201e-3 | −0.428 |
+| sidm1_dwarf_N1e6_T5 | 11ч 20м | 367 146 | 17.95% | 2.253e-3 | +0.350 |
+| sidm5_dwarf_N1e6_T5 | 11ч 19м | 1 785 910 | 36.25% | 2.395e-3 | +0.077 |
+
+Выводы:
+
+- Тренд «больше σ → выше ρ_core и больше рассеяний» подтверждён на dwarf-IC, величины монотонны.
+- Для σ=1 slope меняет знак (−→+): формирование ядра уже заметно; σ=5 и выше — выраженное ядро.
+- σ=0.1 почти неотличим от CDM (нижний предел сетки), как и ожидалось из оценки.
+- Сравнение 5 серий (CDM/0.1/1/5/20, включая готовый sidm20_dwarf_N1e6_T5): `nbody/analyse/dwarf_series/` — density/log_slope/sigma_v_compare + log_rho_compare + rot_curve_compare + core_density_vs_sigma.
+- Графики каждого прогона: `nbody/runs/<run>/plots/` (4 PNG + 2 GIF + summary).
+
 Status:
 
-- IN PROGRESS (запущена 2026-08-24 ~20:08 через run_series_dwarf.sh, nohup в контейнере)
-- Оркестратор: nbody/scripts/run_series_dwarf.sh (промежуточные TG с ETA после каждого прогона, финальный анализ run_full_test × 4 + compare_runs 5 серий с sidm20 + TG-репорт с графиками)
-- Ожидаемое суммарное время: ~20-26 ч
+- completed (серия завершена 2026-08-26 ~15:37, SERIES COMPLETE analyze_fail=0)
+
+Notes:
+
 - Инцидент при первом запуске: OpenMPI не дал 10 слотов (8 физ. ядер); исправлено OMPI_MCA_hwloc_base_use_hwthreads_as_cpus=1; упавшие run-каталоги удалены, серия перезапущена. Также исправлен greedy --labels в compare_runs.py (позиционные ДО --labels).
 
 ### 2026-08-24 remove legacy analysis scripts, multi-run in registry

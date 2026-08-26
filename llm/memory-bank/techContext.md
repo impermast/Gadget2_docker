@@ -60,9 +60,9 @@ New plotting infrastructure (`nbody/scripts/plot_scripts/`, 2026-08-24):
 - `settings.py` — ЕДИНЫЙ модуль стиля: COLORS/SIZES/STYLE/setup/apply/save (ex plot_config.py) + RunPaths / SimulationInfo / PlotSettings (глобальный стиль через rcParams);
 - `base.py` — BasePlot ABC + data contract с runtime validation;
 - `plotter.py` — NbodyPlotter (registry, describe, make_plot/make_plots), коллекции ANALYSIS_PLOTS / COMPARE_PLOTS / ANIMATION_PLOTS / ALL_PLOTS;
-- `analysis_plots.py` — density, log_slope, sigma_v, interactions_radial + compare: density_compare, log_slope_compare, sigma_v_compare, core_density_vs_sigma;
+- `analysis_plots.py` — density, log_slope, sigma_v, interactions_radial + compare: density_compare, log_slope_compare, sigma_v_compare, log_rho_compare (top + Δlogρ vs CDM), rot_curve_compare (top + Δv_circ vs CDM), core_density_vs_sigma;
 - `animation_plots.py` — particles_2d, particles_3d (GIF, PIL);
-- `loaders.py` — HDF5 → plot-ready данные + write_summary() (текстовая сводка);
+- `loaders.py` — HDF5 → plot-ready данные + write_summary() + v_circ (G M(<r)/r, G_code=43009.17);
 - `run_full_test.py` — полный прогон всех plots одного run + validation-тесты + сводка;
 - `compare_runs.py` — сравнение нескольких прогонов (замена compare_all.py / analyze_halo.py).
 

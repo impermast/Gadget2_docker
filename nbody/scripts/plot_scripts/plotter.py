@@ -50,6 +50,7 @@ SUPPORTED_RENDERERS = ("matplotlib",)
 
 ANALYSIS_PLOTS = ["density", "log_slope", "sigma_v", "interactions_radial"]
 COMPARE_PLOTS = ["density_compare", "log_slope_compare", "sigma_v_compare",
+                 "log_rho_compare", "rot_curve_compare",
                  "core_density_vs_sigma"]
 ANIMATION_PLOTS = ["particles_2d", "particles_3d"]
 ALL_PLOTS = ANALYSIS_PLOTS + COMPARE_PLOTS + ANIMATION_PLOTS
