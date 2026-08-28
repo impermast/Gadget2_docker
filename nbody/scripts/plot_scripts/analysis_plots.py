@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Dict, Mapping
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from base import BasePlot, F, PlotValidationError, validate_fields
 
@@ -213,7 +214,68 @@ class InteractionsRadialPlot(BasePlot):
         return path
 
 
-ANALYSIS_PLOT_CLASSES = [DensityPlot, LogSlopePlot, SigmaVPlot, InteractionsRadialPlot]
+class DiskEdgeOnPlot(BasePlot):
+    name = "disk_edgeon"
+    description = (
+        "Edge-on карта поверхностной плотности (x-z проекция) финального "
+        "снапшота — главный график для демонстрации формирования диска: "
+        "сплюснутая структура в x-y-плоскости видна как горизонтальная полоса. "
+        "Данные: particles из prepare_particle_snapshot() (positions уже "
+        "shrinkage-центрированы)."
+    )
+    data_contract = {
+        "positions": F(("N", 3)),
+        "masses": F(("N",), required=False),
+        "time": F((), required=False),
+        "cross_section": F((), required=False),
+    }
+    default_config = {
+        "title": None,
+        "xlabel": "x [kpc]",
+        "ylabel": "z [kpc]",
+        "bins": 220,
+        "lim": None,
+        "min_lim": 2.0,
+        "percentile": 98,
+        "cmap": "inferno",
+        "dpi": 150,
+        "figsize_key": "square",
+        "filename": "disk_edgeon.png",
+    }
+
+    def render(self, data, config):
+        from matplotlib.colors import LogNorm
+
+        pos = np.asarray(data["positions"], dtype=np.float64)
+        masses = data.get("masses")
+        w = (np.asarray(masses, dtype=np.float64)
+             if masses is not None else np.ones(len(pos)))
+
+        lim = config.get("lim")
+        if lim is None:
+            r = np.linalg.norm(pos[:, :2], axis=1)  # x-y радиус
+            lim = max(float(np.percentile(r[r > 0], config["percentile"])),
+                      float(config["min_lim"]))
+
+        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
+        hh = ax.hist2d(pos[:, 0], pos[:, 2], bins=config["bins"],
+                       range=[[-lim, lim], [-lim, lim]],
+                       weights=w, norm=LogNorm(), cmap=config["cmap"])
+        ax.set_aspect("equal")
+        self.settings.style_axis(ax, title=config.get("title"),
+                                 xlabel=config.get("xlabel"),
+                                 ylabel=config.get("ylabel"))
+        cb = fig.colorbar(hh[3], ax=ax, fraction=0.046)
+        cb.set_label("mass per pixel")
+        fig.tight_layout()
+        path = self.settings.save_figure(fig, config["filename"],
+                                         dpi=config["dpi"])
+        plt.close(fig)
+        return path
+
+
+ANALYSIS_PLOT_CLASSES = [DensityPlot, LogSlopePlot, SigmaVPlot, InteractionsRadialPlot,
+                         DiskEdgeOnPlot]
 
 
 # ═══════════════════════ multi-run comparison plots ═════════════════════════

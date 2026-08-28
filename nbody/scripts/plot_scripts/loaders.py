@@ -208,6 +208,28 @@ def prepare_series(snapshot_dir, ptype: int = 3, nmax: int = 100_000,
 
 # ─────────────────────── текстовая сводка прогона ───────────────────────────
 
+def prepare_particle_snapshot(snapshot_path, ptype: int = 3, nmax: int = None,
+                              seed: int = 42) -> Dict[str, object]:
+    """
+    Plot-ready частицы финального снапшота (для карт disk_edgeon и т.п.):
+    positions (N, 3) — shrinkage-центрированы, masses (N,), time, cross_section.
+    """
+    d = read_snapshot(snapshot_path, ptype=ptype)
+    pos = d["pos"]
+    mass = d["mass"] if d["mass"] is not None else np.full(len(pos), 1.0)
+    center = shrink_center(pos, mass, niter=6)
+    pos = pos - center
+    if nmax and len(pos) > nmax:
+        sel = np.random.default_rng(seed).choice(len(pos), nmax, replace=False)
+        pos, mass = pos[sel], mass[sel]
+    return {
+        "positions": pos.astype(np.float32),
+        "masses": mass.astype(np.float32),
+        "time": float(d["time"]),
+        "cross_section": float(d["sigma"]),
+    }
+
+
 def inner_log_slope(slope: np.ndarray, rho: np.ndarray, r: np.ndarray,
                     n_first: int = 6) -> float:
     """Медиана первых валидных бинов slope (как в analyze_final_snapshot.py)."""

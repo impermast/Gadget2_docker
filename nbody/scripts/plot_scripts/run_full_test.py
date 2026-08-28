@@ -29,7 +29,8 @@ for _p in (_HERE, _HERE.parent):
         sys.path.insert(0, str(_p))
 
 from base import PlotValidationError          # noqa: E402
-from loaders import prepare_profile_data, prepare_series, write_summary  # noqa: E402
+from loaders import (prepare_particle_snapshot, prepare_profile_data,  # noqa: E402
+                     prepare_series, write_summary)
 from plotter import (ALL_PLOTS, ANALYSIS_PLOTS, ANIMATION_PLOTS,   # noqa: E402
                      COMPARE_PLOTS, NbodyPlotter, UnknownPlotError,
                      UnsupportedRendererError)
@@ -142,6 +143,8 @@ def main() -> None:
         snap = run.latest_snapshot()
         print(f"[INFO] final snapshot: {snap.name}")
         prof = prepare_profile_data(snap, rcore=2.0)
+        part = prepare_particle_snapshot(snap, ptype=info.particle_type,
+                                         nmax=200_000)
         summary_path = outdir / "summary_analysis.txt"
         print(f"[INFO] writing text summary -> {summary_path.name}")
         write_summary(snap, summary_path, rcore=2.0)
@@ -151,6 +154,9 @@ def main() -> None:
             "log_slope": {"data": prof},
             "sigma_v": {"data": prof},
             "interactions_radial": {"data": prof},
+            "disk_edgeon": {"data": part,
+                            "config": {"title": f"Edge-on density, "
+                                       f"t={part['time']:.2f}"}},
         }
         for name, paths in plotter.make_plots(jobs, output_dir=outdir).items():
             for p in paths:

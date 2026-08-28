@@ -48,7 +48,8 @@ SUPPORTED_RENDERERS = ("matplotlib",)
 
 # ─────────────────────── Стандартные коллекции plots ────────────────────────
 
-ANALYSIS_PLOTS = ["density", "log_slope", "sigma_v", "interactions_radial"]
+ANALYSIS_PLOTS = ["density", "log_slope", "sigma_v", "interactions_radial",
+                  "disk_edgeon"]
 COMPARE_PLOTS = ["density_compare", "log_slope_compare", "sigma_v_compare",
                  "log_rho_compare", "rot_curve_compare",
                  "core_density_vs_sigma"]
