@@ -34,6 +34,57 @@ Notes:
 - Полезные находки: `loaders.write_summary()` падает на снапшотах без датасета Masses; `shrink_center` статистически разбрасывает центр на ~1–2.5 kpc при N=2000 (не баг, природа алгоритма).
 - PyPI напрямую недоступен с этой машины — ставить пакеты через зеркало tuna.
 
+### 2026-08-28 dissipation matrix test (Phase 0-1, IN PROGRESS)
+
+Goal:
+
+- Тестовое показательное исследование: качественная и количественная разница CDM / SIDM / dSIDM (диссипативный SIDM) с вращающимся гало — проверка формирования тёмного диска.
+- Группировка runs в подпапках: `runs/<set>/<run>` (конвенция зафиксирована).
+
+Type:
+
+- Test production matrix (N=1e5, T=2 Gyr) + plotting pipeline extension
+
+Status:
+
+- IN PROGRESS (запущена 2026-08-28 08:45, оркестратор `nbody/scripts/run_matrix_dissipation.sh`)
+
+Physics:
+
+- GIZMO нативный `DM_DissipationFactor` (патч DM_DissipationFactor в .param, в работает: f=1 → sticky DM, 0.5·dV kick). `GRAIN_COLLISIONS` НЕ определён — активен `sidm_core.c`, не grain.
+- Вращение: GalIC `TypeOfHaloVelocityStructure=2` с `HaloStreamingVelocityParameter=0.5` НЕ сработал (чистое гало без диска не вращается). Вместо этого — новый `add_halo_rotation.py`: накладывает k·v_circ(r) из rotcurve.txt (⟨v_φ⟩ = −17…−21 км/с, J_z = ровно 0.5 круговой поддержки). IC: `dwarf_rot_N1e5/dwarf_rot_N1e5_k05.hdf5`.
+
+Matrix (12 runs, N=1e5, T=2, TimeBet=0.1, 10 procs, в `runs/test_dissipation/`):
+
+| Run | σ | f | |
+|---|---|---|---|
+| dsidm10_f1 (тестовый, первым) | 10 | 1.0 | физ-проверка до серии |
+| cdm_N1e5_T2 | 0 | — | базовый |
+| sidm{0.1,1,5,10}_N1e5_T2 | 0.1/1/5/10 | 0 | упругая ветка |
+| dsidm{1,5,10}_f1 + _f05 | 1/5/10 | 1.0 / 0.5 | диссипативная сетка |
+| dsidm0.1_f001 | 0.1 | 0.01 | валидция: CDM ≈ SIDM ≈ dSIDM при почти неизменной физике |
+
+Pipeline updates:
+
+- `generate_ics.sh`: +`galic_extra` (JSON → sed в param).
+- `run_sim.sh`: +`--dissipation <f>`, вложенные --name (`set/run`).
+- plot_scripts: +`disk_edgeon` plot (x-z карта плотности), `prepare_particle_snapshot()`, registry = 13 plots.
+- Новые скрипты: `add_halo_rotation.py`, `run_matrix_dissipation.sh`.
+- Физ-чек тестового прогона: 21 снапшот, NI>0, J_z дрейф <2%, edge-on сплюснутость.
+
+Status:
+
+- протестирована инфраструктура (Phase 0 complete), матрица запущена
+
+
+
+Update 2026-08-28 (partial-series diagnostic):
+
+- `dsidm10_f05_k15_N1e5_T2` stopped manually at pathological state, without deleting outputs: Time≈0.941/2, 10 snapshots, Sync-Point≈1.38M, Systemstep≈5.96e-08..1.19e-07.
+- Added reusable checker `/nbody/scripts/check_simulations/analyze_series.py`; output for this run: `/nbody/runs/test_dissipation/dsidm10_f05_k15_N1e5_T2/partial_analysis/`.
+- Quantitative verdict from `summary_partial_series.txt`: `no-disk-before-pathology` over snapshots 0..9 (t=0..0.9); min c/a(r<5)=0.831, rho_core(r<2) growth=0.459, ΔNI=59,449,572, max |vrot|/sigma(r<5)=0.257, min positive Systemstep=1.19e-07.
+- Interpretation: σ=10, f=0.5, kick=15 produces enormous interaction growth and timestep pathology before clear disk-like flattening; not a stable dark-disk parameter point.
+
 ### 2026-08-26 add log_rho_compare + rot_curve_compare (delta subplot)
 
 Goal:

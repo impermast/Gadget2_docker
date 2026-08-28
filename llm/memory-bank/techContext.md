@@ -121,9 +121,13 @@ Git policy (2026-08-25):
 - `llm/` трекается только в `agent/dev`; при мерже в master снимается с
   трекинга процедурой из `llm/rules/02-workflow.md`.
 
-Telegram notifications:
+- Telegram notifications:
 - `run_sim.sh` шлёт START/FINISH/ERROR в Telegram автоматически (по умолчанию, при наличии `nbody/tg/telegram.conf`); отключение — `--no-tg`, прогресс-уведомления — `--tg-progress` / `--tg-interval <n>`.
 - Отправка реализована в `nbody/tg/` (`tg_notify.py` — модуль, `tg_event.py` — события, `tgbot.py` — polling-бот с командами /status, /runs и фоновым мониторингом).
+
+Operational validation workflow:
+- `nbody/scripts/check_simulations/` — reusable monitoring/diagnostic tools: `check_run.py` for one run, `check_block.py` for groups, and `analyze_series.py` for partial/pathological series diagnostics; parse `run.log`, `run.state`, run params, snapshot inventory/latest metadata, detect timestep pathology, estimate simple ETA, output `human`, `json`, or compact Telegram-safe `tg` reports, and quantify shape/thickness/rotation/core-density/NInteractions evolution over completed snapshots.
+- `skills/check-run/SKILL.md` — thin orchestration skill that invokes these scripts instead of ad-hoc checks; plotting remains in `plot_scripts` and is used only when runs are complete enough.
 
 High-risk actions:
 

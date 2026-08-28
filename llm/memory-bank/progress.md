@@ -11,6 +11,7 @@ What works:
 - Agent infrastructure is being moved into `llm/`.
 - Cline root entrypoint is kept minimal.
 - Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (source in repo `skills/`, installed into `~/.codex/skills/` and `~/.agents/skills/` via `skills/install.sh`).
+- Added reusable `check-run` monitoring/diagnostic workflow: scripts in `nbody/scripts/check_simulations/` provide run/block checks, timestep pathology detection, simple ETA, snapshot/parameter integrity, partial-series diagnostics (`analyze_series.py`), and human/json/tg reports; skill `skills/check-run/SKILL.md` orchestrates these tools.
 
 Known risks:
 
