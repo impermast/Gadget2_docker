@@ -45,13 +45,14 @@ preflight() {
 }
 
 # ======== Запуск GalIC для одного компонента ========
-# Аргументы: component_name, output_dir, n, cc, v200
+# Аргументы: component_name, output_dir, n, cc, v200, extra_pairs ("K=V K=V"| "")
 generate_component() {
     local name="$1"
     local output_dir="$2"
     local n="$3"
     local cc="$4"
     local v200="$5"
+    local extra="$6"
 
     info "--- Component: $name (n=$n, cc=$cc, v200=$v200) ---"
 
@@ -73,6 +74,20 @@ generate_component() {
 
     # OutputDir и OutputFile — в work_dir
     sed -i "s|^OutputDir.*|OutputDir       ${work_dir}/|" "$tmp_param"
+
+    # Кастомные GalIC-параметры из JSON (galic_extra), напр.
+    # TypeOfHaloVelocityStructure=2 HaloStreamingVelocityParameter=0.5
+    local pair key val
+    for pair in $extra; do
+        key="${pair%%=*}"
+        val="${pair##*=}"
+        if grep -qE "^${key}[[:space:]]" "$tmp_param"; then
+            sed -i -E "s/^(${key})[[:space:]]+[-0-9.]+/\1 ${val}/" "$tmp_param"
+            info "  galic_extra: ${key} -> ${val}"
+        else
+            warn "  galic_extra: ключ '${key}' не найден в шаблоне — пропущен"
+        fi
+    done
 
     info "Запуск GalIC для '$name'..."
     cd "$work_dir"
@@ -165,8 +180,16 @@ for comp in c['components']:
         cc=$(python3 -c "import json; c=json.load(open('$config_file')); print(c['components'][$i]['cc'])")
         v200=$(python3 -c "import json; c=json.load(open('$config_file')); print(c['components'][$i]['v200'])")
 
+        local extra_pairs
+        extra_pairs=$(python3 -c "
+import json
+c = json.load(open('$config_file'))
+extra = c.get('galic_extra', {})
+print(' '.join(f'{k}={v}' for k, v in extra.items()))
+")
+
         local hdf_file
-        hdf_file=$(generate_component "$name" "$output_dir" "$n" "$cc" "$v200")
+        hdf_file=$(generate_component "$name" "$output_dir" "$n" "$cc" "$v200" "$extra_pairs")
         input_files+=("$hdf_file")
     done
 

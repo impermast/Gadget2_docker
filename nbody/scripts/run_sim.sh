@@ -39,6 +39,8 @@ EXPERIMENT_LOG=""
 
 # ======== Парсинг аргументов ========
 RUN_NAME=""
+DISS=""
+KICK=""
 SIM_TYPE=""
 TIME_MAX=""
 TIME_BET=""
@@ -237,6 +239,22 @@ setup_run_dir() {
             sed -i "s|^DM_InteractionCrossSection[[:space:]]*.*|DM_InteractionCrossSection    ${SIGMA}|" "${RUN_DIR}/.gizmo_run.param"
         else
             echo "DM_InteractionCrossSection    ${SIGMA}" >> "${RUN_DIR}/.gizmo_run.param"
+        fi
+    fi
+
+    if [[ -n "$DISS" ]]; then
+        if grep -q '^DM_DissipationFactor' "${RUN_DIR}/.gizmo_run.param"; then
+            sed -i "s|^DM_DissipationFactor[[:space:]]*.*|DM_DissipationFactor    ${DISS}|" "${RUN_DIR}/.gizmo_run.param"
+        else
+            echo "DM_DissipationFactor    ${DISS}" >> "${RUN_DIR}/.gizmo_run.param"
+        fi
+    fi
+
+    if [[ -n "$KICK" ]]; then
+        if grep -q '^DM_KickPerCollision' "${RUN_DIR}/.gizmo_run.param"; then
+            sed -i "s|^DM_KickPerCollision[[:space:]]*.*|DM_KickPerCollision    ${KICK}|" "${RUN_DIR}/.gizmo_run.param"
+        else
+            echo "DM_KickPerCollision    ${KICK}" >> "${RUN_DIR}/.gizmo_run.param"
         fi
     fi
 
@@ -546,6 +564,8 @@ main() {
     # Разбор аргументов
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --dissipation) DISS="$2";  shift 2 ;;
+            --kick)        KICK="$2";  shift 2 ;;
             --name)      RUN_NAME="$2";    shift 2 ;;
             --type)      SIM_TYPE="$2";    shift 2 ;;
             --time-max)  TIME_MAX="$2";    shift 2 ;;
