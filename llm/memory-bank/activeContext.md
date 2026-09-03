@@ -5,6 +5,22 @@ Current focus:
 - Pipeline hardening done (2026-08-25): git policy (`agent/dev`), fast test
   suite (`tests/`, 23 tests ~1 s), pre-commit auto-run, GitHub Actions CI
   (runs #1, #2 green). Memory bank synced with this state.
+- Active simulation follow-up (2026-08-28): soft dSIDM run
+  `/nbody/runs/test_dissipation/dsidm5_f005_k0_N1e5_T2_np4/` completed and
+  passed final analysis after the harder `dsidm10_f05_k15_N1e5_T2` showed
+  timestep-collapse before disk formation. Key result: completed/ok, 21/21
+  snapshots, no pathology flags, final NI=5194 (4.21% particles), core density
+  r<2=`6.5441e-04`, inner slope≈-0.614. Plots are in the run `plots/` folder.
+- `/nbody/scripts/run_matrix_dissipation.sh` is now revised to an 11-run
+  smoke-calibrated grid: CDM; SIDM σ=1/5/10; dSIDM σ=1,f=0.05/0.1/0.2,k=0;
+  dSIDM σ=5,f=0.05,k=0; dSIDM σ=10,f=0.05/0.1/0.2,k=0. It no longer
+  auto-deletes run folders. Default matrix launch now uses PROCS=8 and supports
+  env override `GROUP=...`.
+- Revised grid `/nbody/runs/test_dissipation_grid_sigma1/` completed. Pathological `dsidm10_f02_k0_N1e5_T2` was removed; 10 stable runs passed `run_full_test.py`. Shape/thickness comparison (`shape_compare/`) shows no T=2 dark-disk signature (`c/a(r<5)≈0.94`, `z/R≈0.67`, `|vrot|/sigma≈0.07`).
+- Old N1e6 dwarf production runs are grouped under `/nbody/runs/sidm_dwarf_N1e6_T5/`.
+  Oversized old `/nbody/runs/cdm_N1e6/` was deleted by user request.
+- Legacy runs are archived under `/nbody/runs/archive/`: `legacy_cdm_sidm_N1e6/`,
+  `test_sidm/`, and `logs/`. Top-level runs are now mostly grouped.
 
 Current decision:
 
@@ -34,6 +50,7 @@ Current expected workflow:
 
 Next step:
 
+- Next scientific step: run focused longer T=5 grid in `nbody/runs/test_dissipation_focused_T5/`: CDM, SIDM10, dSIDM5 f=0.05, dSIDM10 f=0.05, dSIDM10 f=0.1 (all k=0, same rotating IC).
 - Merge accumulated `agent/dev` work into `master` (user decides when);
 - deferred: level-3 plot tests (render smoke / contracts), CI annotations
   via third-party action if needed.

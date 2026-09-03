@@ -85,6 +85,55 @@ Update 2026-08-28 (partial-series diagnostic):
 - Quantitative verdict from `summary_partial_series.txt`: `no-disk-before-pathology` over snapshots 0..9 (t=0..0.9); min c/a(r<5)=0.831, rho_core(r<2) growth=0.459, ΔNI=59,449,572, max |vrot|/sigma(r<5)=0.257, min positive Systemstep=1.19e-07.
 - Interpretation: σ=10, f=0.5, kick=15 produces enormous interaction growth and timestep pathology before clear disk-like flattening; not a stable dark-disk parameter point.
 
+Update 2026-08-28 (soft dSIDM rerun launched):
+
+- User requested a softer follow-up with analysis and Telegram notification on completion.
+- Intended run `test_dissipation/dsidm5_f005_k0_N1e5_T2` with 10 MPI processes failed before simulation start because OpenMPI reported insufficient slots; this folder is a failed launch artifact, not a physics result.
+- Working run launched instead as `/nbody/runs/test_dissipation/dsidm5_f005_k0_N1e5_T2_np4/` with `--mpi-procs 4`, IC `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k05`, `sigma=5`, `DM_DissipationFactor=0.05`, `DM_KickPerCollision=0`, `TimeMax=2`, `TimeBetSnapshot=0.1`.
+- Telegram is enabled by `run_sim.sh` because `/nbody/tg/telegram.conf` exists, but the first START send returned `TG: ошибка отправки START`; final TG reporting is also scheduled through `check_run.py --format tg` and may depend on the same TG configuration/network.
+- Post-run monitor installed from host (`/tmp/monitor_dsidm5_f005_k0_np4.sh`, PID recorded by process table) to wait for the run to end, then write `check_after_finish.txt/json`; if completed+ok, run `/nbody/scripts/plot_scripts/run_full_test.py`; otherwise run `/nbody/scripts/check_simulations/analyze_series.py`; finally write `check_after_finish_tg.txt` via `--format tg`.
+- Initial `check-run`: running/ok, by t≈0.336/2 (16.8%), 4/21 snapshots, latest `snapshot_003.hdf5`, `Systemstep=0.00195312`, `NInteractions=2402` affecting 2.26% particles, no pathology flags.
+
+Update 2026-08-28 (soft dSIDM completed + final analysis):
+
+- `/nbody/runs/test_dissipation/dsidm5_f005_k0_N1e5_T2_np4/` completed normally: `Time=2/2`, 21/21 snapshots, latest `snapshot_020.hdf5`, `Sync-Point=1048`, `Systemstep=0.00195312`, no pathology flags.
+- Final SIDM counters: `NInteractions=5194`, interacted particles `4208/100000` (4.21%), per-interacted mean=1.23, median=1, p90=2, max=6.
+- Final single-run analysis succeeded via `plot_scripts/run_full_test.py` (`ALL CHECKS PASSED in 13.9s`), outputs in `/nbody/runs/test_dissipation/dsidm5_f005_k0_N1e5_T2_np4/plots/`: density, log_slope, sigma_v, interactions_radial, disk_edgeon, 2D/3D GIFs, `summary_analysis.txt`.
+- Summary metrics: core density r<2 = `6.5441e-04`, inner log-slope median first bins = `-0.614`, COM=(-4.302,-3.158,-0.965), shrink-center=(-7.630,-2.621,-0.268).
+- TG-format completion report regenerated after stopping stale monitor: `check_after_finish_tg.txt` says completed/ok; command exit code 0.
+
+Update 2026-08-28 (initial dissipation grid revised after smoke tests):
+
+- Updated `/nbody/scripts/run_matrix_dissipation.sh` from the old 3-run mini-block (`CDM`, `SIDM σ=10`, pathological `dSIDM σ=10,f=0.5,kick=15`) to a 7-run smoke-calibrated initial grid.
+- New grid: `cdm_N1e5_T2`, `sidm5_N1e5_T2`, `sidm10_N1e5_T2`, `dsidm5_f005_k0_N1e5_T2`, `dsidm10_f005_k0_N1e5_T2`, `dsidm10_f01_k0_N1e5_T2`, `dsidm10_f02_k0_N1e5_T2`.
+- Rationale: smoke `dsidm5_f005_k0_N1e5_T2_np4` is stable but too weak to form a clear disk; old `dsidm10_f05_k15_N1e5_T2` is pathological. The revised grid removes `kick=15`, keeps `kick=0`, and scans moderate dissipation around σ=10.
+- Safety fix: removed automatic `rm -rf` cleanup from the matrix script; it now aborts if a target run directory already exists. Manual cleanup candidates are listed separately and require explicit approval before deletion.
+
+Update 2026-08-28 (sigma=1 grid extension + cleanup):
+
+- Extended `/nbody/scripts/run_matrix_dissipation.sh` with σ=1 points: `sidm1_N1e5_T2`, `dsidm1_f005_k0_N1e5_T2`, `dsidm1_f01_k0_N1e5_T2`, `dsidm1_f02_k0_N1e5_T2`.
+- Current grid now has 11 runs: CDM; elastic SIDM σ=1/5/10; dSIDM σ=1 with f=0.05/0.1/0.2; dSIDM σ=5,f=0.05; dSIDM σ=10 with f=0.05/0.1/0.2; all dSIDM use `kick=0`.
+- User-approved cleanup policy for `/nbody/runs/test_dissipation/`: keep successful smoke `dsidm5_f005_k0_N1e5_T2_np4`, pathological reference `dsidm10_f05_k15_N1e5_T2`, and SIDM baseline `sidm10_N1e5_T2`; remove failed launch/log leftovers.
+
+Update 2026-08-28 (launch revised grid with PROCS=8):
+
+- Updated `/nbody/scripts/run_matrix_dissipation.sh`: default `PROCS=${PROCS:-8}` and `GROUP=${GROUP:-test_dissipation}` so matrix runs can be launched in a fresh group without touching preserved reference runs.
+- Launched group: `/nbody/runs/test_dissipation_grid_sigma1/`, command `GROUP=test_dissipation_grid_sigma1 PROCS=8 bash /nbody/scripts/run_matrix_dissipation.sh`, background launcher log `/nbody/runs/test_dissipation_grid_sigma1.launcher.log`.
+- Initial check: first run `cdm_N1e5_T2` is running/ok on 8 MPI processes; block compare is not ready until all 11 runs complete and pass health checks.
+
+Update 2026-08-28 (old run cleanup/grouping):
+
+- Created grouped production series directory `/nbody/runs/sidm_dwarf_N1e6_T5/` and moved into it: `cdm_dwarf_N1e6_T5`, `sidm0.1_dwarf_N1e6_T5`, `sidm1_dwarf_N1e6_T5`, `sidm5_dwarf_N1e6_T5`, `sidm20_dwarf_N1e6_T5`.
+- Deleted user-approved oversized legacy run `/nbody/runs/cdm_N1e6/` (~31G, old IC/cadence with 502 snapshots).
+- Current grouped production series size: ~22G. Active dissipation matrix `/nbody/runs/test_dissipation_grid_sigma1/` was left running.
+
+Update 2026-08-28 (archive grouping, no deletion):
+
+- Moved legacy SIDM comparison runs into `/nbody/runs/archive/legacy_cdm_sidm_N1e6/`: `sidm_sigma0.1_N1e6`, `sidm_sigma1_N1e6`, `sidm_sigma2_N1e6`, `sidm_sigma5_N1e6`.
+- Moved old small tests into `/nbody/runs/archive/test_sidm/`: `test_sidm_auto`, `test_sidm_auto2`, `cdm_dwarf_N100k`, `sidm20_dwarf_N100k`.
+- Moved old top-level logs into `/nbody/runs/archive/logs/`: `batch.log`, `series_dwarf.log`.
+- Top-level `nbody/runs/` now contains only `archive/`, `sidm_dwarf_N1e6_T5/`, `test_dissipation/`, active `test_dissipation_grid_sigma1/`, and its launcher log.
+
 ### 2026-08-26 add log_rho_compare + rot_curve_compare (delta subplot)
 
 Goal:
@@ -561,3 +610,36 @@ Status:
 Notes:
 
 - ...
+### 2026-09-03 dSIDM T=2 grid cleanup + shape/thickness diagnostics
+
+Goal:
+
+- Завершить анализ T=2 dissipation grid и подготовить надёжный критерий выбора следующего focused T=5 эксперимента.
+
+Type:
+
+- Completed-run analysis + analysis tooling
+
+Run/data:
+
+- Group: `nbody/runs/test_dissipation_grid_sigma1/`
+- IC: `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k05.hdf5`
+- Matrix: CDM; SIDM σ=1/5/10; dSIDM σ=1,f=0.05/0.1/0.2,k=0; dSIDM σ=5,f=0.05,k=0; dSIDM σ=10,f=0.05/0.1/0.2,k=0.
+
+What was done:
+
+- Pathological run `dsidm10_f02_k0_N1e5_T2` was removed after timestep-collapse (`low-dt-timebins`, `timestep-collapse`).
+- `run_full_test.py` completed for the remaining 10 runs and produced per-run `plots/summary_analysis.txt` and plots.
+- Added reusable group comparison tool `nbody/scripts/check_simulations/compare_shape_series.py` to aggregate `analyze_series.py` CSV outputs without reopening snapshots.
+- Hardened `analyze_series.py` log-scale plotting for zero-only series (e.g. CDM NInteractions).
+- Tested `analyze_series.py` on 5 key T=2 runs: CDM, SIDM10, dSIDM5 f=0.05, dSIDM10 f=0.05, dSIDM10 f=0.1.
+- Generated group shape/thickness comparison in `nbody/runs/test_dissipation_grid_sigma1/shape_compare/`.
+
+Key result:
+
+- No T=2 dark-disk signature in shape/thickness metrics: final `c/a(r<5)≈0.937–0.950`, `z_rms/R_rms(r<5)≈0.668–0.679`, `|vrot|/sigma(r<5)≈0.064–0.072`; all disk scores are 0.
+- dSIDM σ=10,f=0.1 has the largest NI among tested stable candidates (`NI=11618`) but no geometric disk signature by T=2.
+
+Status:
+
+- completed; result supports moving to focused longer T=5 runs rather than broadening T=2 parameter sampling.

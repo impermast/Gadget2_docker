@@ -162,7 +162,7 @@ def send_start(tg: TgNotify, args) -> bool:
     """Отправляет уведомление о старте."""
     msg = build_start_message(args)
     try:
-        tg.send_message(msg)
+        tg.send_message(msg, parse_mode=None)
         logger.info("Отправлено уведомление START для %s", args.name)
         return True
     except TelegramAPIError as e:
@@ -174,7 +174,7 @@ def send_finish(tg: TgNotify, args) -> bool:
     """Отправляет уведомление о завершении."""
     msg = build_finish_message(args)
     try:
-        tg.send_message(msg)
+        tg.send_message(msg, parse_mode=None)
         logger.info("Отправлено уведомление FINISH для %s (status=%s)", args.name, args.status)
         return True
     except TelegramAPIError as e:
@@ -194,7 +194,7 @@ def send_progress(tg: TgNotify, args) -> bool:
         return False
 
     try:
-        tg.send_message(msg)
+        tg.send_message(msg, parse_mode=None)
         name = args.name or os.path.basename(os.path.dirname(args.state))
         logger.info("Отправлено уведомление PROGRESS для %s", name)
         return True

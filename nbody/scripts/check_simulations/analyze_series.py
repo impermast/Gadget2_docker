@@ -235,6 +235,15 @@ def arr(metrics: List[SeriesMetric], name: str) -> np.ndarray:
     return np.asarray([getattr(m, name) for m in metrics], dtype=float)
 
 
+def has_positive_values(series) -> bool:
+    """Return True when at least one finite positive value exists in plotted series."""
+    for _label, y in series:
+        yy = np.asarray(y, dtype=float)
+        if np.any(np.isfinite(yy) & (yy > 0)):
+            return True
+    return False
+
+
 def plot_lines(metrics: List[SeriesMetric], outdir: Path) -> List[Path]:
     t = arr(metrics, "time")
     made: List[Path] = []
@@ -253,7 +262,7 @@ def plot_lines(metrics: List[SeriesMetric], outdir: Path) -> List[Path]:
         ax.set_title(title)
         ax.set_xlabel("Time [code units]")
         ax.set_ylabel(ylabel)
-        if "density" in fname or "ninteractions" in fname or "timestep" in fname:
+        if ("density" in fname or "ninteractions" in fname or "timestep" in fname) and has_positive_values(series):
             ax.set_yscale("log")
         ax.grid(True, alpha=0.3)
         ax.legend(frameon=False)

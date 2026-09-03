@@ -3,6 +3,26 @@
 What works:
 
 - Repository has Docker-based scientific workflow.
+- Soft dSIDM follow-up completed 2026-08-28:
+  `/nbody/runs/test_dissipation/dsidm5_f005_k0_N1e5_T2_np4/`, params
+  `sigma=5`, `DM_DissipationFactor=0.05`, `DM_KickPerCollision=0`, `T=2`,
+  `TimeBet=0.1`; final `check-run` completed/ok, 21/21 snapshots, no pathology
+  flags, NI=5194 (4.21%). `run_full_test.py` passed and generated 8 analysis
+  outputs in `plots/`.
+- Revised `run_matrix_dissipation.sh` initial grid after smoke tests: 11 runs,
+  no `kick=15`, no `f=0.5`; includes SIDM σ=1/5/10, dSIDM σ=1 with
+  f=0.05/0.1/0.2, dSIDM σ=5,f=0.05, and dSIDM σ=10 with f=0.05/0.1/0.2,
+  all k=0; removed automatic `rm -rf` cleanup in favor of abort-on-existing-run;
+  default matrix PROCS set to 8, GROUP can be overridden via environment.
+- Revised 11-run matrix completed in `/nbody/runs/test_dissipation_grid_sigma1/`; `dsidm10_f02_k0_N1e5_T2` was pathological and removed, remaining 10 runs are completed/ok and analyzed with `run_full_test.py`. Added shape/thickness group comparison tooling; T=2 result shows no robust dark-disk signature (`c/a(r<5)≈0.94`, `z/R≈0.67`, `|vrot|/sigma≈0.07`).
+- Old runs cleanup/grouping: `cdm_dwarf_N1e6_T5`, `sidm0.1_dwarf_N1e6_T5`,
+  `sidm1_dwarf_N1e6_T5`, `sidm5_dwarf_N1e6_T5`, `sidm20_dwarf_N1e6_T5` moved
+  into `/nbody/runs/sidm_dwarf_N1e6_T5/`; oversized legacy `/nbody/runs/cdm_N1e6/`
+  deleted.
+- Legacy grouping completed: `sidm_sigma*` runs moved to
+  `/nbody/runs/archive/legacy_cdm_sidm_N1e6/`; old N100k/smoke tests moved to
+  `/nbody/runs/archive/test_sidm/`; old top-level logs moved to
+  `/nbody/runs/archive/logs/`.
 - SIDM σ=20 dwarf run (`sidm20_dwarf_N100k`) verified 2026-08-21: reached TimeMax=2, module active (DM_SIDM=8, AGS 82% CPU).
 - SIDM модуль количественно верифицирован (2026-08-23, `nbody/analyse/cdm_sidm_all/`): тренд «больше σ → мягче ядро» на N1e6 подтверждён, N100k σ=20 эффект слаб из-за малого времени (Time=2). `compare_all.py` научился читать σ из заголовка снапшота.
 - Добавлен вывод NInteractions в снапшоты GIZMO (прототип, патчи в `nbody/patches/`), проверен smoke-тестом: t=0 → 0, t=0.05 → 7826 сум, 5.6% частиц.
