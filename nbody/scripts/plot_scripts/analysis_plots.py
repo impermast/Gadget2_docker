@@ -14,6 +14,7 @@ from typing import Any, Dict, Mapping
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import LogNorm, TwoSlopeNorm
 
 from base import BasePlot, F, PlotValidationError, validate_fields
 
@@ -617,8 +618,382 @@ class CoreDensityVsSigmaPlot(BasePlot):
         return path
 
 
+class VisualMorphologyMontagePlot(BasePlot):
+    name = "visual_morphology_montage"
+    description = (
+        "Presentation-quality face-on/edge-on surface-density montage for a run "
+        "group. Data are precomputed projection histograms; render() never reads HDF5."
+    )
+    data_contract = {"labels": F(("S",), dtype="str"), "faceon": F(("S", "B", "B")), "edgeon": F(("S", "B", "B")), "times": F(("S",), required=False)}
+    default_config = {"title": "Projected dark-matter morphology", "lim": 12.0, "cmap": "magma", "floor": 1e-12, "dpi": 190, "filename": "01_surface_density_montage_final.png"}
+
+    def render(self, data, config):
+        labels = list(data["labels"])
+        face = np.asarray(data["faceon"], dtype=float)
+        edge = np.asarray(data["edgeon"], dtype=float)
+        times = np.asarray(data.get("times", np.full(len(labels), np.nan)), dtype=float)
+        vals = np.concatenate([face.ravel(), edge.ravel()])
+        pos = vals[np.isfinite(vals) & (vals > 0)]
+        vmin = max(float(np.percentile(pos, 1)), config["floor"]) if len(pos) else config["floor"]
+        vmax = float(np.percentile(pos, 99.7)) if len(pos) else 1.0
+        norm = LogNorm(vmin=vmin, vmax=max(vmax, vmin * 10.0))
+        n = len(labels)
+        fig, axs = plt.subplots(n, 2, figsize=(8.8, max(2.0 * n, 3.2)), squeeze=False, constrained_layout=True)
+        extent = [-config["lim"], config["lim"], -config["lim"], config["lim"]]
+        last = None
+        for i, label in enumerate(labels):
+            panels = [(face[i], "face-on  x-y", "y [kpc]"), (edge[i], "edge-on  x-z", "z [kpc]")]
+            for j, (img, subtitle, ylabel) in enumerate(panels):
+                ax = axs[i, j]
+                last = ax.imshow(img, origin="lower", extent=extent, norm=norm, cmap=config["cmap"], interpolation="nearest", aspect="equal")
+                ax.set_xlabel("x [kpc]")
+                ax.set_ylabel(ylabel)
+                ax.set_title(subtitle if i == 0 else None)
+                ax.text(0.03, 0.94, label, transform=ax.transAxes, ha="left", va="top", color="white", fontsize=9, weight="bold", bbox=dict(facecolor="black", alpha=0.45, edgecolor="none", pad=2.5))
+                if np.isfinite(times[i]):
+                    ax.text(0.97, 0.05, f"t={times[i]:.2f}", transform=ax.transAxes, ha="right", va="bottom", color="white", fontsize=8, bbox=dict(facecolor="black", alpha=0.35, edgecolor="none", pad=2.0))
+                ax.tick_params(labelsize=8)
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        if last is not None:
+            cbar = fig.colorbar(last, ax=axs.ravel().tolist(), shrink=0.86, pad=0.015)
+            cbar.set_label("projected mass per pixel")
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class SurfaceDensityResidualsPlot(BasePlot):
+    name = "surface_density_residuals"
+    description = "Residual maps log10 Sigma_model - log10 Sigma_baseline for face-on and edge-on projections."
+    data_contract = {"labels": F(("S",), dtype="str"), "faceon": F(("S", "B", "B")), "edgeon": F(("S", "B", "B"))}
+    default_config = {"title": "Surface-density residuals vs CDM", "baseline_index": 0, "lim": 12.0, "eps": 1e-12, "cmap": "RdBu_r", "vmax": 1.0, "dpi": 190, "filename": "02_surface_density_residual_vs_cdm_final.png"}
+
+    def render(self, data, config):
+        labels = list(data["labels"])
+        face = np.asarray(data["faceon"], dtype=float)
+        edge = np.asarray(data["edgeon"], dtype=float)
+        base = int(config.get("baseline_index", 0))
+        rows = [i for i in range(len(labels)) if i != base]
+        if not rows:
+            rows = [base]
+        fig, axs = plt.subplots(len(rows), 2, figsize=(8.8, max(2.0 * len(rows), 3.0)), squeeze=False, constrained_layout=True)
+        extent = [-config["lim"], config["lim"], -config["lim"], config["lim"]]
+        norm = TwoSlopeNorm(vmin=-config["vmax"], vcenter=0.0, vmax=config["vmax"])
+        last = None
+        for rr, i in enumerate(rows):
+            for j, (arr, brr, title, ylabel) in enumerate([(face[i], face[base], "face-on residual", "y [kpc]"), (edge[i], edge[base], "edge-on residual", "z [kpc]")]):
+                resid = np.log10(arr + config["eps"]) - np.log10(brr + config["eps"])
+                ax = axs[rr, j]
+                last = ax.imshow(resid, origin="lower", extent=extent, norm=norm, cmap=config["cmap"], interpolation="nearest", aspect="equal")
+                ax.set_xlabel("x [kpc]"); ax.set_ylabel(ylabel)
+                ax.set_title(title if rr == 0 else None)
+                ax.text(0.03, 0.94, f"{labels[i]} − {labels[base]}", transform=ax.transAxes, ha="left", va="top", color="black", fontsize=9, weight="bold", bbox=dict(facecolor="white", alpha=0.65, edgecolor="none", pad=2.5))
+                ax.tick_params(labelsize=8)
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        if last is not None:
+            cbar = fig.colorbar(last, ax=axs.ravel().tolist(), shrink=0.86, pad=0.015)
+            cbar.set_label(r"$\Delta \log_{10}\Sigma$")
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class MorphologyProfilesComparePlot(BasePlot):
+    name = "morphology_profiles_compare"
+    description = "Final cumulative radial profiles: b/a, c/a, z_rms/R_rms and |vrot|/sigma for group comparison."
+    data_contract = {"series": F(("S",), dtype="any")}
+    default_config = {"title": "Radial morphology and rotation-support profiles", "dpi": 180, "filename": "03_shape_radial_profiles_final.png"}
+
+    def validate_data(self, data):
+        if "series" not in data or len(data["series"]) == 0:
+            raise PlotValidationError(f"{self.name}: missing non-empty 'series'")
+        for i, s in enumerate(data["series"]):
+            validate_fields(f"{self.name}.series[{i}]", s, {"label": F((), dtype="str"), "radii": F(("R",)), "ba": F(("R",)), "ca": F(("R",)), "thickness": F(("R",)), "vrot_over_sigma": F(("R",))})
+
+    def render(self, data, config):
+        fig, axs = plt.subplots(2, 2, figsize=(9.6, 6.8), sharex=True, constrained_layout=True)
+        specs = [("ba", "b/a (<r)", (0.0, 1.08)), ("ca", "c/a (<r)", (0.0, 1.08)), ("thickness", r"$z_{rms}/R_{rms}$ (<r)", (0.0, 1.1)), ("vrot_over_sigma", r"$|\langle v_\phi\rangle|/\sigma_{3D}$ (<r)", (0.0, None))]
+        for si, s in enumerate(data["series"]):
+            color = self.settings.palette[si % len(self.settings.palette)]
+            for ax, (key, ylabel, ylim) in zip(axs.ravel(), specs):
+                ax.plot(s["radii"], s[key], lw=1.8, color=color, label=s["label"])
+                self.settings.style_axis(ax, xlabel="r [kpc]", ylabel=ylabel, xscale="log", ylim=ylim, grid=True)
+        axs[0, 0].legend(frameon=False, fontsize=8)
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class PhaseSpaceComparePlot(BasePlot):
+    name = "phase_space_compare"
+    description = "Cylindrical phase-space panels: R vs v_phi mass-weighted histograms for disk/cold-branch search."
+    data_contract = {"labels": F(("S",), dtype="str"), "phase": F(("S", "V", "R")), "extent": F((4,))}
+    default_config = {"title": r"Phase space: $R$ vs $v_\phi$", "cmap": "viridis", "floor": 1e-12, "dpi": 190, "filename": "04_phase_space_R_vphi_final.png"}
+
+    def render(self, data, config):
+        labels = list(data["labels"])
+        phase = np.asarray(data["phase"], dtype=float)
+        extent = tuple(np.asarray(data["extent"], dtype=float))
+        n = len(labels); cols = min(3, n); rows = int(np.ceil(n / cols))
+        fig, axs = plt.subplots(rows, cols, figsize=(3.4 * cols, 2.8 * rows), squeeze=False, constrained_layout=True)
+        vals = phase[np.isfinite(phase) & (phase > 0)]
+        norm = LogNorm(vmin=max(np.percentile(vals, 1), config["floor"]) if len(vals) else config["floor"], vmax=np.percentile(vals, 99.7) if len(vals) else 1.0)
+        last = None
+        for i, ax in enumerate(axs.ravel()):
+            if i >= n:
+                ax.axis("off"); continue
+            last = ax.imshow(phase[i], origin="lower", extent=extent, aspect="auto", norm=norm, cmap=config["cmap"], interpolation="nearest")
+            ax.axhline(0.0, color="w", lw=0.8, ls=":", alpha=0.85)
+            ax.set_title(labels[i], fontsize=10, weight="bold")
+            ax.set_xlabel("R [kpc]"); ax.set_ylabel(r"$v_\phi$ [km/s]")
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        if last is not None:
+            cbar = fig.colorbar(last, ax=axs.ravel().tolist(), shrink=0.86, pad=0.015)
+            cbar.set_label("projected mass")
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class DiskDashboardPlot(BasePlot):
+    name = "disk_dashboard"
+    description = "Compact presentation dashboard combining final metric bars, morphology time-series and interaction/core evolution."
+    data_contract = {"summary_labels": F(("S",), dtype="str"), "ca_final": F(("S",)), "thickness_final": F(("S",)), "vrot_final": F(("S",)), "ninteractions_final": F(("S",)), "disk_score": F(("S",)), "metric_series": F(("S",), dtype="any", required=False)}
+    default_config = {"title": "Dark-disk candidate dashboard", "dpi": 190, "filename": "05_disk_dashboard.png"}
+
+    def render(self, data, config):
+        labels = [str(x) for x in data["summary_labels"]]
+        x = np.arange(len(labels))
+        fig, axs = plt.subplots(2, 2, figsize=(11.0, 6.8), constrained_layout=True)
+        bar_specs = [("ca_final", "final c/a r<5", (0, 1.05)), ("thickness_final", r"final $z_{rms}/R_{rms}$ r<5", (0, 1.05)), ("vrot_final", r"final $|vrot|/\sigma$ r<5", (0, None)), ("disk_score", "heuristic disk score", (0, None))]
+        for ax, (key, ylabel, ylim) in zip(axs.ravel(), bar_specs):
+            vals = np.asarray(data[key], dtype=float)
+            ax.bar(x, vals, color=[self.settings.palette[i % len(self.settings.palette)] for i in x], alpha=0.9)
+            ax.set_xticks(x); ax.set_xticklabels(labels, rotation=28, ha="right", fontsize=8)
+            self.settings.style_axis(ax, ylabel=ylabel, ylim=ylim, grid={"enabled": True, "axis": "y", "alpha": 0.25})
+            if key in {"ca_final", "thickness_final", "vrot_final"}:
+                ref = {"ca_final": 0.75, "thickness_final": 0.55, "vrot_final": 0.15}[key]
+                ax.axhline(ref, color="0.25", lw=0.9, ls=":")
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+# ═══════════════════════════ presentation/diagnostic plots ══════════════════
+
+class EnergyLossVsFPlot(BasePlot):
+    name = "diag_eloss_vs_f"
+    description = (
+        "Диагностика dSIDM dissipation: по оси X заданная диссипация f/D "
+        "(DM_DissipationFactor), по оси Y измеренная относительная потеря "
+        "кинетической энергии рассеявшихся частиц ΔE/E. Точки + линия y=x — "
+        "если измеренная потеря совпадает с заданной диссипацией. По "
+        "определению dSIDM энергия падает как (1-D)^2, то есть ΔE/E=2D-D^2 "
+        "(пунктирная кривая). Данные готовит loader `interacted_kinetic_energy()`."
+    )
+    data_contract = {
+        "f_set": F(("S",)),
+        "measured": F(("S",)),
+        "labels": F(("S",), dtype="str", required=False),
+    }
+    default_config = {
+        "title": "dSIDM: measured energy loss vs prescribed dissipation",
+        "xlabel": r"prescribed $f = D$ (DM_DissipationFactor)",
+        "ylabel": r"measured $\Delta E / E$",
+        "xlim": (0.0, 1.0),
+        "ylim": (0.0, 1.15),
+        "marker": "o",
+        "color_index": 0,
+        "show_yx_line": True,
+        "show_theory_curve": True,
+        "figsize_key": "page",
+        "dpi": None,
+        "filename": "diag_eloss_vs_f.png",
+    }
+
+    def render(self, data, config):
+        f_set = np.asarray(data["f_set"], dtype=float)
+        measured = np.asarray(data["measured"], dtype=float)
+        labels = data.get("labels")
+
+        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
+        ax.scatter(f_set, measured, marker=config["marker"],
+                   color=self.settings.palette[config["color_index"]],
+                   s=self.settings.marker_size * self.settings.marker_size + 20,
+                   zorder=5, label="measured")
+        if labels is not None:
+            for xv, yv, lab in zip(f_set, measured, labels):
+                ax.annotate(str(lab), (xv, yv), textcoords="offset points",
+                            xytext=(7, 5), fontsize=self.settings.font_size - 1)
+        # Точки вне ylim (например runaway: dE/E взрывается) — пометить у края.
+        ylim = config.get("ylim")
+        if ylim:
+            ylo, yhi = float(ylim[0]), float(ylim[1])
+            labels_arr = labels if labels is not None else []
+            for xv, yv, lab in zip(f_set, measured, labels_arr):
+                if not np.isfinite(yv) or yv < ylo or yv > yhi:
+                    edge_y = ylo if yv <= ylo or not np.isfinite(yv) else yhi
+                    ax.annotate(
+                        f"{lab}: {yv:.2e} (off-scale)",
+                        (xv, edge_y), textcoords="offset points", xytext=(0, 6),
+                        ha="center", fontsize=self.settings.font_size - 2,
+                        color=self.settings.palette[config["color_index"]],
+                        style="italic")
+        if config.get("show_yx_line"):
+            ax.plot([0.0, 1.0], [0.0, 1.0], ls="--", lw=self.settings.line_width_fit,
+                    color=self.settings.mono_colors[2], zorder=2,
+                    label="measured = prescribed (y=x)")
+        if config.get("show_theory_curve"):
+            xg = np.linspace(0.0, 1.0, 200)
+            ax.plot(xg, 2.0 * xg - xg * xg, ls=":", lw=self.settings.line_width_fit,
+                    color=self.settings.palette[1], zorder=3,
+                    label="theory: dE/E = 2D - D^2")
+        self.settings.style_axis(
+            ax, title=config.get("title"), xlabel=config.get("xlabel"),
+            ylabel=config.get("ylabel"), xlim=config.get("xlim"),
+            ylim=config.get("ylim"), grid=True, legend=True)
+        fig.tight_layout()
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class CriteriaTimePanelPlot(BasePlot):
+    name = "criteria_time_panel"
+    description = (
+        "Компактная панель: эволюция по времени трёх disk-candidate критериев "
+        "для набора runs (обычно лучших k=0.8 кандидатов). Три subplot'а: c/a(t), "
+        "z_rms/R_rms(t), |Vrot|/sigma(t) с горизонтальными порогами допуска "
+        "(0.75, 0.55, 0.15). Данные — series из load_metrics_series() "
+        "(поля ca, z_rms_over_R_rms, vrot_over_sigma)."
+    )
+    data_contract = {
+        "times": F(("T",)),
+        "ca": F(("T",)),
+        "thickness": F(("T",)),
+        "vrot_over_sigma": F(("T",)),
+        "labels": F(("S",), dtype="str", required=False),
+    }
+    default_config = {
+        "title": "Disk criteria vs time (k=0.8 candidates)",
+        "xlabel": "t [code time]",
+        "threshold_ca": 0.75,
+        "threshold_thickness": 0.55,
+        "threshold_vrot": 0.15,
+        "criteria_labels": [r"$c/a$ (r<5)",
+                            r"$z_{\rm rms}/R_{\rm rms}$ (r<5)",
+                            r"$|V_{\rm rot}|/\sigma$ (r<5)"],
+        "figsize_key": "wide",
+        "dpi": 190,
+        "filename": "diag_criteria_time_panel.png",
+    }
+
+    def render(self, data, config):
+        times = np.asarray(data["times"], dtype=float)
+        ca = np.asarray(data["ca"], dtype=float)
+        thickness = np.asarray(data["thickness"], dtype=float)
+        vrot = np.asarray(data["vrot_over_sigma"], dtype=float)
+        labels = data.get("labels")
+        clabels = config.get("criteria_labels") or ["c/a", "z_rms/R_rms", "|Vrot|/sigma"]
+
+        fig, axs = plt.subplots(1, 3,
+                                figsize=self.settings.figsize(config["figsize_key"]),
+                                sharex=True)
+        series = [(axs[0], ca, config["threshold_ca"], clabels[0]),
+                  (axs[1], thickness, config["threshold_thickness"], clabels[1]),
+                  (axs[2], vrot, config["threshold_vrot"], clabels[2])]
+        for i, (ax, yy, thr, ylab) in enumerate(series):
+            ymin = float(np.nanmin(np.r_[yy, thr]))
+            ax.plot(times, yy, color=self.settings.palette[0],
+                    lw=self.settings.line_width_main, zorder=3)
+            ax.axhline(thr, ls="--", lw=self.settings.line_width_fit,
+                       color=self.settings.palette[1], zorder=2,
+                       label=f"threshold = {thr}")
+            ax.fill_between(times, ymin, thr, color=self.settings.sequential_colors[i],
+                            alpha=0.15, zorder=1)
+            self.settings.style_axis(ax, xlabel=config["xlabel"],
+                                     ylabel=ylab, grid=True, legend=True)
+        if labels is not None:
+            for lab in labels:
+                fig.text(0.99, 0.02, f"run: {lab}", ha="right", va="bottom",
+                         fontsize=self.settings.font_size - 1, style="italic")
+        fig.suptitle(config.get("title"), fontsize=self.settings.title_size,
+                     weight="bold")
+        fig.tight_layout(rect=(0.0, 0.04, 1.0, 0.96))
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+class RunawayTimestepPanelPlot(BasePlot):
+    name = "runaway_timestep_panel"
+    description = (
+        "Диагностика runaway: двух-осевая панель зависимости N_interactions(t) "
+        "(левая ось) и минимального timestep dt_min(t) (правая ось, лог-шкала). "
+        "Цель — показать связь взрывного роста числа столкновений с коллапсом "
+        "шага времени (timestep collapse). Данные — из load_metrics_series() "
+        "(ninteractions_total, nearest_systemstep)."
+    )
+    data_contract = {
+        "times": F(("T",)),
+        "ninteractions": F(("T",)),
+        "dt_min": F(("T",)),
+        "labels": F(("S",), dtype="str", required=False),
+    }
+    default_config = {
+        "title": "Runaway: interactions vs min timestep",
+        "xlabel": "t [code time]",
+        "ni_ylabel": "N_interactions (cumulative)",
+        "dt_ylabel": "min dt / systemstep",
+        "ni_color_index": 0,
+        "dt_color_index": 3,
+        "figsize_key": "page",
+        "dpi": 190,
+        "filename": "diag_runaway_timestep_panel.png",
+    }
+
+    def render(self, data, config):
+        times = np.asarray(data["times"], dtype=float)
+        ni = np.asarray(data["ninteractions"], dtype=float)
+        dt = np.asarray(data["dt_min"], dtype=float)
+
+        fig, ax1 = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
+        ax1.plot(times, ni, color=self.settings.palette[config["ni_color_index"]],
+                 lw=self.settings.line_width_main, label="N_interactions")
+        self.settings.style_axis(ax1, xlabel=config["xlabel"],
+                                 ylabel=config["ni_ylabel"], grid=True)
+
+        ax2 = ax1.twinx()
+        ok = np.isfinite(dt) & (dt > 0)
+        if ok.any():
+            ax2.plot(times[ok], dt[ok], ls="--",
+                     color=self.settings.palette[config["dt_color_index"]],
+                     lw=self.settings.line_width_main, label="min dt")
+        ax2.set_yscale("log")
+        self.settings.style_axis(ax2, ylabel=config["dt_ylabel"], grid=False)
+
+        h1, l1 = ax1.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax1.legend(h1 + h2, l1 + l2, loc="upper right",
+                   fontsize=self.settings.legend_font_size)
+        fig.suptitle(config.get("title"), fontsize=self.settings.title_size,
+                     weight="bold")
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.96))
+        path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
+
+
+DIAG_PLOT_CLASSES = [EnergyLossVsFPlot, CriteriaTimePanelPlot, RunawayTimestepPanelPlot]
+
+
 COMPARE_PLOT_CLASSES = [DensityComparePlot, LogSlopeComparePlot,
                         SigmaVComparePlot, LogRhoComparePlot,
-                        RotCurveComparePlot, CoreDensityVsSigmaPlot]
+                        RotCurveComparePlot, CoreDensityVsSigmaPlot,
+                        VisualMorphologyMontagePlot, SurfaceDensityResidualsPlot,
+                        MorphologyProfilesComparePlot, PhaseSpaceComparePlot,
+                        DiskDashboardPlot]
 
 

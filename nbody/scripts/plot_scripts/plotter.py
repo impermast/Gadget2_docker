@@ -52,9 +52,12 @@ ANALYSIS_PLOTS = ["density", "log_slope", "sigma_v", "interactions_radial",
                   "disk_edgeon"]
 COMPARE_PLOTS = ["density_compare", "log_slope_compare", "sigma_v_compare",
                  "log_rho_compare", "rot_curve_compare",
-                 "core_density_vs_sigma"]
+                 "core_density_vs_sigma", "visual_morphology_montage",
+                 "surface_density_residuals", "morphology_profiles_compare",
+                 "phase_space_compare", "disk_dashboard"]
 ANIMATION_PLOTS = ["particles_2d", "particles_3d"]
-ALL_PLOTS = ANALYSIS_PLOTS + COMPARE_PLOTS + ANIMATION_PLOTS
+DIAG_PLOTS = ["diag_eloss_vs_f", "criteria_time_panel", "runaway_timestep_panel"]
+ALL_PLOTS = ANALYSIS_PLOTS + COMPARE_PLOTS + ANIMATION_PLOTS + DIAG_PLOTS
 
 
 # ───────────────────────────────── helpers ──────────────────────────────────
@@ -122,10 +125,11 @@ class NbodyPlotter:
 
     def register_defaults(self) -> "NbodyPlotter":
         """Зарегистрировать все стандартные production-plots проекта."""
-        from analysis_plots import ANALYSIS_PLOT_CLASSES, COMPARE_PLOT_CLASSES
+        from analysis_plots import (ANALYSIS_PLOT_CLASSES, COMPARE_PLOT_CLASSES,
+                                    DIAG_PLOT_CLASSES)
         from animation_plots import ANIMATION_PLOT_CLASSES
         for cls in (ANALYSIS_PLOT_CLASSES + COMPARE_PLOT_CLASSES
-                    + ANIMATION_PLOT_CLASSES):
+                    + DIAG_PLOT_CLASSES + ANIMATION_PLOT_CLASSES):
             self.register(cls)
         return self
 

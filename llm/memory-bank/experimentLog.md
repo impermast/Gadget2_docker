@@ -1,3 +1,36 @@
+# Experiment Log
+
+Use this file to record completed or attempted simulations.
+
+### 2026-09-11 plot_scripts: three new DIAG presentation plots
+
+Goal:
+
+- Добавить три новых диагностических/презентационных графика в визуальный блок `nbody/scripts/plot_scripts/`.
+
+What was done:
+
+- `loaders.py`: +`load_metrics_series()` (CSV от analyze_series), +`interacted_kinetic_energy()` (kinetic energy частиц с NInteractions>0).
+- `analysis_plots.py`: +3 concrete plots (BasePlot-конвенции): `diag_eloss_vs_f`, `criteria_time_panel`, `runaway_timestep_panel`; +`DIAG_PLOT_CLASSES`.
+- `plotter.py`: +`DIAG_PLOTS`, зарегистрированы в `register_defaults`, `ALL_PLOTS` расширен.
+- Новый runner `make_campaign_diagnostics.py`.
+- README plot_scripts обновлён.
+
+Generated (campaign k=0.8):
+
+- `/nbody/runs/dsidm_spin_k08_transition/diagnostics/diag_eloss_vs_f.png`
+- `/nbody/runs/dsidm_spin_k08_transition/diagnostics/diag_criteria_time_panel.png`
+- `/nbody/runs/dsidm_spin_k08_transition/diagnostics/diag_runaway_timestep_panel.png`
+
+Notes:
+
+- eloss measured dE/E (D=0.10/0.25/0.50/0.75): 0.0098/0.197/0.203/runaway(-9.4e26), baseline elastic SIDM K=3.68. Потеря растёт с D, но ниже идеала y=x (2D-D^2 per collision): dissipative halo контрагируется, гравитация добавляет кинетику.
+- D=0.75: off-scale (runaway) — график помечает такую точку аннотацией.
+
+Status:
+
+- completed
+
 ### 2026-09-11 spin-k08 sigma2p5 dissipation scan completed
 
 Goal:
