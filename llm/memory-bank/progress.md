@@ -2,6 +2,9 @@
 
 What works:
 
+- Spin-k08 sigma=2.5 scan completed 2026-09-11: campaigns under `/nbody/runs/dsidm_spin_k08_transition/`; dSIDM D=0.10..0.50 stable (c/a~0.81) but no disk; D=0.75 timestep/runaway pathology per `analyze_series.py`.
+- Campaign grouping convention adopted: runs are organized under topic folders like `/nbody/runs/dsidm_spin_k08_transition/`, with controls reused when IC/settings match. Created campaign README and derived `k=0.8` IC `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08.hdf5`; no simulation launched yet.
+- Dissipation simulation blocks were grouped under `/nbody/runs/dissipation/` (moved `test_dissipation`, `test_dissipation_grid_sigma1`, `test_dissipation_focused_T5`). Short visual conclusions written to `/nbody/runs/dissipation/dissipation_visual_conclusions.md`: no robust dark disk; `f=0.05` stable but thick/spheroidal; `σ=10,f=0.10` pathological before disk formation.
 - Repository has Docker-based scientific workflow.
 - Soft dSIDM follow-up completed 2026-08-28:
   `/nbody/runs/test_dissipation/dsidm5_f005_k0_N1e5_T2_np4/`, params

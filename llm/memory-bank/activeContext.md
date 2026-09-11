@@ -50,7 +50,7 @@ Current expected workflow:
 
 Next step:
 
-- Next scientific step: run focused longer T=5 grid in `nbody/runs/test_dissipation_focused_T5/`: CDM, SIDM10, dSIDM5 f=0.05, dSIDM10 f=0.05, dSIDM10 f=0.1 (all k=0, same rotating IC).
+- Campaign `/nbody/runs/dsidm_spin_k08_transition/` (k=0.8, sigma=2.5, T=2) fully computed: CDM+SIDM controls and dSIDM D=0.10/0.25/0.50/0.75. D=0.75 pathological (sync-point runaway, NI blow-up, `no-disk-before-pathology`); D<=0.50 stable but c/a stays ~0.81, no disk transition. Controls reuse policy active; matching controls present for this IC+settings.
 - Merge accumulated `agent/dev` work into `master` (user decides when);
 - deferred: level-3 plot tests (render smoke / contracts), CI annotations
   via third-party action if needed.

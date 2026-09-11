@@ -1,6 +1,83 @@
-# Experiment Log
+### 2026-09-11 spin-k08 sigma2p5 dissipation scan completed
 
-Use this file to record completed or attempted simulations.
+Goal:
+
+- Проверить, остались ли dSIDM кандидаты из очереди `/nbody/runs/dsidm_spin_k08_transition/` (запущена 2026-09-04, всё досчиталось за ~1h45m).
+
+Type:
+
+- Completed-run verification + partial-series diagnostics; no new simulations launched.
+
+Queue (последовательная, sigma=2.5, k=0.8, T=2, 21/21 snapshots каждый):
+
+- `cdm_N1e5_T2`: NI=0 (control, completed/ok).
+- `sidm_s2p5_N1e5_T2`: NI=1910 (1.76%) (elastic control, completed/ok).
+- `dsidm_s2p5_D0p10_N1e5_T2`: NI=2018, min c/a(r<5)=0.816, max |vrot|/sig=0.404 (изначальный spin, далее ~0.1), stable (1042 sync).
+- `dsidm_s2p5_D0p25_N1e5_T2`: NI=2164, min c/a=0.816, stable (1042 sync).
+- `dsidm_s2p5_D0p50_N1e5_T2`: NI=2672, min c/a=0.814, min Systemstep=0.000977, stable (1262 sync).
+- `dsidm_s2p5_D0p75_N1e5_T2`: **pathological**: 553,610 sync-points, run.log=890MB, min Systemstep=4.77e-07, dNI=12,517,756 (взрыв при t=1.8-2.0), c/a min=0.814. Verdict: `no-disk-before-pathology`.
+
+Result:
+
+- При k=0.8 и sigma=2.5 диссипация до D=0.50 стабильна, но не даёт диска: c/a не ниже ~0.81, вращательная поддержка не растёт. D=0.75 даёт runaway до дискообразования — паттерн повторяет прежние dissipation-сканы (стабильно-толсто/сфероидально vs патология при сильной диссипации).
+
+Status:
+
+- completed-verification; next scientific step (needs approval): sigma scan around 2.5 or higher-k IC check before reruns.
+
+### 2026-09-04 dsidm spin-k08 queued sigma2p5 dissipation scan
+
+Goal:
+
+- Пока пользователь отошёл на 4–5 часов, запустить последовательную очередь dSIDM кандидатов в campaign `/nbody/runs/dsidm_spin_k08_transition/` после успешных CDM/SIDM controls.
+
+Type:
+
+- Sequential simulation queue launched; not parallel, to avoid oversubscribing CPU/MPI.
+
+Queue:
+
+- `dsidm_s2p5_D0p10_N1e5_T2`: `sigma=2.5`, `D=0.10`, `kick=0`, `T=2`.
+- `dsidm_s2p5_D0p25_N1e5_T2`: `sigma=2.5`, `D=0.25`, `kick=0`, `T=2`.
+- `dsidm_s2p5_D0p50_N1e5_T2`: `sigma=2.5`, `D=0.50`, `kick=0`, `T=2`.
+- `dsidm_s2p5_D0p75_N1e5_T2`: `sigma=2.5`, `D=0.75`, `kick=0`, `T=2`.
+
+IC:
+
+- `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08.hdf5`.
+
+Logs:
+
+- `/nbody/runs/dsidm_spin_k08_transition/queue_dsidm_s2p5_20260904.log`.
+- `/nbody/runs/dsidm_spin_k08_transition/queue_dsidm_s2p5_20260904.nohup.log`.
+
+Status:
+
+- launched; queue stops on first failed run due to `set -euo pipefail`.
+
+### 2026-09-04 dsidm spin-k08 campaign setup
+
+Goal:
+
+- Зафиксировать naming/grouping convention для новых research campaigns и подготовить `k=0.8` IC для spin-assisted dSIDM transition study.
+
+Type:
+
+- Campaign setup + derived IC generation; simulations were not launched.
+
+What was done:
+
+- Created `/nbody/runs/dsidm_spin_k08_transition/README.md` with scientific question, naming convention, control reuse policy, initial run sequence, candidate criteria, and classification labels.
+- Generated derived IC `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08.hdf5` from `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5.hdf5` using `add_halo_rotation.py --k 0.8 --ptype 3`.
+- Checked that no existing run references `dwarf_rot_N1e5_k08`, so `CDM_k08` control is not yet available for reuse.
+
+Result:
+
+- Campaign setup complete; next step is to present the first control run plan `dsidm_spin_k08_transition/cdm_N1e5_T2` and wait for user approval before launching.
+
+Status:
+
+- completed setup; no science run launched
 
 ### 2026-08-25 git policy + fast test suite + CI auto-runs (infrastructure)
 
