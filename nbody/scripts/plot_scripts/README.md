@@ -35,6 +35,29 @@ docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/run_full_test.py \
     --run-root /nbody/runs/sidm20_dwarf_N1e6_T5
 ```
 
+## Презентационный visual morphology пакет
+
+Для CDM/SIDM/dSIDM групп есть отдельный тонкий runner поверх registry:
+
+```bash
+docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/compare_visual_morphology.py \
+    --group-root /nbody/runs/test_dissipation_focused_T5 \
+    --outdir /nbody/runs/test_dissipation_focused_T5/visual_compare \
+    --lim 12 --bins 220 --phase-bins 180
+```
+
+Он читает только доступные snapshot'ы через `loaders.py` и graceful-skip'ает
+недоступные/ещё не стартовавшие runs, поэтому пригоден для запуска во время
+расчёта. Outputs:
+
+- `01_surface_density_montage_final.png` — face-on/edge-on montage;
+- `02_surface_density_residual_vs_cdm_final.png` — residual maps vs baseline;
+- `03_shape_radial_profiles_final.png` — b/a, c/a, thickness, rotation support;
+- `04_phase_space_R_vphi_final.png` — R-vphi phase-space panels;
+- `05_disk_dashboard.png` — compact disk-candidate dashboard;
+- `06_log_rho_compare_final.png`, `07_rot_curve_compare_final.png` — стандартные delta-compare plots;
+- `visual_summary.txt` — краткая сводка и warnings.
+
 ## Диагностические (presentation) DIAG-графики
 
 Дополнительные диагностические графики регистрируются в коллекции `DIAG_PLOTS`

@@ -176,6 +176,9 @@ class InteractionsRadialPlot(BasePlot):
         "xscale": "log",
         "mean_yscale": "log",
         "frac_yscale": "linear",
+        "xlim": None,
+        "mean_ylim": None,
+        "frac_ylim": (0.0, 105.0),
         "figsize": (11.0, 4.2),
         "dpi": 200,
         "filename": "04_ninteractions_radial.png",
@@ -197,7 +200,9 @@ class InteractionsRadialPlot(BasePlot):
         self.settings.style_axis(axs[0], xlabel=config["xlabel"],
                                  ylabel=config["mean_ylabel"],
                                  xscale=config["xscale"],
-                                 yscale=config["mean_yscale"], grid=True)
+                                 yscale=config["mean_yscale"],
+                                 xlim=config.get("xlim"),
+                                 ylim=config.get("mean_ylim"), grid=True)
 
         f = np.isfinite(ni_frac) & (ni_frac > 0)
         if f.any():
@@ -207,7 +212,9 @@ class InteractionsRadialPlot(BasePlot):
         self.settings.style_axis(axs[1], xlabel=config["xlabel"],
                                  ylabel=config["frac_ylabel"],
                                  xscale=config["xscale"],
-                                 yscale=config["frac_yscale"], grid=True)
+                                 yscale=config["frac_yscale"],
+                                 xlim=config.get("xlim"),
+                                 ylim=config.get("frac_ylim"), grid=True)
 
         fig.tight_layout()
         path = self.settings.save_figure(fig, config["filename"], dpi=config["dpi"])
@@ -799,15 +806,16 @@ class EnergyLossVsFPlot(BasePlot):
         "labels": F(("S",), dtype="str", required=False),
     }
     default_config = {
-        "title": "dSIDM: measured energy loss vs prescribed dissipation",
+        "title": None,
         "xlabel": r"prescribed $f = D$ (DM_DissipationFactor)",
         "ylabel": r"measured $\Delta E / E$",
         "xlim": (0.0, 1.0),
         "ylim": (0.0, 1.15),
         "marker": "o",
         "color_index": 0,
-        "show_yx_line": True,
+        "show_yx_line": False,
         "show_theory_curve": True,
+        "legend_loc": "lower right",
         "figsize_key": "page",
         "dpi": None,
         "filename": "diag_eloss_vs_f.png",
@@ -839,21 +847,18 @@ class EnergyLossVsFPlot(BasePlot):
                         f"{lab}: {yv:.2e} (off-scale)",
                         (xv, edge_y), textcoords="offset points", xytext=(0, 6),
                         ha="center", fontsize=self.settings.font_size - 2,
-                        color=self.settings.palette[config["color_index"]],
-                        style="italic")
-        if config.get("show_yx_line"):
-            ax.plot([0.0, 1.0], [0.0, 1.0], ls="--", lw=self.settings.line_width_fit,
-                    color=self.settings.mono_colors[2], zorder=2,
-                    label="measured = prescribed (y=x)")
+                        color="0.35", style="italic")
         if config.get("show_theory_curve"):
             xg = np.linspace(0.0, 1.0, 200)
-            ax.plot(xg, 2.0 * xg - xg * xg, ls=":", lw=self.settings.line_width_fit,
-                    color=self.settings.palette[1], zorder=3,
-                    label="theory: dE/E = 2D - D^2")
+            ax.plot(xg, 2.0 * xg - xg * xg, ls="--", lw=self.settings.line_width_fit,
+                    color="0.35", zorder=3,
+                    label=r"theory: $\Delta E/E = 2D - D^2$")
         self.settings.style_axis(
             ax, title=config.get("title"), xlabel=config.get("xlabel"),
             ylabel=config.get("ylabel"), xlim=config.get("xlim"),
-            ylim=config.get("ylim"), grid=True, legend=True)
+            ylim=config.get("ylim"), grid=True,
+            legend=(dict(loc=config["legend_loc"])
+                    if config.get("legend_loc") else True))
         fig.tight_layout()
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
@@ -863,21 +868,27 @@ class EnergyLossVsFPlot(BasePlot):
 class CriteriaTimePanelPlot(BasePlot):
     name = "criteria_time_panel"
     description = (
-        "Компактная панель: эволюция по времени трёх disk-candidate критериев "
-        "для набора runs (обычно лучших k=0.8 кандидатов). Три subplot'а: c/a(t), "
-        "z_rms/R_rms(t), |Vrot|/sigma(t) с горизонтальными порогами допуска "
-        "(0.75, 0.55, 0.15). Данные — series из load_metrics_series() "
-        "(поля ca, z_rms_over_R_rms, vrot_over_sigma)."
+        "Объединённая панель критериев диска: три вертикальные панели c/a(t), "
+        "z_rms/R_rms(t), |Vrot|/sigma(t). Данные — 'series': список per-run "
+        "словарей {times, ca, thickness, vrot_over_sigma, label, color}. "
+        "Один run = один цвет во всех панелях; одна общая легенда справа; "
+        "горизонтальные пороги диска (0.75, 0.55, 0.15) серым dashed."
     )
-    data_contract = {
+    inner_contract = {
         "times": F(("T",)),
         "ca": F(("T",)),
         "thickness": F(("T",)),
         "vrot_over_sigma": F(("T",)),
-        "labels": F(("S",), dtype="str", required=False),
+        "label": F((), dtype="str", required=False),
+        "color": F((), dtype="str", required=False),
     }
+    data_contract = {"series": F(("S",), dtype="any")}
+
+    def validate_data(self, data):
+        _validate_series_list(self.name, data, self.inner_contract)
+
     default_config = {
-        "title": "Disk criteria vs time (k=0.8 candidates)",
+        "title": None,
         "xlabel": "t [code time]",
         "threshold_ca": 0.75,
         "threshold_thickness": 0.55,
@@ -885,43 +896,49 @@ class CriteriaTimePanelPlot(BasePlot):
         "criteria_labels": [r"$c/a$ (r<5)",
                             r"$z_{\rm rms}/R_{\rm rms}$ (r<5)",
                             r"$|V_{\rm rot}|/\sigma$ (r<5)"],
-        "figsize_key": "wide",
-        "dpi": 190,
+        "ylim_ca": (0.70, 1.00),
+        "ylim_thickness": (0.40, 0.80),
+        "ylim_vrot": (0.0, 0.45),
+        "xlim": (0.0, 2.0),
+        "figsize": (8.2, 9.0),
+        "legend_font_size": None,
+        "dpi": 200,
         "filename": "diag_criteria_time_panel.png",
     }
 
     def render(self, data, config):
-        times = np.asarray(data["times"], dtype=float)
-        ca = np.asarray(data["ca"], dtype=float)
-        thickness = np.asarray(data["thickness"], dtype=float)
-        vrot = np.asarray(data["vrot_over_sigma"], dtype=float)
-        labels = data.get("labels")
-        clabels = config.get("criteria_labels") or ["c/a", "z_rms/R_rms", "|Vrot|/sigma"]
+        clabels = config.get("criteria_labels") or [r"$c/a$", r"$z_{\rm rms}/R_{\rm rms}$",
+                                                    r"$|V_{\rm rot}|/\sigma$"]
+        specs = [
+            ("ca", config["threshold_ca"], config.get("ylim_ca"), clabels[0]),
+            ("thickness", config["threshold_thickness"],
+             config.get("ylim_thickness"), clabels[1]),
+            ("vrot_over_sigma", config["threshold_vrot"],
+             config.get("ylim_vrot"), clabels[2]),
+        ]
 
-        fig, axs = plt.subplots(1, 3,
-                                figsize=self.settings.figsize(config["figsize_key"]),
-                                sharex=True)
-        series = [(axs[0], ca, config["threshold_ca"], clabels[0]),
-                  (axs[1], thickness, config["threshold_thickness"], clabels[1]),
-                  (axs[2], vrot, config["threshold_vrot"], clabels[2])]
-        for i, (ax, yy, thr, ylab) in enumerate(series):
-            ymin = float(np.nanmin(np.r_[yy, thr]))
-            ax.plot(times, yy, color=self.settings.palette[0],
-                    lw=self.settings.line_width_main, zorder=3)
-            ax.axhline(thr, ls="--", lw=self.settings.line_width_fit,
-                       color=self.settings.palette[1], zorder=2,
-                       label=f"threshold = {thr}")
-            ax.fill_between(times, ymin, thr, color=self.settings.sequential_colors[i],
-                            alpha=0.15, zorder=1)
-            self.settings.style_axis(ax, xlabel=config["xlabel"],
-                                     ylabel=ylab, grid=True, legend=True)
-        if labels is not None:
-            for lab in labels:
-                fig.text(0.99, 0.02, f"run: {lab}", ha="right", va="bottom",
-                         fontsize=self.settings.font_size - 1, style="italic")
-        fig.suptitle(config.get("title"), fontsize=self.settings.title_size,
-                     weight="bold")
-        fig.tight_layout(rect=(0.0, 0.04, 1.0, 0.96))
+        fig, axs = plt.subplots(3, 1, figsize=tuple(config["figsize"]), sharex=True)
+        for ax, (key, thr, ylim, ylab) in zip(axs, specs):
+            for i, s in enumerate(data["series"]):
+                color = s.get("color") or self.settings.palette[i % len(self.settings.palette)]
+                ax.plot(np.asarray(s["times"], dtype=float),
+                        np.asarray(s[key], dtype=float),
+                        color=color, lw=2.2, label=s.get("label"))
+            ax.axhline(thr, ls="--", lw=1.4, color="0.35", zorder=2)
+            self.settings.style_axis(ax, ylabel=ylab, xlim=config.get("xlim"),
+                                     ylim=ylim, grid=True)
+        axs[-1].set_xlabel(config["xlabel"])
+
+        handles, labels = axs[0].get_legend_handles_labels()
+        fs = config.get("legend_font_size") or self.settings.legend_font_size
+        # Легенда в свободной верхней зоне нижней панели (|Vrot|/sigma мал).
+        fig.legend(handles, labels, loc="upper right",
+                   bbox_to_anchor=(0.995, 0.335), fontsize=fs,
+                   frameon=True, framealpha=0.92, borderaxespad=0.4)
+        if config.get("title"):
+            fig.suptitle(config["title"], fontsize=self.settings.title_size,
+                         weight="bold")
+        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.99))
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
@@ -930,57 +947,79 @@ class CriteriaTimePanelPlot(BasePlot):
 class RunawayTimestepPanelPlot(BasePlot):
     name = "runaway_timestep_panel"
     description = (
-        "Диагностика runaway: двух-осевая панель зависимости N_interactions(t) "
-        "(левая ось) и минимального timestep dt_min(t) (правая ось, лог-шкала). "
-        "Цель — показать связь взрывного роста числа столкновений с коллапсом "
-        "шага времени (timestep collapse). Данные — из load_metrics_series() "
-        "(ninteractions_total, nearest_systemstep)."
+        "Диагностика runaway: две вертикальные панели с общей осью времени. "
+        "Верх — interaction rate (N_interactions на снапшот, diff от "
+        "cumulative ninteractions_total; при доступности только двух точек "
+        "fallback на cumulative). Низ — минимальный timestep (systemstep) "
+        "с колонапсом. Данные — 'series' из load_metrics_series() "
+        "(ninteractions_total, nearest_systemstep). Log-шкалы на обеих осях Y."
     )
-    data_contract = {
+    inner_contract = {
         "times": F(("T",)),
         "ninteractions": F(("T",)),
         "dt_min": F(("T",)),
-        "labels": F(("S",), dtype="str", required=False),
+        "label": F((), dtype="str", required=False),
+        "color": F((), dtype="str", required=False),
     }
+    data_contract = {"series": F(("S",), dtype="any")}
+
+    def validate_data(self, data):
+        _validate_series_list(self.name, data, self.inner_contract)
+
     default_config = {
-        "title": "Runaway: interactions vs min timestep",
+        "title": None,
         "xlabel": "t [code time]",
-        "ni_ylabel": "N_interactions (cumulative)",
-        "dt_ylabel": "min dt / systemstep",
-        "ni_color_index": 0,
-        "dt_color_index": 3,
-        "figsize_key": "page",
-        "dpi": 190,
+        "ni_ylabel": "interactions / snapshot",
+        "dt_ylabel": r"$\min dt$ [code t]",
+        "ni_yscale": "log",
+        "dt_yscale": "log",
+        "xlim": None,
+        "figsize": (8.6, 7.2),
+        "dpi": 200,
         "filename": "diag_runaway_timestep_panel.png",
     }
 
     def render(self, data, config):
-        times = np.asarray(data["times"], dtype=float)
-        ni = np.asarray(data["ninteractions"], dtype=float)
-        dt = np.asarray(data["dt_min"], dtype=float)
+        fig, (ax_ni, ax_dt) = plt.subplots(
+            2, 1, figsize=tuple(config["figsize"]), sharex=True)
 
-        fig, ax1 = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
-        ax1.plot(times, ni, color=self.settings.palette[config["ni_color_index"]],
-                 lw=self.settings.line_width_main, label="N_interactions")
-        self.settings.style_axis(ax1, xlabel=config["xlabel"],
-                                 ylabel=config["ni_ylabel"], grid=True)
+        handles = []
+        for i, s in enumerate(data["series"]):
+            times = np.asarray(s["times"], dtype=float)
+            ni = np.asarray(s["ninteractions"], dtype=float)
+            dt = np.asarray(s["dt_min"], dtype=float)
+            color = s.get("color") or self.settings.palette[i % len(self.settings.palette)]
+            label = s.get("label")
 
-        ax2 = ax1.twinx()
-        ok = np.isfinite(dt) & (dt > 0)
-        if ok.any():
-            ax2.plot(times[ok], dt[ok], ls="--",
-                     color=self.settings.palette[config["dt_color_index"]],
-                     lw=self.settings.line_width_main, label="min dt")
-        ax2.set_yscale("log")
-        self.settings.style_axis(ax2, ylabel=config["dt_ylabel"], grid=False)
+            # rate per snapshot: diff of cumulative; fallback cumulative
+            rate = np.diff(ni)
+            mid_t = 0.5 * (times[1:] + times[:-1]) if len(times) > 1 else times
+            ok = np.isfinite(rate) & (rate > 0)
+            if ok.any():
+                ln, = ax_ni.plot(mid_t[ok], rate[ok], color=color, lw=2.2,
+                                 label=label)
+                handles.append(ln)
+            else:
+                ln, = ax_ni.plot(times, ni, color=color, lw=2.2, label=label)
+                handles.append(ln)
 
-        h1, l1 = ax1.get_legend_handles_labels()
-        h2, l2 = ax2.get_legend_handles_labels()
-        ax1.legend(h1 + h2, l1 + l2, loc="upper right",
-                   fontsize=self.settings.legend_font_size)
-        fig.suptitle(config.get("title"), fontsize=self.settings.title_size,
-                     weight="bold")
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.96))
+            okdt = np.isfinite(dt) & (dt > 0)
+            ax_dt.plot(times[okdt], dt[okdt], color=color, lw=2.2,
+                       label=label if i == 0 else None)
+
+        self.settings.style_axis(ax_ni, ylabel=config["ni_ylabel"],
+                                 yscale=config["ni_yscale"], grid=True)
+        self.settings.style_axis(ax_dt, ylabel=config["dt_ylabel"],
+                                 yscale=config["dt_yscale"], grid=True)
+        ax_dt.set_xlabel(config["xlabel"])
+        if config.get("xlim"):
+            for ax in (ax_ni, ax_dt):
+                ax.set_xlim(*config["xlim"])
+        if handles:
+            fig.legend(handles, [h.get_label() for h in handles],
+                       loc="upper right", fontsize=self.settings.legend_font_size,
+                       frameon=True, framealpha=0.92)
+        fig.tight_layout()
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path

@@ -18,6 +18,7 @@ What works:
   all k=0; removed automatic `rm -rf` cleanup in favor of abort-on-existing-run;
   default matrix PROCS set to 8, GROUP can be overridden via environment.
 - Revised 11-run matrix completed in `/nbody/runs/test_dissipation_grid_sigma1/`; `dsidm10_f02_k0_N1e5_T2` was pathological and removed, remaining 10 runs are completed/ok and analyzed with `run_full_test.py`. Added shape/thickness group comparison tooling; T=2 result shows no robust dark-disk signature (`c/a(r<5)≈0.94`, `z/R≈0.67`, `|vrot|/sigma≈0.07`).
+- Presentation visual morphology package works through `plot_scripts` registry: `compare_visual_morphology.py` generates surface-density montage, residuals, radial morphology profiles, R-vphi phase-space, dashboard, and standard delta density/rotation plots. Initial T=5 partial output is in `/nbody/runs/test_dissipation_focused_T5/visual_compare/`.
 - Old runs cleanup/grouping: `cdm_dwarf_N1e6_T5`, `sidm0.1_dwarf_N1e6_T5`,
   `sidm1_dwarf_N1e6_T5`, `sidm5_dwarf_N1e6_T5`, `sidm20_dwarf_N1e6_T5` moved
   into `/nbody/runs/sidm_dwarf_N1e6_T5/`; oversized legacy `/nbody/runs/cdm_N1e6/`

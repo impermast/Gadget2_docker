@@ -50,6 +50,10 @@ test_graph_*
 *.gif
 *.pdf
 
+# Presentations — ignore everything except the current campaign folder
+nbody/presentations/*
+!nbody/presentations/2026-09-10/**
+
 # Python caches
 **/__pycache__/
 **/.pytest_cache/
