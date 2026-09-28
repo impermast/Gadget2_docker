@@ -111,6 +111,27 @@ def fit_nfw_to_rotcurve(r_t, v_t):
     return rho_s, r_s, rms
 
 
+def rho_target_in_bins(r_t, v_t, edges, g=G_CODE):
+    """Целевая плотность ГALIC по границам бинов: dM_target/dV.
+
+    M_target(<r) берётся напрямую из rotcurve (v^2 r / G), без NFW-фита,
+    чтобы сравнение шло с фактическим target-профилем GalIC.
+    """
+    m_t = v_t**2 * r_t / g
+    m_edges = np.interp(edges, r_t, m_t)
+    vol = (4.0 / 3.0) * np.pi * np.diff(edges**3)
+    return np.diff(m_edges) / vol
+
+
+def potential_energy_from_rotcurve(r_t, v_t, g=G_CODE):
+    """W = -G * int M(r) dM / r для профиля, заданного rotcurve GalIC."""
+    m_t = v_t**2 * r_t / g
+    dm = np.diff(m_t)
+    r_mid = 0.5 * (r_t[1:] + r_t[:-1])
+    m_mid = 0.5 * (m_t[1:] + m_t[:-1])
+    return float(-g * np.sum(m_mid * dm / r_mid))
+
+
 def local_slope(r, rho, window_dex=0.25, min_bins=3):
     """Локальный d log rho / d log r в скользящем окне (как в loaders.py)."""
     lr, lrho = np.log10(r), np.log10(np.where(rho > 0, rho, np.nan))
@@ -139,6 +160,7 @@ def read_particles(path):
 
 
 def binned_profile(r, mass, rmin, rmax, nbins=60):
+    """Возвращает (centers, rho, counts, edges) — edges нужны для target по бинам."""
     edges = np.logspace(np.log10(rmin), np.log10(rmax), nbins + 1)
     vol = (4.0 / 3.0) * np.pi * np.diff(edges**3)
     idx = np.digitize(r, edges) - 1
@@ -148,7 +170,7 @@ def binned_profile(r, mass, rmin, rmax, nbins=60):
     with np.errstate(divide="ignore", invalid="ignore"):
         rho = np.where(vol > 0, mm / vol, np.nan)
     centers = np.sqrt(edges[1:] * edges[:-1])
-    return centers, rho, cnt
+    return centers, rho, cnt, edges
 
 
 def t_relax_gyr(n_in, m_in, r):
@@ -178,7 +200,7 @@ def main():
 
     m_p = float(np.mean(mass))
     r_min = max(float(r.min()) * 1.15, 0.02)
-    centers, rho, cnt = binned_profile(r, mass, r_min, 20.0)
+    centers, rho, cnt, edges = binned_profile(r, mass, r_min, 20.0)
 
     lines, result = [], {"ic": args.ic, "galic_dir": galic_dir, "N": int(len(r)),
                          "m_p": m_p, "r_min": r_min}
@@ -191,24 +213,23 @@ def main():
     rho_target, slope_target = None, None
     if galic_dir and os.path.isfile(os.path.join(galic_dir, "rotcurve.txt")):
         r_t, v_t = read_rotcurve(galic_dir)
-        m_t, rho_t = target_profile_from_rotcurve(r_t, v_t)
-        rho_s, r_s, rms = fit_nfw_to_rotcurve(r_t, v_t)
         params = read_galic_params(galic_dir)
         i_pk = int(np.argmax(v_t))
+        # target — напрямую из фактической rotcurve GalIC, по тем же границам бинов
+        rho_target = rho_target_in_bins(r_t, v_t, edges)
+        slope_target = local_slope(centers, rho_target)
+        rho_s, r_s, rms = fit_nfw_to_rotcurve(r_t, v_t)   # только справочно
         lines.append(f"GalIC params (fact): CC={params.get('CC')}  "
                      f"V200={params.get('V200')} km/s")
-        lines.append(f"NFW fit to rotcurve: r_s={r_s:.3f} kpc  rho_s={rho_s:.4e}  "
-                     f"rms(v^2)={rms:.4g}")
-        lines.append(f"rotcurve: v_max={v_t[i_pk]:.1f} km/s @ {r_t[i_pk]:.2f} kpc, "
+        lines.append(f"target: rotcurve GalIC напрямую (v^2 r / G), "
+                     f"v_max={v_t[i_pk]:.1f} km/s @ {r_t[i_pk]:.2f} kpc, "
                      f"r range [{r_t[0]:.3f}, {r_t[-1]:.1f}] kpc")
+        lines.append(f"справочно NFW-fit к rotcurve (для чеков НЕ используется): "
+                     f"r_s={r_s:.3f} kpc rho_s={rho_s:.4e} rms(v^2)={rms:.4g}")
         result["galic_params"] = params
         result["nfw_fit"] = {"r_s_kpc": float(r_s), "rho_s": float(rho_s),
-                             "rms_v2": float(rms)}
-        x = centers / r_s
-        rho_target = rho_s / (x * (1 + x) ** 2)
-        m_target = 4 * np.pi * rho_s * r_s**3 * (np.log(1 + x) - x / (1 + x))
-        slope_target = local_slope(centers, rho_target)
-        result["M_target_2kpc"] = float(np.interp(2.0, centers, m_target))
+                             "rms_v2": float(rms), "used_for_checks": False}
+        result["M_target_2kpc"] = float(np.interp(2.0, r_t, v_t**2 * r_t / G_CODE))
     else:
         lines.append("WARNING: rotcurve.txt не найден — сравнение с target невозможно")
 
@@ -257,9 +278,12 @@ def main():
 
     n_1kpc = result.get("N_lt_1.0", 0)
     t_relax_1 = result.get("t_relax_1.0", float("nan"))
-    checks["resolution_ok"] = bool(n_1kpc >= 1e5 and t_relax_1 >= 10.0)
+    # Критерий сходимости Power et al. (2003): релаксационно-ограниченная область
+    # должна содержать ~3000 частиц, а t_relax должна превышать возраст симуляции.
+    # Порог t_relax >= 10 Gyr — с запасом к TimeMax=5 (1 unit ~ 0.98 Gyr).
+    checks["resolution_ok"] = bool(n_1kpc >= 3000 and t_relax_1 >= 10.0)
     lines.append("")
-    lines.append(f"Resolution: N(<1 kpc)={n_1kpc} (need >=1e5), "
+    lines.append(f"Resolution: N(<1 kpc)={n_1kpc} (Power criterion >=3000), "
                  f"t_relax(1 kpc)={t_relax_1:.1f} Gyr (need >=10)")
 
     ok = all(checks.values())

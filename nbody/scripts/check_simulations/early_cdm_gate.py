@@ -38,6 +38,8 @@ from check_ic_cusp import (  # noqa: E402
     local_slope,
     binned_profile,
     t_relax_gyr,
+    rho_target_in_bins,
+    potential_energy_from_rotcurve,
 )
 
 
@@ -143,8 +145,8 @@ def main():
 
     ic_center, r_ic = com_and_radius(ic)
     sn_center, r_sn = com_and_radius(sn)
-    centers, rho_ic, cnt_ic = binned_profile(r_ic, ic["mass"], r_min, 20.0)
-    _, rho_sn, cnt_sn = binned_profile(r_sn, sn["mass"], r_min, 20.0)
+    centers, rho_ic, cnt_ic, edges = binned_profile(r_ic, ic["mass"], r_min, 20.0)
+    _, rho_sn, cnt_sn, _ = binned_profile(r_sn, sn["mass"], r_min, 20.0)
     slope_ic = local_slope(centers, rho_ic)
     slope_sn = local_slope(centers, rho_sn)
 
@@ -158,20 +160,20 @@ def main():
     lines.append(f"N snap: {len(r_sn)}  (IC N: {len(r_ic)})   m_p = {m_p:.4e} (1e10 Msun)")
 
     rho_target = slope_target = None
-    rho_s_fit = r_s_fit = None
+    r_t = v_t = None
     if galic_dir and os.path.isfile(os.path.join(galic_dir, "rotcurve.txt")):
         r_t, v_t = read_rotcurve(galic_dir)
-        rho_s_fit, r_s_fit, rms = fit_nfw_to_rotcurve(r_t, v_t)
         params = read_galic_params(galic_dir)
-        x = centers / r_s_fit
-        rho_target = rho_s_fit / (x * (1 + x) ** 2)
+        rho_s_fit, r_s_fit, rms = fit_nfw_to_rotcurve(r_t, v_t)  # только справочно
+        # target — напрямую из фактической rotcurve GalIC, по тем же границам бинов
+        rho_target = rho_target_in_bins(r_t, v_t, edges)
         slope_target = local_slope(centers, rho_target)
         res["nfw_fit"] = {"r_s_kpc": float(r_s_fit), "rho_s": float(rho_s_fit),
-                          "rms_v2": float(rms)}
+                          "rms_v2": float(rms), "used_for_checks": False}
         res["galic_params"] = params
-        lines.append(f"target: NFW fit to GalIC rotcurve: r_s={r_s_fit:.3f} kpc, "
-                     f"rho_s={rho_s_fit:.4e}, rms(v^2)={rms:.4g} "
-                     f"[CC={params.get('CC')}, V200={params.get('V200')}]")
+        lines.append(f"target: rotcurve GalIC напрямую (v^2 r / G) "
+                     f"[CC={params.get('CC')}, V200={params.get('V200')}]; "
+                     f"справочно NFW-fit: r_s={r_s_fit:.3f} kpc rms(v^2)={rms:.4g}")
     else:
         lines.append("WARNING: target (rotcurve) не найден — сравнение с target пропущено")
 
@@ -239,7 +241,9 @@ def main():
     m1 = float(sn["mass"][r_sn < 1.0].sum())
     tr1 = t_relax_gyr(n1, m1, 1.0)
     lines.append(f"  resolution check: N(<1 kpc)={n1}, t_relax(1 kpc)={tr1:.1f} Gyr")
-    checks["resolution_ok"] = bool(n1 >= 1e5 and tr1 >= 10.0)
+    # Критерий Power et al. (2003): ~3000 частиц в релаксационно-ограниченной
+    # области и t_relax > возраста симуляции (здесь с запасом >= 10 Gyr).
+    checks["resolution_ok"] = bool(n1 >= 3000 and tr1 >= 10.0)
 
     # ---------------- энергии / вириал ----------------
     t_ic, t_sn = kinetic_energy(ic), kinetic_energy(sn)
@@ -252,11 +256,11 @@ def main():
         lines.append(f"  W(snap) = {w_sn:.6e} (из блока Potential)   2T/|W| = {2 * t_sn / abs(w_sn):.4f}")
         res.update({"W_snap": w_sn, "virial_2T_W_snap": 2 * t_sn / abs(w_sn)})
         checks["virial_sane"] = bool(0.6 <= 2 * t_sn / abs(w_sn) <= 1.8)
-    if rho_s_fit is not None:
-        w_tg = potential_energy_target_nfw(rho_s_fit, r_s_fit)
+    if r_t is not None:
+        w_tg = potential_energy_from_rotcurve(r_t, v_t)
         if w_sn is not None:
             de = (t_sn + w_sn) - (t_ic + w_tg)
-            lines.append(f"  W(target NFW) = {w_tg:.6e}   2T/|W|(IC,target) = "
+            lines.append(f"  W(target rotcurve) = {w_tg:.6e}   2T/|W|(IC,target) = "
                          f"{2 * t_ic / abs(w_tg):.4f}")
             lines.append(f"  dE/|W_target| = {de / abs(w_tg):+.3e}  (энергия IC+target-W vs snap)")
             res.update({"W_target": w_tg, "dE_over_W": de / abs(w_tg),

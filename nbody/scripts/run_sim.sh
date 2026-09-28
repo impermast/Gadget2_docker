@@ -30,6 +30,8 @@
 #                        (GIZMO RestartFlag=1); каталог прогона и .gizmo_run.param
 #                        переиспользуются, физические параметры не меняются
 #   --log-suffix <s>     суффикс лога: run.log<s> (напр. --log-suffix .early)
+#   --part-alloc <f>     PartAllocFactor (память под ParticleData на задачу;
+#                        шаблон 5.0 слишком жадный для N=1e7 на 14 GB RAM)
 
 set -euo pipefail
 
@@ -53,6 +55,7 @@ TIME_BET=""
 SIGMA=""
 IC_FILE=""
 FIRST_SNAP=""
+PART_ALLOC=""
 RESUME=0
 LOG_SUFFIX=""
 MPI_PROCS=4
@@ -88,6 +91,7 @@ usage() {
   --tg-interval <n>   интервал прогресса в минутах (по умолч. 10,
                       подразумевает --tg-progress)
   --first-snapshot <t> TimeOfFirstSnapshot: время первого снапшота
+  --part-alloc <f>    PartAllocFactor (контроль памяти; шаблон 5.0)
   --resume            продолжить тот же прогон из restart-файлов (RestartFlag=1)
   --log-suffix <s>    суффикс файла лога (run.log<s>)
 EOF
@@ -272,6 +276,15 @@ setup_run_dir() {
         else
             echo "TimeOfFirstSnapshot     ${FIRST_SNAP}" >> "${RUN_DIR}/.gizmo_run.param"
         fi
+    fi
+
+    if [[ -n "$PART_ALLOC" ]]; then
+        if grep -q '^PartAllocFactor' "${RUN_DIR}/.gizmo_run.param"; then
+            sed -i "s|^PartAllocFactor[[:space:]]*.*|PartAllocFactor            ${PART_ALLOC}     % memory load allowed|" "${RUN_DIR}/.gizmo_run.param"
+        else
+            echo "PartAllocFactor            ${PART_ALLOC}" >> "${RUN_DIR}/.gizmo_run.param"
+        fi
+        info "PartAllocFactor: ${PART_ALLOC}"
     fi
 
     if [[ "$SIM_TYPE" == "sidm" && -n "$SIGMA" ]]; then
@@ -490,7 +503,9 @@ run_simulation() {
     if [[ "$RESUME" -eq 1 ]]; then
         restart_arg=("1")
     fi
-    mpirun --allow-run-as-root -np "$MPI_PROCS" "$GIZMO_BIN" ".gizmo_run.param" "${restart_arg[@]}" 2>&1 | tee "$log_file"
+    # --oversubscribe: OpenMPI в этом контейнере видит меньше слотов (8), чем
+    # физических ядер (16), без флага -np >8 отказывается стартовать.
+    mpirun --allow-run-as-root --oversubscribe -np "$MPI_PROCS" "$GIZMO_BIN" ".gizmo_run.param" "${restart_arg[@]}" 2>&1 | tee "$log_file"
     local status=$?
 
     # Останавливаем watcher
@@ -626,6 +641,7 @@ main() {
             --sigma)     SIGMA="$2";       shift 2 ;;
             --ic-file)   IC_FILE="$2";     shift 2 ;;
             --first-snapshot) FIRST_SNAP="$2"; shift 2 ;;
+            --part-alloc)   PART_ALLOC="$2";  shift 2 ;;
             --log-suffix) LOG_SUFFIX="$2"; shift 2 ;;
             --resume)    RESUME=1;         shift ;;
             --mpi-procs) MPI_PROCS="$2";   shift 2 ;;

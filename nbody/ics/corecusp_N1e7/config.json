@@ -13,7 +13,8 @@
       "cc": 20,
       "v200": 100,
       "map_to": 3,
-      "sigma": 0
+      "sigma": 0,
+      "input_file": "/nbody/ics/corecusp_N1e7/dm.hdf5"
     }
   ]
 }
