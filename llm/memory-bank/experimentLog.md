@@ -2,6 +2,26 @@
 
 Use this file to record completed or attempted simulations.
 
+### 2026-09-28 corecusp: IC gate + early CDM gate PASS, pipeline → WAITING_FOR_REVIEW
+
+RUN: `nbody/runs/corecusp_cdm_N1e7_T5` (IC: `nbody/ics/corecusp_N1e7/`)
+TEST: `early_cdm_gate.py` — PASS 7/7 на паре IC → snapshot_000 (t=0.02)
+RESULT: slope −1.19 vs target −1.25, rho_snap/rho_target=0.985, 2T/|W|=1.0014; статус `WAITING_FOR_REVIEW`
+
+Детали:
+- IC (GalIC NFW c=20, v200=100, N=1e7, MPI np=12) собран, IC-gate PASS после фикса:
+  target брался через плохой NFW-фит (ratio 0.78) — заменён на прямой rotcurve
+  GalIC (M(<r) совпадает на 0.5–1% при r ≥ 0.5 kpc).
+- Ранняя фаза: production params (TimeMax=5.0 не менялся, TimeOfFirstSnapshot=0.02),
+  65 Sync-Point, dt=3.05e-4 без collapse; пауза через GIZMO stop-file;
+  restart.0–11 свежие (после snapshot_000).
+- Эволюция каспа на первых шагах: нет (Δslope=+0.065 < tol 0.2; потеря массы
+  только внутри r<0.3–1.0 kpc — численное размывание на недоразрешённых масштабах).
+- Блокеры на старте: PartAllocFactor 5.0 → 1.3 (N=1e7 не влезал в 14 GB RAM);
+  OpenMPI видит 8 слотов при 16 ядрах → `--oversubscribe` в run_sim.sh.
+- Resume-команда (тот же прогон, параметры неизменны):
+  `bash /nbody/scripts/run_sim.sh --name corecusp_cdm_N1e7_T5 --type cdm --resume --mpi-procs 12 --log-suffix .resume`
+
 ### 2026-09-28 corecusp: перестройка под ранний физический gate + GalIC MPI
 
 Goal:

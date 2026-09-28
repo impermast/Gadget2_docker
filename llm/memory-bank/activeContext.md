@@ -2,21 +2,11 @@
 
 Current focus:
 
-- **corecusp campaign (2026-09-21, N=1e7; перестроена 2026-09-28 под ранний
-  gate)**: `/nbody/runs/corecusp_status.txt` — единственная точка статуса.
-  Схема: GalIC NFW c=20 v200=100 N=1e7 (MPI np=12, см. `galic_nprocs`) →
-  IC-gate (`check_ic_cusp.py`, target из `galic_dm/rotcurve.txt`) → ранний
-  production CDM `corecusp_cdm_N1e7_T5` (TimeMax не меняется, `TimeOfFirstSnapshot
-  =0.02`, пауза через GIZMO stop-file, restart в `output/restartfiles/`) →
-  `early_cdm_gate.py` → **WAITING_FOR_REVIEW** (продолжение и SIDM только по
-  решению пользователя; команда продолжения — `run_sim.sh --resume`, см.
-  `nbody/runs/corecusp/README.md`). Лог пайплайна:
-  `/nbody/runs/corecusp_pipeline.log`. Причина задачи: в dwarf_N1e6 (v200=30,
-  c=15, N=1e6) касп разрешён лишь вне ~0.3 kpc (N(<0.3 kpc)=4212), «core-cusp»
-  эффект был замаскирован; SIDM20 тем не менее давал ядро (наклон →0,
-  ρ(r<2 kpc) +20% к CDM). Литература: Power et al. 2003 (≳3000 частиц +
-  t_relax>t_age), Elbert et al. 2015 (σ/m 0.5–50, ядра 300–1000 pc для
-  Vmax≈40 km/s).
+- **corecusp: ранняя фаза завершена, статус WAITING_FOR_REVIEW (2026-09-28)**:
+  IC собран (N=1e7, gate PASS), ранний CDM (t=0.02, 65 шагов) PASS 7/7,
+  касп сохранён (slope −1.19 vs target −1.25). Остановлен штатно через stop-file,
+  restart.0–11 свежие. Production CDM T=5 ещё не запущен — следующий шаг
+  (resume-команда в `nbody/runs/corecusp_cdm_N1e7_T5/early_gate/NEXT_STEP.md`).
 - Pipeline hardening done (2026-08-25): git policy (`agent/dev`), fast test
   suite (`tests/`, 23 tests ~1 s), pre-commit auto-run, GitHub Actions CI
   (runs #1, #2 green). Memory bank synced with this state.
