@@ -14,6 +14,8 @@ GALIC_PARAM="${NBODY_ROOT}/GalIC/halo_nfw_ics.param"
 MERGE_SCRIPT="${NBODY_ROOT}/scripts/merge_ics.py"
 TEMPLATE_PARAM="${NBODY_ROOT}/GalIC/halo_nfw_ics.param"
 LD_LIBRARY_PATH="/opt/gsl/lib:/opt/fftw/lib:/usr/lib/x86_64-linux-gnu/hdf5/openmpi:${LD_LIBRARY_PATH:-}"
+# Число MPI-процессов для GalIC: env GALIC_NPROCS или ключ galic_nprocs в JSON (по умолч. 1)
+GALIC_NPROCS="${GALIC_NPROCS:-0}"
 
 info()  { echo "[INFO]  $*" >&2; }
 warn()  { echo "[WARN]  $*" >&2; }
@@ -89,9 +91,14 @@ generate_component() {
         fi
     done
 
-    info "Запуск GalIC для '$name'..."
+    info "Запуск GalIC для '$name'... (MPI np=${GALIC_NPROCS})"
     cd "$work_dir"
-    "$GALIC_BIN" "param_${name}.param" >&2 2>&1
+    if [[ "${GALIC_NPROCS}" -gt 1 ]]; then
+        mpirun --allow-run-as-root --oversubscribe -np "${GALIC_NPROCS}" \
+            "$GALIC_BIN" "param_${name}.param" >&2 2>&1
+    else
+        "$GALIC_BIN" "param_${name}.param" >&2 2>&1
+    fi
     cd "$NBODY_ROOT"
 
     # Находим последний HDF5-снапшот
@@ -153,6 +160,12 @@ main() {
     info "run_name:     $run_name"
     info "output_dir:   $output_dir"
     info "components:   $n_components"
+
+    # MPI для GalIC: приоритет у env, иначе ключ galic_nprocs в JSON
+    if [[ "${GALIC_NPROCS}" -le 0 ]]; then
+        GALIC_NPROCS=$(python3 -c "import json; print(json.load(open('$config_file')).get('galic_nprocs', 1))")
+    fi
+    info "GalIC MPI np: $GALIC_NPROCS"
 
     mkdir -p "$output_dir"
 

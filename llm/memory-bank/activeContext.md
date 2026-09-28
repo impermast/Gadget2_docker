@@ -2,6 +2,21 @@
 
 Current focus:
 
+- **corecusp campaign (2026-09-21, N=1e7; перестроена 2026-09-28 под ранний
+  gate)**: `/nbody/runs/corecusp_status.txt` — единственная точка статуса.
+  Схема: GalIC NFW c=20 v200=100 N=1e7 (MPI np=12, см. `galic_nprocs`) →
+  IC-gate (`check_ic_cusp.py`, target из `galic_dm/rotcurve.txt`) → ранний
+  production CDM `corecusp_cdm_N1e7_T5` (TimeMax не меняется, `TimeOfFirstSnapshot
+  =0.02`, пауза через GIZMO stop-file, restart в `output/restartfiles/`) →
+  `early_cdm_gate.py` → **WAITING_FOR_REVIEW** (продолжение и SIDM только по
+  решению пользователя; команда продолжения — `run_sim.sh --resume`, см.
+  `nbody/runs/corecusp/README.md`). Лог пайплайна:
+  `/nbody/runs/corecusp_pipeline.log`. Причина задачи: в dwarf_N1e6 (v200=30,
+  c=15, N=1e6) касп разрешён лишь вне ~0.3 kpc (N(<0.3 kpc)=4212), «core-cusp»
+  эффект был замаскирован; SIDM20 тем не менее давал ядро (наклон →0,
+  ρ(r<2 kpc) +20% к CDM). Литература: Power et al. 2003 (≳3000 частиц +
+  t_relax>t_age), Elbert et al. 2015 (σ/m 0.5–50, ядра 300–1000 pc для
+  Vmax≈40 km/s).
 - Pipeline hardening done (2026-08-25): git policy (`agent/dev`), fast test
   suite (`tests/`, 23 tests ~1 s), pre-commit auto-run, GitHub Actions CI
   (runs #1, #2 green). Memory bank synced with this state.
@@ -17,6 +32,7 @@ Current focus:
   auto-deletes run folders. Default matrix launch now uses PROCS=8 and supports
   env override `GROUP=...`.
 - Revised grid `/nbody/runs/test_dissipation_grid_sigma1/` completed. Pathological `dsidm10_f02_k0_N1e5_T2` was removed; 10 stable runs passed `run_full_test.py`. Shape/thickness comparison (`shape_compare/`) shows no T=2 dark-disk signature (`c/a(r<5)≈0.94`, `z/R≈0.67`, `|vrot|/sigma≈0.07`).
+- Added presentation visual morphology package in `nbody/scripts/plot_scripts/compare_visual_morphology.py` plus registry plots. First T=5 partial render exists at `/nbody/runs/test_dissipation_focused_T5/visual_compare/` using current available snapshots: CDM t=5.0 and SIDM10 t=0.9; other focused runs will be included automatically when snapshots appear.
 - Old N1e6 dwarf production runs are grouped under `/nbody/runs/sidm_dwarf_N1e6_T5/`.
   Oversized old `/nbody/runs/cdm_N1e6/` was deleted by user request.
 - Legacy runs are archived under `/nbody/runs/archive/`: `legacy_cdm_sidm_N1e6/`,

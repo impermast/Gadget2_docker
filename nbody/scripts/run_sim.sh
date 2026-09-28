@@ -24,6 +24,12 @@
 #                        (по умолчанию только старт/финиш)
 #   --tg-interval <n>    интервал прогресса в минутах (по умолчанию 10,
 #                        подразумевает --tg-progress)
+#   --first-snapshot <t> TimeOfFirstSnapshot — время первого снапшота
+#                        (ранний выход; позволяет снять snapshot почти сразу)
+#   --resume             продолжить существующий прогон из restart-файлов
+#                        (GIZMO RestartFlag=1); каталог прогона и .gizmo_run.param
+#                        переиспользуются, физические параметры не меняются
+#   --log-suffix <s>     суффикс лога: run.log<s> (напр. --log-suffix .early)
 
 set -euo pipefail
 
@@ -46,6 +52,9 @@ TIME_MAX=""
 TIME_BET=""
 SIGMA=""
 IC_FILE=""
+FIRST_SNAP=""
+RESUME=0
+LOG_SUFFIX=""
 MPI_PROCS=4
 REBUILD=0
 DRY_RUN=0
@@ -78,6 +87,9 @@ usage() {
   --tg-progress       включить периодические прогресс-уведомления
   --tg-interval <n>   интервал прогресса в минутах (по умолч. 10,
                       подразумевает --tg-progress)
+  --first-snapshot <t> TimeOfFirstSnapshot: время первого снапшота
+  --resume            продолжить тот же прогон из restart-файлов (RestartFlag=1)
+  --log-suffix <s>    суффикс файла лога (run.log<s>)
 EOF
 }
 
@@ -123,12 +135,26 @@ validate() {
     fi
     IC_FILE="${ic_resolved}"
 
-    # Директория прогона — не должна существовать
+    # Директория прогона — не должна существовать (кроме режима --resume)
     RUN_DIR="${BASE_DIR}/${RUN_NAME}"
-    if [[ -d "$RUN_DIR" ]]; then
+    if [[ "$RESUME" -eq 1 ]]; then
+        if [[ ! -d "$RUN_DIR" ]]; then
+            error "Режим --resume: директория прогона не найдена: ${RUN_DIR}"; errors=1
+        elif [[ ! -f "${RUN_DIR}/.gizmo_run.param" ]]; then
+            error "Режим --resume: нет ${RUN_DIR}/.gizmo_run.param"; errors=1
+        elif ! ls "${RUN_DIR}/output/restartfiles"/restart.0 >/dev/null 2>&1; then
+            error "Режим --resume: нет restart-файлов в ${RUN_DIR}/output/restartfiles/"; errors=1
+        fi
+    elif [[ -d "$RUN_DIR" ]]; then
         error "Директория уже существует: ${RUN_DIR}"
         warn "Удалите или выберите другое --name"
         errors=1
+    fi
+
+    if [[ "$RESUME" -eq 1 ]]; then
+        if [[ -n "$SIGMA" || -n "$DISS" || -n "$KICK" ]]; then
+            error "Режим --resume: нельзя менять физические параметры (--sigma/--dissipation/--kick)"; errors=1
+        fi
     fi
 
     if ! command -v mpirun &>/dev/null; then
@@ -166,6 +192,7 @@ preflight() {
     info "=== PREFLIGHT ==="
     info "Имя прогона:      $RUN_NAME"
     info "Тип:              $SIM_TYPE"
+    info "Режим:            $( [[ "$RESUME" -eq 1 ]] && echo 'RESUME (из restart-файлов, RestartFlag=1)' || echo 'новый прогон из IC' )"
     info "IC файл:          ${IC_FILE}.hdf5"
     info "MPI процессов:    $MPI_PROCS"
     info "Директория:       $RUN_DIR"
@@ -176,6 +203,7 @@ preflight() {
     fi
     [[ -n "$TIME_MAX" ]] && info "TimeMax:          $TIME_MAX"
     [[ -n "$TIME_BET" ]] && info "TimeBetSnapshot:  $TIME_BET"
+    [[ -n "$FIRST_SNAP" ]] && info "TimeOfFirstSnapshot: $FIRST_SNAP"
     [[ -n "$SIGMA" ]]    && info "SIDM sigma:       $SIGMA"
     [[ "$REBUILD" -eq 1 ]] && info "Пересборка:       да"
     if [[ "$TG_FLAG" -eq 1 ]]; then
@@ -192,31 +220,35 @@ preflight() {
     else
         info "Бинарник:         не найден, будет собран"
     fi
-    info "Команда: mpirun --allow-run-as-root -np $MPI_PROCS ${GIZMO_BIN} ${RUN_DIR}/.gizmo_run.param"
+    info "Команда: mpirun --allow-run-as-root -np $MPI_PROCS ${GIZMO_BIN} ${RUN_DIR}/.gizmo_run.param$( [[ "$RESUME" -eq 1 ]] && echo ' 1' )"
     info "=== PREFLIGHT DONE ==="
 }
 
 # ======== Подготовка директории ========
 setup_run_dir() {
-    info "Создание директории ${RUN_DIR}"
-    mkdir -p "${RUN_DIR}/configs"
-    mkdir -p "${RUN_DIR}/output"
-    mkdir -p "${RUN_DIR}/plots"
-
-    cp "${TEMPLATE_DIR}/Config_cdm_sidm.sh" "${RUN_DIR}/configs/Config.sh"
-
-    if [[ "$SIM_TYPE" == "cdm" ]]; then
-        PARAM_SRC="${TEMPLATE_DIR}/gizmo_cdm.param"
-    else
-        PARAM_SRC="${TEMPLATE_DIR}/gizmo_sidm.param"
-    fi
-    cp "$PARAM_SRC" "${RUN_DIR}/.gizmo_run.param"
-    cp "$PARAM_SRC" "${RUN_DIR}/configs/"
-
-    # Патчинг
     local abs_out="${RUN_DIR}/output"
-    sed -i "s|^InitCondFile.*|InitCondFile  ${IC_FILE}|"   "${RUN_DIR}/.gizmo_run.param"
-    sed -i "s|^OutputDir.*|OutputDir  ${abs_out}/|"        "${RUN_DIR}/.gizmo_run.param"
+
+    if [[ "$RESUME" -eq 1 ]]; then
+        info "RESUME: переиспользуем ${RUN_DIR} и существующий .gizmo_run.param (физика не меняется)"
+    else
+        info "Создание директории ${RUN_DIR}"
+        mkdir -p "${RUN_DIR}/configs"
+        mkdir -p "${RUN_DIR}/output"
+        mkdir -p "${RUN_DIR}/plots"
+
+        cp "${TEMPLATE_DIR}/Config_cdm_sidm.sh" "${RUN_DIR}/configs/Config.sh"
+
+        if [[ "$SIM_TYPE" == "cdm" ]]; then
+            PARAM_SRC="${TEMPLATE_DIR}/gizmo_cdm.param"
+        else
+            PARAM_SRC="${TEMPLATE_DIR}/gizmo_sidm.param"
+        fi
+        cp "$PARAM_SRC" "${RUN_DIR}/.gizmo_run.param"
+        cp "$PARAM_SRC" "${RUN_DIR}/configs/"
+
+        sed -i "s|^InitCondFile.*|InitCondFile  ${IC_FILE}|"   "${RUN_DIR}/.gizmo_run.param"
+        sed -i "s|^OutputDir.*|OutputDir  ${abs_out}/|"        "${RUN_DIR}/.gizmo_run.param"
+    fi
 
     if [[ -n "$TIME_MAX" ]]; then
         if grep -q '^TimeMax' "${RUN_DIR}/.gizmo_run.param"; then
@@ -231,6 +263,14 @@ setup_run_dir() {
             sed -i "s|^TimeBetSnapshot[[:space:]]*.*|TimeBetSnapshot     ${TIME_BET}|" "${RUN_DIR}/.gizmo_run.param"
         else
             echo "TimeBetSnapshot     ${TIME_BET}" >> "${RUN_DIR}/.gizmo_run.param"
+        fi
+    fi
+
+    if [[ -n "$FIRST_SNAP" ]]; then
+        if grep -q '^TimeOfFirstSnapshot' "${RUN_DIR}/.gizmo_run.param"; then
+            sed -i "s|^TimeOfFirstSnapshot[[:space:]]*.*|TimeOfFirstSnapshot     ${FIRST_SNAP}|" "${RUN_DIR}/.gizmo_run.param"
+        else
+            echo "TimeOfFirstSnapshot     ${FIRST_SNAP}" >> "${RUN_DIR}/.gizmo_run.param"
         fi
     fi
 
@@ -263,6 +303,11 @@ setup_run_dir() {
 
 # ======== Сборка GIZMO ========
 rebuild_gizmo() {
+    if [[ "$RESUME" -eq 1 && "$REBUILD" -eq 0 ]]; then
+        info "RESUME: сборка пропущена — бинарник должен совпадать с создавшим restart"
+        return 0
+    fi
+
     if [[ "$REBUILD" -eq 0 && -f "$GIZMO_BIN" ]]; then
         local config_md5
         config_md5=$(md5sum "${RUN_DIR}/configs/Config.sh" 2>/dev/null | cut -d' ' -f1)
@@ -299,6 +344,7 @@ start_watcher() {
     local run_dir="$1"
     local param_file="${run_dir}/.gizmo_run.param"
     local state_file="${run_dir}/run.state"
+    local log_file="${run_dir}/run.log${LOG_SUFFIX}"
     local start_epoch
     start_epoch=$(date +%s)
 
@@ -338,7 +384,7 @@ start_watcher() {
         local time_val=""
         local sync_point=""
         local last_line
-        last_line=$(grep "Sync-Point" "${run_dir}/run.log" 2>/dev/null | tail -1)
+        last_line=$(grep "Sync-Point" "$log_file" 2>/dev/null | tail -1)
         if [[ -n "$last_line" ]]; then
             sync_point=$(echo "$last_line" | awk -F', ' '{print $1}' | awk '{print $3}')
             time_val=$(echo "$last_line" | awk -F', ' '{print $2}' | awk '{print $2}')
@@ -427,8 +473,9 @@ tg_send_finish() {
 
 # ======== Запуск симуляции ========
 run_simulation() {
+    local log_file="${RUN_DIR}/run.log${LOG_SUFFIX}"
     info "Запуск симуляции..."
-    info "Лог: ${RUN_DIR}/run.log"
+    info "Лог: ${log_file}"
 
     # Telegram: старт
     if [[ "$TG_FLAG" -eq 1 ]]; then
@@ -439,7 +486,11 @@ run_simulation() {
     start_watcher "${RUN_DIR}"
 
     cd "${RUN_DIR}"
-    mpirun --allow-run-as-root -np "$MPI_PROCS" "$GIZMO_BIN" ".gizmo_run.param" 2>&1 | tee "run.log"
+    local restart_arg=()
+    if [[ "$RESUME" -eq 1 ]]; then
+        restart_arg=("1")
+    fi
+    mpirun --allow-run-as-root -np "$MPI_PROCS" "$GIZMO_BIN" ".gizmo_run.param" "${restart_arg[@]}" 2>&1 | tee "$log_file"
     local status=$?
 
     # Останавливаем watcher
@@ -506,7 +557,9 @@ log_experiment() {
 
 Goal:
 
-- Automated run via run_sim.sh
+- Automated run via run_sim.sh (mode: $( [[ "$RESUME" -eq 1 ]] && echo "RESUME from restart files (RestartFlag=1)" || echo "fresh start from IC" ))
+- TimeOfFirstSnapshot: ${FIRST_SNAP:-default}; TimeMax: ${TIME_MAX:-template}; TimeBetSnapshot: ${TIME_BET:-template}
+
 
 Type:
 
@@ -543,7 +596,7 @@ Outputs:
 - output directory: ${RUN_DIR}/output/
 - snapshots: ${snaps}
 - plots: ${RUN_DIR}/plots/
-- logs: ${RUN_DIR}/run.log
+- logs: ${RUN_DIR}/run.log${LOG_SUFFIX}
 
 Status:
 
@@ -572,6 +625,9 @@ main() {
             --time-bet)  TIME_BET="$2";    shift 2 ;;
             --sigma)     SIGMA="$2";       shift 2 ;;
             --ic-file)   IC_FILE="$2";     shift 2 ;;
+            --first-snapshot) FIRST_SNAP="$2"; shift 2 ;;
+            --log-suffix) LOG_SUFFIX="$2"; shift 2 ;;
+            --resume)    RESUME=1;         shift ;;
             --mpi-procs) MPI_PROCS="$2";   shift 2 ;;
             --rebuild)        REBUILD=1;            shift ;;
             --dry-run)        DRY_RUN=1;            shift ;;
@@ -606,7 +662,7 @@ main() {
 
     info "=== DONE ==="
     info "Директория: $RUN_DIR"
-    info "Лог:        ${RUN_DIR}/run.log"
+    info "Лог:        ${RUN_DIR}/run.log${LOG_SUFFIX}"
     info "Параметры:  ${RUN_DIR}/.gizmo_run.param"
     exit "$sim_status"
 }

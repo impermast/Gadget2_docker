@@ -2,6 +2,129 @@
 
 Use this file to record completed or attempted simulations.
 
+### 2026-09-28 corecusp: перестройка под ранний физический gate + GalIC MPI
+
+Goal:
+
+- Не запускать многодневный CDM/SIDM вслепую: после IC-gate выполнить РАННИЙ
+  production-CDM (первые шаги, первый snapshot t=0.02), штатно поставить его на
+  паузу, прогнать физический gate и ждать решения пользователя.
+
+What was done (код, все правки обратно совместимы):
+
+- `nbody/scripts/generate_ics.sh`: GalIC запускается через `mpirun` (ключ
+  `galic_nprocs` в JSON конфига или env `GALIC_NPROCS`; по умолчанию 1).
+  Бенчмарк GalIC (N=2e4, 2 шага): serial 36 c → np=4 15 c, np=8 12 c, np=12 13 c
+  (~3x; OpenMP-ветка GalIC оказалась мёртвым кодом — tree-force не вызывается,
+  основной объём орбитальная интеграция, поэтому параллелизм только через MPI
+  доменную декомпозицию; N и Mtot при np=1/4/12 совпадают точно).
+- `nbody/ics/corecusp_N1e7.json`: +`galic_nprocs: 12`, +`StepsBetweenDump: 10`
+  (экономия диска, физику не меняет); генерация IC перезапущена на 12 MPI
+  (серийный запуск 22.09 был потерян после перезагрузки хоста — GalIC restart
+  не поддерживает, /opt/GalIC/README).
+- `nbody/scripts/check_simulations/check_ic_cusp.py` переписан (v2): target из
+  ФАКТИЧЕСКОГО `galic_dm/rotcurve.txt` (+NFW-фит), критерии: ratio ±15%,
+  наклон ≤ −0.75 и |Δslope| ≤ 0.25, N(<1 kpc) ≥ 1e5, t_relax ≥ 10 Gyr,
+  ≥200 частиц/бин; выходы report.txt/gate.json/profile png. Смоук-тест на
+  dwarf_N1e6: ratio=0.967, slope −1.669 vs target −1.851, PASS по профилю,
+  FAIL только по разрешению (N(<1 kpc)=41929 < 1e5) — корректно.
+- Новый `nbody/scripts/check_simulations/early_cdm_gate.py`: IC vs первый
+  snapshot vs target: ρ(r), наклон, M(<r)/N(<r), дрейф COM/v_bulk, Δρ_центр,
+  Δslope (флаг немедленного core), 2T/|W| (блок Potential), dE/|W|, timestep
+  sanity (Sync-Point), softening vs межчастичное расстояние, NInteractions=0.
+  Смоук на паре dwarf snapshot_000→001 (t=0.1): Δslope=+0.002, ρ_IC/ρ_snap=0.993,
+  2T/|W|=1.003, dE/|W|=−1e-3, v_bulk=0.055 км/с, |dCOM|=0.006 кпк — PASS по физике.
+- `nbody/scripts/run_sim.sh`: +`--first-snapshot` (TimeOfFirstSnapshot),
+  +`--resume` (RestartFlag=1, переиспользует каталог/param, запрещает менять
+  физпараметры, не пересобирает бинарник), +`--log-suffix`.
+- `nbody/runs/corecusp/corecusp_pipeline.sh` переписан: ждёт IC → IC gate →
+  ранний production CDM (TimeMax НЕ меняется = 5.0, поэтому
+  readjust_timebase не вызывается; пауза через GIZMO stop-file
+  `<OutputDir>/stop` после полной записи snapshot_000) → проверки snapshot/
+  restart/run.state → ранний gate → статус `WAITING_FOR_REVIEW`. SIDM и
+  продолжение автоматически НЕ запускаются.
+- Добавлен идемпотентный launcher `nbody/runs/corecusp/corecusp_start_ic.sh`
+  и README кампании (`nbody/runs/corecusp/README.md`).
+
+Continuation (после решения пользователя):
+
+- `bash /nbody/scripts/run_sim.sh --name corecusp_cdm_N1e7_T5 --type cdm --resume
+  --mpi-procs 12 --log-suffix .resume` — тот же прогон, параметры не меняются.
+
+Status:
+
+- GalIC (np=12) генерирует IC; pipeline-наблюдатель запущен (status=RUNNING);
+  pytest 23/23 зелёный.
+
+
+### 2026-09-21 corecusp campaign (первичный план; REVISED 2026-09-28)
+
+> Ревизия 2026-09-28: IC-gate теперь по target-профилю GalIC (см. запись выше),
+> ранний gate перед production, SIDM автоматически не запускается; тезис
+> «измеренный наклон IC ≈ 0» пересмотрен — при корректном бининге IC даёт
+> slope −1.67 при target −1.85 (ratio 0.97), неразрешён только центр r < 0.3 kpc.
+
+Goal:
+
+
+Goal:
+
+- Демонстрация разрешённого каспа (наклон −1) в центре: CDM vs SIDM sigma/m=2,
+  чтобы объяснить, почему в прежних dwarf-запусках (v200=30, c=15, N=1e6)
+  касп был численно неразрешён (измеренный наклон IC ≈ 0).
+
+Setup:
+
+- IC: GalIC NFW c=20, v200=100 км/с (r200≈150 kpc/h, rs≈15 kpc/h), N=1e7,
+  m_p≈3.5e4 M_sun/h, конфиг `/nbody/ics/corecusp_N1e7.json`.
+- Оценки: N(<1 kpc)≈1.7e5, t_relax(1 kpc)≈17 Gyr > 6.7 Gyr (T=5, 1 unit=1 Gyr/h).
+- σ/m=2 в каспе: t_scatter≈3 Gyr → умеренное смягчение ядра при сохранении каспа.
+- Прогоны: `corecusp_cdm_N1e7_T5` и `corecusp_sidm2_N1e7_T5`, T=5,
+  TimeBetSnapshot=0.25 (21 снапшот, экономия диска), 12 MPI-процессов.
+- Gate-проверка IC (`nbody/scripts/check_simulations/check_ic_cusp.py`):
+  наклон 1–5 kpc должен быть −1.0±0.15, иначе симуляции не стартуют.
+- Автономный пайплайн `/nbody/runs/corecusp/corecusp_pipeline.sh`
+  (ждёт GalIC → gate → CDM → SIDM), лог `/nbody/runs/corecusp_pipeline.log`,
+  Telegram-уведомления от run_sim.sh.
+
+Timing estimate:
+
+- N=1e6 T=5 SIDM20 занимал 18.4 ч на 4 proc → N=1e7 на 12 proc ≈ 3–4 дня/прогон;
+  суммарно ~1 неделя (последовательно).
+
+Status:
+
+- launched (GalIC 1e7 ещё генерируется, пайплайн ждёт IC)
+
+### 2026-09-11 presentation figs_v2 rebuilt (B-E)
+
+Goal:
+
+- Пересобрать презентационные графики CDM/SIDM/dSIDM в функциональном стиле (белый фон, крупные подписи, mathtext, dpi 200, без заголовков внутри figure).
+
+What was done:
+
+- `interactions_radial`: +xlim/mean_ylim/frac_ylim config.
+- `diag_eloss_vs_f`: без y=x (теория 2D-D^2), legend lower right, off-scale аннотации серым, title=None.
+- `criteria_time_panel`: переписан на multi-series (3 вертикальные панели, один цвет на run, общая легенда, серые dashed пороги 0.75/0.55/0.15, ylim c/a=[0.70,1.00]).
+- `runaway_timestep_panel`: две панели (rate per snapshot + min dt), multi-series, log-log.
+- Controls cdm/sidm k08: досчитан analyze_series (metrics_series.csv теперь для всех 6 runs).
+
+Outputs (`/nbody/presentations/figs_v2/`):
+
+- fig_sidm_interactions_radial.png (SIDM sigma=20 N=1e6, xlim 0.1-300 kpc)
+- fig_dsidm_energy_loss_validation.png (measured 0.010/0.197/0.203 vs theory 2D-D^2; D=0.75 off-scale)
+- fig_highspin_disk_criteria.png + _t01.png (6 runs k=0.8, criteria vs t)
+- fig_dsidm_runaway_timestep.png (D=0.50 vs D=0.75: rate взрыв + dt collapse 4.8e-7)
+
+Marked TODO (needs separate new script, NOT created):
+
+- fig_cdm_baseline.png (rho/rho_NFW ratio panel; requires NFW reference fit loader).
+
+Status:
+
+- completed
+
 ### 2026-09-11 plot_scripts: three new DIAG presentation plots
 
 Goal:
@@ -111,6 +234,72 @@ Result:
 Status:
 
 - completed setup; no science run launched
+
+### 2026-09-04 dissipation block grouped + short visual conclusions
+
+Goal:
+
+- Завершить текущий блок dissipation-симуляций: собрать связанные run-группы в одну папку и зафиксировать короткий вывод по визуальному анализу.
+
+Type:
+
+- Filesystem organization + read-only visual/metric analysis; simulations were not launched.
+
+What was done:
+
+- Moved `/nbody/runs/test_dissipation`, `/nbody/runs/test_dissipation_grid_sigma1`, and `/nbody/runs/test_dissipation_focused_T5` into `/nbody/runs/dissipation/`.
+- Reviewed existing visual package PNGs and summary metrics from focused T=5 and grid T=2 outputs.
+- Wrote short conclusions to `/nbody/runs/dissipation/dissipation_visual_conclusions.md`.
+
+Result:
+
+- Current dSIDM dissipation block is closed as a no-disk result: stable `f=0.05` remains thick/spheroidal and `σ=10,f=0.10` becomes pathological before disk-like morphology.
+- Next viable direction remains source-level SIDM/dSIDM audit followed by higher-spin (`k≈0.8`) or mixed-component disk-search experiments.
+
+Status:
+
+- completed
+
+### 2026-09-03 focused T5 visual morphology package (partial visualization)
+
+Goal:
+
+- Подготовить презентационный Hopkins/FIRE-style visual morphology пакет для сравнения CDM/SIDM/dSIDM во время продолжающегося focused T=5 расчёта.
+
+Type:
+
+- Visualization / plotting infrastructure extension; simulations were not launched.
+
+What was done:
+
+- Added `nbody/scripts/plot_scripts/compare_visual_morphology.py` as a thin runner over the existing `NbodyPlotter` registry.
+- Extended `loaders.py` with plot-ready visual snapshot, projection histogram, R-vphi phase-space histogram, and radial morphology/kinematic profile helpers.
+- Added registry plots: `visual_morphology_montage`, `surface_density_residuals`, `morphology_profiles_compare`, `phase_space_compare`, `disk_dashboard`.
+- Generated initial partial outputs under `/nbody/runs/test_dissipation_focused_T5/visual_compare/`.
+
+Command:
+
+```bash
+docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/compare_visual_morphology.py \
+  --group-root /nbody/runs/test_dissipation_focused_T5 \
+  --outdir /nbody/runs/test_dissipation_focused_T5/visual_compare \
+  --lim 12 --bins 220 --phase-bins 180
+```
+
+Result:
+
+- Used currently available snapshots: CDM `snapshot_051` at t=5.0 and SIDM10 `snapshot_009` at t=0.9.
+- Generated: `01_surface_density_montage_final.png`, `02_surface_density_residual_vs_cdm_final.png`, `03_shape_radial_profiles_final.png`, `04_phase_space_R_vphi_final.png`, `05_disk_dashboard.png`, `06_log_rho_compare_final.png`, `07_rot_curve_compare_final.png`, `visual_summary.txt`.
+- Current partial metrics: CDM c/a=0.933, z/R=0.667, |vrot|/sigma=0.061; SIDM10 c/a=0.917, z/R=0.653, |vrot|/sigma=0.067, NI=6380; disk_score=0 for both.
+
+Test:
+
+- `.venv/bin/python -m pytest tests/ -q`: 23 passed.
+- Container py_compile for modified plot files: passed.
+
+Status:
+
+- completed for partial state; rerun the same command as focused T5 runs produce additional snapshots.
 
 ### 2026-08-25 git policy + fast test suite + CI auto-runs (infrastructure)
 

@@ -1,0 +1,19 @@
+{
+  "run_name": "corecusp_N1e7",
+  "output_dir": "/nbody/ics/corecusp_N1e7",
+  "galic_param": "nbody/GalIC/halo_nfw_ics.param",
+  "galic_nprocs": 12,
+  "galic_extra": {
+    "StepsBetweenDump": 10
+  },
+  "components": [
+    {
+      "name": "dm",
+      "n": 10000000,
+      "cc": 20,
+      "v200": 100,
+      "map_to": 3,
+      "sigma": 0
+    }
+  ]
+}
