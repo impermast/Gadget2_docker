@@ -2,6 +2,14 @@
 
 What works:
 
+- Политика радиальных графиков (2026-09-29): `plot_scripts` не показывает r → 0 —
+  ось X начинается на октаву ниже зоны софтенинга, сама зона закрашивается серым
+  с подписью `below resolution`. Источник `loaders.unresolved_radius()`
+  (2 × median Softening_KernelRadius внутри 1 кпк), helpers
+  `settings.resolve_xlim()` / `settings.shade_unresolved()` подключены к density,
+  log_slope, sigma_v, interactions_radial и compare-графикам. Проверено на
+  corecusp-снапшоте (N=1e7): unresolved_r_max=0.28 кпк, r=0 вне кадра.
+
 - Spin-k08 sigma=2.5 scan completed 2026-09-11: campaigns under `/nbody/runs/dsidm_spin_k08_transition/`; dSIDM D=0.10..0.50 stable (c/a~0.81) but no disk; D=0.75 timestep/runaway pathology per `analyze_series.py`.
 - Campaign grouping convention adopted: runs are organized under topic folders like `/nbody/runs/dsidm_spin_k08_transition/`, with controls reused when IC/settings match. Created campaign README and derived `k=0.8` IC `/nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08.hdf5`; no simulation launched yet.
 - Dissipation simulation blocks were grouped under `/nbody/runs/dissipation/` (moved `test_dissipation`, `test_dissipation_grid_sigma1`, `test_dissipation_focused_T5`). Short visual conclusions written to `/nbody/runs/dissipation/dissipation_visual_conclusions.md`: no robust dark disk; `f=0.05` stable but thick/spheroidal; `σ=10,f=0.10` pathological before disk formation.

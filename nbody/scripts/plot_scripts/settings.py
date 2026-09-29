@@ -247,6 +247,39 @@ def _apply_limits(ax, xlim=None, ylim=None):
         ax.set_ylim(*ylim)
 
 
+def resolve_xlim(xlim, r_max=None, factor=2.0):
+    """Левая граница оси: не показывать r -> 0, начать на октаву ниже r_max.
+
+    xlim задан пользователем -> возвращаем как есть; иначе, если известна
+    зона ниже разрешения, ось начинается с r_max/factor, чтобы серая полоса
+    софтенинга была видна, а сам r=0 не попадал в кадр.
+    """
+    if xlim is not None:
+        return xlim
+    if r_max is None or not float(r_max) > 0:
+        return None
+    return (float(r_max) / float(factor), None)
+
+
+def shade_unresolved(ax, r_max=None, label=None, zorder=0.5):
+    """Закрасить серым зону r < r_max — ниже разрешения (софтенинг+релаксация).
+
+    r_max=None или <=0 -> ничего не делать. Возвращает созданный artist/None.
+    Вызывать ДО style_axis/limits не обязательно: axvspan по x работает при
+    любом xlim; если r_max левее текущей левой границы — просто не видна.
+    """
+    if r_max is None or not float(r_max) > 0:
+        return None
+    lo = float(r_max) / 1.0e6  # уходит за левый край при любом log-лимите
+    artist = ax.axvspan(lo, float(r_max), color="0.55", alpha=0.18,
+                        zorder=zorder, lw=0)
+    if label:
+        ax.text(float(r_max) * 1.02, 0.97, label, transform=ax.get_xaxis_transform(),
+                ha="left", va="top", fontsize=8, color="0.35",
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="0.7", alpha=0.9))
+    return artist
+
+
 def _apply_grid(ax, grid=None):
     """grid: None -> из STYLE; bool; dict -> локальное переопределение."""
     g = dict(STYLE["grid"])

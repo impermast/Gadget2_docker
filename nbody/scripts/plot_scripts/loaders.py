@@ -43,9 +43,39 @@ def read_snapshot(path, ptype: int = 3) -> Dict[str, Optional[np.ndarray]]:
                      if "Masses" in g else None),
             "ni": (g["NInteractions"][:].astype(np.uint64)
                    if "NInteractions" in g else None),
+            "softening": (g["Softening_KernelRadius"][:].astype(np.float64)
+                          if "Softening_KernelRadius" in g else None),
             "time": float(f["Header"].attrs.get("Time", 0.0)),
             "sigma": float(f["Header"].attrs.get("DM_InteractionCrossSection", 0.0)),
         }
+
+
+# ─────────────── зона ниже разрешения (софтенинг + релаксация) ───────────────
+
+UNRESOLVED_FACTOR = 2.0   # r_unresolved = factor * <softening kernel radius>_inner
+UNRESOLVED_INNER_R = 1.0  # [kpc] внутри какого радиуса усредняем софтенинг
+
+
+def unresolved_radius(r: np.ndarray, softening: Optional[np.ndarray],
+                      factor: float = UNRESOLVED_FACTOR,
+                      r_inner: float = UNRESOLVED_INNER_R) -> Optional[float]:
+    """Оценка радиуса, ниже которого профиль не разрешён.
+
+    Берём медианный Softening_KernelRadius частиц внутри r_inner и умножаем на
+    factor: профиль ненадёжен там, где r сравним с длиной смягчения силы.
+    Возвращает None, если блок софтенинга отсутствует.
+    """
+    if softening is None:
+        return None
+    inner = r < r_inner
+    sample = softening[inner] if inner.sum() >= 50 else softening
+    if sample.size == 0:
+        return None
+    med = float(np.median(sample))
+    if not np.isfinite(med) or med <= 0:
+        return None
+    return float(factor * med)
+
 
 
 # ─────────────────────────── центрирование halo ─────────────────────────────
@@ -134,6 +164,14 @@ def prepare_profile_data(snapshot_path, rcore: float = 2.0) -> Dict[str, object]
         "rho_core": rho_core,
         "core_radius": float(rcore),
     }
+
+    # --- зона ниже разрешения (софтенинг + релаксация) ---
+    r_unres = unresolved_radius(r, d.get("softening"))
+    if r_unres is not None:
+        out["unresolved_r_max"] = r_unres
+        out["softening_kernel_median"] = float(
+            np.median(d["softening"][r < UNRESOLVED_INNER_R])
+            if (r < UNRESOLVED_INNER_R).sum() >= 50 else np.median(d["softening"]))
 
     # --- NInteractions ---
     if d["ni"] is not None:

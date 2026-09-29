@@ -10,7 +10,7 @@ analyze_final_snapshot.py (shrinkage centering, лог-биннинг, slope-о�
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -59,6 +59,7 @@ class DensityPlot(BasePlot):
         "rho": F(("R",)),
         "time": F((), required=False),
         "cross_section": F((), required=False),
+        "unresolved_r_max": F((), required=False),
     }
     default_config = {
         "title": "Radial density profile",
@@ -68,6 +69,8 @@ class DensityPlot(BasePlot):
         "yscale": "log",
         "xlim": None,
         "ylim": None,
+        "unresolved_r_max": None,
+        "unresolved_label": "below resolution",
         "color_index": 0,
         "line_width": None,
         "figsize_key": "page",
@@ -76,7 +79,27 @@ class DensityPlot(BasePlot):
     }
 
     def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
-        return _line_plot(self.settings, data["r"], data["rho"], config)
+        from settings import resolve_xlim, shade_unresolved
+
+        rmax = config.get("unresolved_r_max", None)
+        if rmax is None:
+            rmax = data.get("unresolved_r_max", None)
+        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
+        ax.plot(data["r"], data["rho"],
+                color=self.settings.palette[config["color_index"]],
+                lw=config.get("line_width") or self.settings.line_width_main)
+        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
+        self.settings.style_axis(
+            ax, title=config.get("title"), xlabel=config.get("xlabel"),
+            ylabel=config.get("ylabel"), xscale=config.get("xscale"),
+            yscale=config.get("yscale"),
+            xlim=resolve_xlim(config.get("xlim"), rmax),
+            ylim=config.get("ylim"), grid=True)
+        fig.tight_layout()
+        path = self.settings.save_figure(fig, config["filename"],
+                                         dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
 
 
 class LogSlopePlot(BasePlot):
@@ -89,6 +112,7 @@ class LogSlopePlot(BasePlot):
     data_contract = {
         "r": F(("R",)),
         "slope": F(("R",)),
+        "unresolved_r_max": F((), required=False),
     }
     default_config = {
         "title": None,
@@ -98,6 +122,8 @@ class LogSlopePlot(BasePlot):
         "yscale": "linear",
         "xlim": None,
         "ylim": (-3.5, -0.4),
+        "unresolved_r_max": None,
+        "unresolved_label": "below resolution",
         "reference_line": -1.0,
         "color_index": 1,
         "line_width": None,
@@ -107,6 +133,11 @@ class LogSlopePlot(BasePlot):
     }
 
     def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
+        from settings import resolve_xlim, shade_unresolved
+
+        rmax = config.get("unresolved_r_max", None)
+        if rmax is None:
+            rmax = data.get("unresolved_r_max", None)
         fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
         ax.plot(data["r"], data["slope"],
                 color=self.settings.palette[config["color_index"]],
@@ -114,10 +145,12 @@ class LogSlopePlot(BasePlot):
         ref = config.get("reference_line")
         if ref is not None:
             ax.axhline(ref, ls=":", color="0.4", lw=0.8)
+        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
         self.settings.style_axis(
             ax, title=config.get("title"), xlabel=config.get("xlabel"),
             ylabel=config.get("ylabel"), xscale=config.get("xscale"),
-            yscale=config.get("yscale"), xlim=config.get("xlim"),
+            yscale=config.get("yscale"),
+            xlim=resolve_xlim(config.get("xlim"), rmax),
             ylim=config.get("ylim"), grid=True)
         fig.tight_layout()
         path = self.settings.save_figure(fig, config["filename"],
@@ -136,6 +169,7 @@ class SigmaVPlot(BasePlot):
     data_contract = {
         "r": F(("R",)),
         "sigma_v": F(("R",)),
+        "unresolved_r_max": F((), required=False),
     }
     default_config = {
         "title": "1D velocity dispersion profile",
@@ -145,6 +179,8 @@ class SigmaVPlot(BasePlot):
         "yscale": "linear",
         "xlim": None,
         "ylim": None,
+        "unresolved_r_max": None,
+        "unresolved_label": "below resolution",
         "color_index": 0,
         "line_width": None,
         "figsize_key": "page",
@@ -153,7 +189,29 @@ class SigmaVPlot(BasePlot):
     }
 
     def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
-        return _line_plot(self.settings, data["r"], data["sigma_v"], config)
+        from settings import resolve_xlim, shade_unresolved
+
+        import matplotlib.pyplot as plt
+
+        rmax = config.get("unresolved_r_max", None)
+        if rmax is None:
+            rmax = data.get("unresolved_r_max", None)
+        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
+        ax.plot(data["r"], data["sigma_v"],
+                color=self.settings.palette[config["color_index"]],
+                lw=config.get("line_width") or self.settings.line_width_main)
+        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
+        self.settings.style_axis(
+            ax, title=config.get("title"), xlabel=config.get("xlabel"),
+            ylabel=config.get("ylabel"), xscale=config.get("xscale"),
+            yscale=config.get("yscale"),
+            xlim=resolve_xlim(config.get("xlim"), rmax),
+            ylim=config.get("ylim"), grid=True)
+        fig.tight_layout()
+        path = self.settings.save_figure(fig, config["filename"],
+                                         dpi=config.get("dpi"))
+        plt.close(fig)
+        return path
 
 
 class InteractionsRadialPlot(BasePlot):
@@ -168,6 +226,7 @@ class InteractionsRadialPlot(BasePlot):
         "r_ni": F(("B",)),
         "ni_mean": F(("B",)),
         "ni_frac": F(("B",)),
+        "unresolved_r_max": F((), required=False),
     }
     default_config = {
         "mean_ylabel": "mean NInteractions",
@@ -179,6 +238,8 @@ class InteractionsRadialPlot(BasePlot):
         "xlim": None,
         "mean_ylim": None,
         "frac_ylim": (0.0, 105.0),
+        "unresolved_r_max": None,
+        "unresolved_label": "below resolution",
         "figsize": (11.0, 4.2),
         "dpi": 200,
         "filename": "04_ninteractions_radial.png",
@@ -187,9 +248,16 @@ class InteractionsRadialPlot(BasePlot):
     def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
         import numpy as np
 
+        from settings import resolve_xlim, shade_unresolved
+
         r = np.asarray(data["r_ni"])
         ni_mean = np.asarray(data["ni_mean"], dtype=float)
         ni_frac = np.asarray(data["ni_frac"], dtype=float)
+        rmax = config.get("unresolved_r_max", None)
+        if rmax is None:
+            rmax = data.get("unresolved_r_max", None)
+        xlim = resolve_xlim(config.get("xlim"), rmax)
+        label = config.get("unresolved_label") or None
 
         fig, axs = plt.subplots(1, 2, figsize=tuple(config["figsize"]))
         m = np.isfinite(ni_mean) & (ni_mean > 0)
@@ -197,11 +265,12 @@ class InteractionsRadialPlot(BasePlot):
             axs[0].plot(r[m], ni_mean[m],
                         color=self.settings.palette[0],
                         lw=self.settings.line_width_main)
+        shade_unresolved(axs[0], rmax, label=label)
         self.settings.style_axis(axs[0], xlabel=config["xlabel"],
                                  ylabel=config["mean_ylabel"],
                                  xscale=config["xscale"],
                                  yscale=config["mean_yscale"],
-                                 xlim=config.get("xlim"),
+                                 xlim=xlim,
                                  ylim=config.get("mean_ylim"), grid=True)
 
         f = np.isfinite(ni_frac) & (ni_frac > 0)
@@ -209,11 +278,12 @@ class InteractionsRadialPlot(BasePlot):
             axs[1].plot(r[f], ni_frac[f],
                         color=self.settings.palette[1],
                         lw=self.settings.line_width_main)
+        shade_unresolved(axs[1], rmax, label=None)
         self.settings.style_axis(axs[1], xlabel=config["xlabel"],
                                  ylabel=config["frac_ylabel"],
                                  xscale=config["xscale"],
                                  yscale=config["frac_yscale"],
-                                 xlim=config.get("xlim"),
+                                 xlim=xlim,
                                  ylim=config.get("frac_ylim"), grid=True)
 
         fig.tight_layout()
@@ -317,6 +387,15 @@ def _series_list_contract() -> dict:
     return {"series": F(("S",), dtype="any")}
 
 
+def _series_unresolved_r(series, config) -> Optional[float]:
+    """Максимальный unresolved_r_max по сериям (или значение из config)."""
+    if config.get("unresolved_r_max") is not None:
+        return float(config["unresolved_r_max"])
+    vals = [float(s["unresolved_r_max"]) for s in series
+            if isinstance(s, Mapping) and s.get("unresolved_r_max")]
+    return max(vals) if vals else None
+
+
 class _MultiSeriesPlot(BasePlot):
     """
     Общая логика отрисовки нескольких серий на одних осях. Это НЕ уровень
@@ -331,6 +410,7 @@ class _MultiSeriesPlot(BasePlot):
 
     def _render_series(self, data, config, y_field):
         import numpy as np
+        from settings import resolve_xlim, shade_unresolved
 
         fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
         for i, s in enumerate(data["series"]):
@@ -338,10 +418,13 @@ class _MultiSeriesPlot(BasePlot):
             ax.plot(np.asarray(s["r"]), np.asarray(s[y_field]),
                     color=self.settings.palette[i % len(self.settings.palette)],
                     lw=self.settings.line_width_main, label=label)
+        rmax = _series_unresolved_r(data["series"], config)
+        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
         self.settings.style_axis(
             ax, title=config.get("title"), xlabel=config.get("xlabel"),
             ylabel=config.get("ylabel"), xscale=config.get("xscale"),
-            yscale=config.get("yscale"), xlim=config.get("xlim"),
+            yscale=config.get("yscale"),
+            xlim=resolve_xlim(config.get("xlim"), rmax),
             ylim=config.get("ylim"), grid=True, legend=True)
         fig.tight_layout()
         path = self.settings.save_figure(fig, config["filename"],
@@ -493,6 +576,11 @@ class _DeltaComparePlot(BasePlot):
                              lw=self.settings.line_width, label=label)
 
         ax_diff.axhline(0.0, ls=":", color="0.4", lw=0.9)
+        rmax = _series_unresolved_r(series, config)
+        from settings import resolve_xlim, shade_unresolved
+
+        shade_unresolved(ax_top, rmax, label=config.get("unresolved_label") or None)
+        shade_unresolved(ax_diff, rmax, label=None)
         self.settings.style_axis(
             ax_top, title=config.get("title"),
             ylabel=config.get("top_ylabel"),
@@ -500,7 +588,8 @@ class _DeltaComparePlot(BasePlot):
         self.settings.style_axis(
             ax_diff, xlabel=config.get("xlabel"),
             ylabel=config.get("diff_ylabel"),
-            xscale=config.get("xscale"), grid=True)
+            xscale=config.get("xscale"),
+            xlim=resolve_xlim(config.get("xlim"), rmax), grid=True)
         if config.get("legend"):
             ax_top.legend(frameon=False,
                           fontsize=self.settings.legend_font_size)

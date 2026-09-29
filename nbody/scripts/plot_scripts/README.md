@@ -58,6 +58,45 @@ docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/compare_visual_morp
 - `06_log_rho_compare_final.png`, `07_rot_curve_compare_final.png` — стандартные delta-compare plots;
 - `visual_summary.txt` — краткая сводка и warnings.
 
+## Политика «зоны ниже разрешения» (2026-09-29)
+
+На радиальных графиках (`density`, `log_slope`, `sigma_v`, `interactions_radial`,
+`density_compare`, `log_slope_compare`, `sigma_v_compare`, `log_rho_compare`,
+`rot_curve_compare`) центр ниже разрешения не показывается:
+
+- `loaders.unresolved_radius()` считает `unresolved_r_max = 2 × median(Softening_KernelRadius)`
+  по частицам внутри 1 кпк (константы `UNRESOLVED_FACTOR`, `UNRESOLVED_INNER_R`)
+  и кладёт его в данные (`prepare_profile_data` → `unresolved_r_max`,
+  `softening_kernel_median`);
+- `settings.resolve_xlim()` по умолчанию начинает ось X на октаву ниже
+  `unresolved_r_max` (r=0 в кадр не попадает);
+- `settings.shade_unresolved()` закрашивает зону серым (`alpha=0.18`) с подписью
+  `below resolution`;
+- приоритет значений: `config["unresolved_r_max"]` → данные → ничего.
+
+Пример (обрезка оси вручную + своя подпись):
+
+```python
+plotter.make_plot("density", prof, config={
+    "unresolved_r_max": 0.28,
+    "unresolved_label": "softening zone",
+})
+```
+
+
+## Политика графиков: не показывать r → 0 (2026-09-29)
+
+Любой радиальный график в `plot_scripts` теперь по умолчанию:
+- не показывает r = 0: ось X начинается на октаву ниже зоны софтенинга;
+- закрашивает серым зону ниже разрешения (`below resolution`).
+
+Единый источник: `loaders.unresolved_radius()` =
+`2 × median(Softening_KernelRadius)` внутри 1 кпк (→ в corecusp run это 0.28 кпк);
+`settings.resolve_xlim()` + `settings.shade_unresolved()` — общие helpers для
+всех plots (single-run и compare). Мотивация: центр ниже софтенинга — численный
+артефакт, и на конференции он не должен выглядеть как физическое ядро
+(core–cusp вопрос задаётся именно там).
+
 ## Диагностические (presentation) DIAG-графики
 
 Дополнительные диагностические графики регистрируются в коллекции `DIAG_PLOTS`

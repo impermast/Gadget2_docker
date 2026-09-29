@@ -2,6 +2,38 @@
 
 Use this file to record completed or attempted simulations.
 
+### 2026-09-29 plot_scripts: политика «не показывать r → 0» + серую зону софтенинга
+
+Goal:
+
+- Убрать с радиальных графиков недоразрешённый центр (r ≲ софтенинг), чтобы
+  численное ядро не читалось как физический core при показе CDM/SIDM профилей.
+
+What was done:
+
+- `loaders.py`: `read_snapshot` читает `Softening_KernelRadius`;
+  `unresolved_radius()` = `UNRESOLVED_FACTOR(2.0) × median(Softening_KernelRadius)`
+  по частицам внутри `UNRESOLVED_INNER_R(1 кпк)`; `prepare_profile_data()`
+  отдаёт `unresolved_r_max` и `softening_kernel_median`.
+- `settings.py`: `resolve_xlim(xlim, r_max, factor=2)` (ось X начинается на
+  октаву ниже зоны софтенинга — r=0 вне кадра при явном xlim приоритет у него)
+  и `shade_unresolved(ax, r_max, label)` (серая полоса + подпись
+  `below resolution`).
+- `analysis_plots.py`: подключено к `density`, `log_slope`, `sigma_v`,
+  `interactions_radial`, `density_compare`, `log_slope_compare`,
+  `sigma_v_compare`, `log_rho_compare`, `rot_curve_compare`; в contracts и
+  default_config добавлены `unresolved_r_max` / `unresolved_label` (None по
+  умолчанию => поведение для старых конфигов сохраняется, если данных нет).
+- Проверка на corecusp run (`corecusp_cdm_N1e7_T5`, snapshot_000, N=1e7):
+  `unresolved_r_max = 0.28 кпк` (2 × 0.14), ось начинается с 0.14 кпк,
+  `run_full_test.py --skip-animations` — все 5 графиков + summary ok.
+- Документация: `plot_scripts/README.md` (две секции: API-политика и мотивация),
+  `memory-bank/progress.md`.
+
+Status:
+
+- completed; pytest 23/23.
+
 ### 2026-09-28 corecusp: IC gate + early CDM gate PASS, pipeline → WAITING_FOR_REVIEW
 
 RUN: `nbody/runs/corecusp_cdm_N1e7_T5` (IC: `nbody/ics/corecusp_N1e7/`)
