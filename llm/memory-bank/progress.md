@@ -1,6 +1,37 @@
 # Progress
 
+## 2026-10-05 — инфраструктурное упрощение анализа
+
+### Gitignore cleanup
+
+- Приведены к canonical layout правила `.gitignore`: новые и legacy IC-gate
+  отчёты, старые `nbody/analyse/` outputs и presentation exports больше не
+  выпадают в untracked после рефакторинга.
+- Исходный код analysis/visual layer оставлен видимым для Git; tracked
+  artifacts не удалялись и не снимались с индекса.
+
+- Canonical `make_prerun_plots.py` стал единственным orchestration entrypoint для
+  ранней серии и shape-сравнения в matrix pipeline; legacy рисующие скрипты не
+  запускаются автоматически.
+- Сохранена обратная совместимость чтения старых `partial_analysis` CSV через
+  fallback loader; физические формулы и формат series metrics не менялись.
+- Валидация после изменений: 50 тестов зелёные, shell syntax и CLI smoke
+  зелёные, synthetic проверка canonical metrics fallback зелёная.
+
 What works:
+
+- Core–cusp кампания `corecusp` на первых снапшотах отработала (2026-10-01):
+  общий IC (N=1e7, c=20, v200=100), CDM и SIDM σ/m=2 на одинаковых параметрах
+  (MaxSizeTimestep=0.01, TimeBet=0.25, first-snap=0.02, part-alloc=1.3) прогоняются
+  до t=0.52, стопуются через stop-file, рестарты свежие. Результат: CDM касп
+  держит (slope −1.27), SIDM формирует ядро (slope −0.45, ρ падает в 5× на
+  0.15 кпк), контроль на t=0.02 подтверждает идентичность стартов. Официальные
+  гейты (`early_cdm_gate.py`) дают CDM PASS 7/7 и SIDM FAIL — пять из семи
+  провалов это CDM-семантика (`no_immediate_core`, `central_density_stable`,
+  `snap_matches_target`, `cdm_no_interactions`), один — слишком строгий порог
+  `dtmin>1e-7`. Следствие: гейт нуждается в σ-зависимой интерпретации.
+  Сравнительные графики через реестр: `compare_runs.py` + `--labels` (позиционные
+  раны ДО `--labels`, `nargs='*'`), выход в `nbody/analysis/campaigns/corecusp/`.
 
 - Политика радиальных графиков (2026-09-29): `plot_scripts` не показывает r → 0 —
   ось X начинается на октаву ниже зоны софтенинга, сама зона закрашивается серым

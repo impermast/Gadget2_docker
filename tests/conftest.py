@@ -1,7 +1,8 @@
 """Shared pytest fixtures for loaders tests.
 
-Makes ``nbody/scripts/plot_scripts`` importable (loaders.py has no package
-wrapper) and provides deterministic synthetic snapshots from tests/synth_snap.
+Makes ``nbody/scripts/analysis`` importable (loaders live in the
+``analysis.loaders`` package) and provides deterministic synthetic snapshots
+from tests/synth_snap.
 """
 
 from __future__ import annotations
@@ -12,11 +13,11 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PLOT_SCRIPTS_DIR = REPO_ROOT / "nbody" / "scripts" / "plot_scripts"
-if str(PLOT_SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(PLOT_SCRIPTS_DIR))
+SCRIPTS_DIR = REPO_ROOT / "nbody" / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
-import loaders  # noqa: E402  (needs sys.path patch above)
+from analysis import loaders  # noqa: E402  (needs sys.path patch above)
 
 TESTS_DIR = Path(__file__).resolve().parent
 if str(TESTS_DIR) not in sys.path:

@@ -20,12 +20,12 @@ from pathlib import Path
 
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent
-PLOT_SCRIPTS_DIR = REPO_ROOT / "nbody" / "scripts" / "plot_scripts"
-for p in (str(PLOT_SCRIPTS_DIR), str(TESTS_DIR)):
+SCRIPTS_DIR = REPO_ROOT / "nbody" / "scripts"
+for p in (str(SCRIPTS_DIR), str(TESTS_DIR)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-import loaders  # noqa: E402
+from analysis import loaders  # noqa: E402
 import numpy as np  # noqa: E402
 
 import synth_snap  # noqa: E402

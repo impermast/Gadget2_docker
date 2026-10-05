@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-"""Presentation visual morphology package for CDM/SIDM/dSIDM run groups.
+"""make_campaign_morphology_plots.py — runner блока campaigns: морфология группы.
 
-The script is a thin integration layer around the registry-based plotting
-architecture. It prepares plot-ready data with loaders.py and renders concrete
-plots through NbodyPlotter. It can be launched while a group is still running:
-runs without readable snapshots are skipped gracefully; metrics-series CSV is
-used when available and final-snapshot profiles are computed for discovered
-snapshots only.
+Перенос plot_scripts/compare_visual_morphology.py (логика дословно):
+  visual_morphology_montage, surface_density_residuals,
+  morphology_profiles_compare, phase_space_compare, disk_dashboard.
 
-Example:
-    docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/compare_visual_morphology.py \
-      --group-root /nbody/runs/test_dissipation_focused_T5 \
-      --outdir /nbody/runs/test_dissipation_focused_T5/visual_compare
+Отличия от предка:
+  --campaign   ОБЯЗАТЕЛЬНО: имя кампании (валидированный сегмент пути);
+  --member     подкаталог внутри кампании (дефолт morphology);
+  --runs       имена прогонов внутри --group-root (дефолт: автопоиск output/);
+  --plots      подмножество имён реестра (дефолт: все plots этого runner'а);
+  выход        ТОЛЬКО AnalysisPaths.campaign_dir(campaign, member) — флага
+               --outdir НЕТ (guard-тест test_runners_have_no_outdir_flags).
+profile-compare plots (log_rho_compare/rot_curve_compare) строит
+make_campaign_plots.py, чтобы не дублировать артефакты.
+
+Пример:
+    docker exec gadget-gizmo python3 \\
+        /nbody/scripts/analysis/runners/make_campaign_morphology_plots.py \\
+        --group-root /nbody/runs/dsidm_spin_k08_transition \\
+        --campaign dsidm_spin --member morphology
 """
 from __future__ import annotations
 
@@ -26,19 +34,30 @@ from typing import Dict, List, Optional
 import numpy as np
 
 _HERE = Path(__file__).resolve().parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
+for _p in (_HERE.parent.parent, _HERE.parent):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-from loaders import (  # noqa: E402
+from analysis.loaders import (  # noqa: E402
     phase_space_histogram,
     prepare_profile_data,
     prepare_visual_snapshot,
     projection_histograms,
     radial_morphology_profiles,
 )
-from plotter import create_plotter  # noqa: E402
-from settings import PlotSettings, RunPaths  # noqa: E402
+from analysis.paths import AnalysisPaths  # noqa: E402
+from analysis.plotter import NbodyPlotter  # noqa: E402
+from analysis.registry import find  # noqa: E402
+from analysis.style import PlotSettings, RunPaths  # noqa: E402
 
+# Plots, которые строит именно этот runner.
+OWN_PLOTS = (
+    "visual_morphology_montage",
+    "surface_density_residuals",
+    "morphology_profiles_compare",
+    "phase_space_compare",
+    "disk_dashboard",
+)
 
 PREFERRED_ORDER = [
     "cdm_N1e5_T5",
@@ -80,11 +99,13 @@ def read_last_metrics(run: Path, metrics_rel: str) -> Optional[Dict[str, float]]
     if not rows:
         return None
     row = rows[-1]
+
     def flt(key: str, default: float = math.nan) -> float:
         try:
             return float(row.get(key, default))
         except Exception:
             return default
+
     ca = flt("ca_r5")
     thick = flt("z_rms_over_R_rms_r5")
     vrot = flt("vrot_over_sigma_r5")
@@ -105,7 +126,8 @@ def read_last_metrics(run: Path, metrics_rel: str) -> Optional[Dict[str, float]]
     }
 
 
-def metric_from_profile(profile: Dict[str, object], visual: Dict[str, object]) -> Dict[str, float]:
+def metric_from_profile(profile: Dict[str, object],
+                        visual: Dict[str, object]) -> Dict[str, float]:
     radial = radial_morphology_profiles(visual, [5.0])
     ca = float(radial["ca"][0])
     thick = float(radial["thickness"][0])
@@ -128,7 +150,8 @@ def metric_from_profile(profile: Dict[str, object], visual: Dict[str, object]) -
     }
 
 
-def write_visual_summary(outdir: Path, rows: List[Dict[str, object]], made: List[Path], warnings: List[str]) -> Path:
+def write_visual_summary(outdir: Path, rows: List[Dict[str, object]],
+                         made: List[Path], warnings: List[str]) -> Path:
     path = outdir / "visual_summary.txt"
     lines = [
         "VISUAL MORPHOLOGY PACKAGE SUMMARY",
@@ -150,19 +173,29 @@ def write_visual_summary(outdir: Path, rows: List[Dict[str, object]], made: List
         lines += ["", "Warnings/skips:"] + [f"- {w}" for w in warnings]
     lines += [
         "",
-        "Interpretation note: this package is visual/comparative. A dark-disk claim requires thin edge-on morphology, low c/a and z/R, a coherent R-vphi branch, and significant rotation support versus CDM/SIDM controls.",
+        "Interpretation note: this package is visual/comparative. A dark-disk claim "
+        "requires thin edge-on morphology, low c/a and z/R, a coherent R-vphi branch, "
+        "and significant rotation support versus CDM/SIDM controls.",
     ]
     path.write_text("\n".join(lines) + "\n")
     return path
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--group-root", required=True)
-    ap.add_argument("--runs", nargs="*", default=None, help="Run names relative to group root; default: discover output dirs")
-    ap.add_argument("--outdir", default=None)
+    ap.add_argument("--campaign", required=True,
+                    help="имя кампании (один сегмент пути)")
+    ap.add_argument("--member", default="morphology",
+                    help="подкаталог внутри кампании (default: morphology)")
+    ap.add_argument("--runs", nargs="*", default=None,
+                    help="Run names relative to group root; default: discover output dirs")
+    ap.add_argument("--plots", default=None,
+                    help="подмножество имён реестра (дефолт: все plots этого runner'а)")
     ap.add_argument("--ptype", type=int, default=3)
-    ap.add_argument("--nmax", type=int, default=None, help="Optional particle subsample for maps/phase-space")
+    ap.add_argument("--nmax", type=int, default=None,
+                    help="Optional particle subsample for maps/phase-space")
     ap.add_argument("--lim", type=float, default=12.0)
     ap.add_argument("--bins", type=int, default=220)
     ap.add_argument("--phase-bins", type=int, default=180)
@@ -170,17 +203,32 @@ def main() -> int:
     args = ap.parse_args()
 
     t0 = time.time()
-    group_root = Path(args.group_root)
-    outdir = Path(args.outdir) if args.outdir else group_root / "visual_compare"
-    outdir.mkdir(parents=True, exist_ok=True)
-    plotter = create_plotter(PlotSettings(), output_dir=outdir)
+    outdir = AnalysisPaths().campaign_dir(args.campaign, args.member)
+    print(f"[INFO] campaign={args.campaign}/{args.member} -> {outdir}")
 
-    labels, times, face, edge, phase, profiles, summaries = [], [], [], [], [], [], []
+    wanted = set(OWN_PLOTS)
+    if args.plots:
+        wanted = set()
+        for raw in args.plots.split(","):
+            name = raw.strip()
+            if not name:
+                continue
+            spec = find(name)  # валидация имени + подсказка при опечатке
+            if name not in OWN_PLOTS:
+                raise SystemExit(
+                    f"[FAIL] '{name}' строится не этим runner'ом, а {spec.runner}")
+            wanted.add(name)
+
+    group_root = Path(args.group_root)
+    plotter = NbodyPlotter(PlotSettings(), renderer="matplotlib",
+                           output_dir=outdir)
+    plotter.register_defaults()
+
+    labels, times, face, edge, phase, summaries = [], [], [], [], [], []
     warnings: List[str] = []
     phase_extent = None
     radii = np.logspace(np.log10(0.5), np.log10(args.lim), 28)
     profile_series = []
-    compare_series = []
 
     for run in discover_runs(group_root, args.runs):
         try:
@@ -193,29 +241,47 @@ def main() -> int:
             visual = prepare_visual_snapshot(snap, ptype=args.ptype, nmax=args.nmax)
             prof = prepare_profile_data(snap, rcore=2.0)
         except Exception as exc:
-            warnings.append(f"skip {run.name}: could not prepare data from {snap.name}: {exc}")
+            warnings.append(f"skip {run.name}: could not prepare data from "
+                            f"{snap.name}: {exc}")
             continue
         label = short_label(run.name)
         hxy, hxz = projection_histograms(visual, bins=args.bins, lim=args.lim)
-        ph, ext = phase_space_histogram(visual, rlim=args.lim, bins_r=args.phase_bins, bins_v=args.phase_bins)
+        ph, ext = phase_space_histogram(visual, rlim=args.lim,
+                                        bins_r=args.phase_bins,
+                                        bins_v=args.phase_bins)
         rad = radial_morphology_profiles(visual, radii)
         rad["label"] = label
         prof["label"] = label
-        summary = read_last_metrics(run, args.metrics_rel) or metric_from_profile(prof, visual)
+        summary = (read_last_metrics(run, args.metrics_rel)
+                   or metric_from_profile(prof, visual))
         summary["label"] = label
-        labels.append(label); times.append(float(visual["time"]))
-        face.append(hxy); edge.append(hxz); phase.append(ph); phase_extent = ext
-        profile_series.append(rad); compare_series.append(prof); summaries.append(summary)
+        labels.append(label)
+        times.append(float(visual["time"]))
+        face.append(hxy)
+        edge.append(hxz)
+        phase.append(ph)
+        phase_extent = ext
+        profile_series.append(rad)
+        summaries.append(summary)
         print(f"[INFO] {label}: {snap.name} t={float(visual['time']):.3f}")
 
     if not labels:
-        raise FileNotFoundError(f"No usable snapshots found under {group_root}")
+        raise SystemExit(f"[FAIL] No usable snapshots found under {group_root}")
 
-    surface_data = {"labels": np.asarray(labels, dtype=object), "times": np.asarray(times), "faceon": np.stack(face), "edgeon": np.stack(edge)}
-    jobs = {
-        "visual_morphology_montage": {"data": surface_data, "config": {"lim": args.lim}},
+    surface_data = {
+        "labels": np.asarray(labels, dtype=object),
+        "times": np.asarray(times),
+        "faceon": np.stack(face),
+        "edgeon": np.stack(edge),
+    }
+    all_jobs = {
+        "visual_morphology_montage": {"data": surface_data,
+                                     "config": {"lim": args.lim}},
         "morphology_profiles_compare": {"data": {"series": profile_series}},
-        "phase_space_compare": {"data": {"labels": np.asarray(labels, dtype=object), "phase": np.stack(phase), "extent": np.asarray(phase_extent)}},
+        "phase_space_compare": {
+            "data": {"labels": np.asarray(labels, dtype=object),
+                     "phase": np.stack(phase),
+                     "extent": np.asarray(phase_extent)}},
         "disk_dashboard": {"data": {
             "summary_labels": np.asarray(labels, dtype=object),
             "ca_final": np.asarray([s["ca_final"] for s in summaries], dtype=float),
@@ -226,12 +292,14 @@ def main() -> int:
         }},
     }
     if len(labels) >= 2:
-        jobs["surface_density_residuals"] = {"data": surface_data, "config": {"lim": args.lim}}
-        jobs["log_rho_compare"] = {"data": {"series": compare_series}, "config": {"filename": "06_log_rho_compare_final.png"}}
-        jobs["rot_curve_compare"] = {"data": {"series": compare_series}, "config": {"filename": "07_rot_curve_compare_final.png"}}
+        all_jobs["surface_density_residuals"] = {
+            "data": surface_data, "config": {"lim": args.lim}}
     else:
-        warnings.append("residual/profile delta plots skipped: need at least 2 usable runs")
+        warnings.append("residual maps skipped: need at least 2 usable runs")
 
+    jobs = {n: j for n, j in all_jobs.items() if n in wanted}
+    if not jobs:
+        raise SystemExit("[FAIL] не осталось plots после фильтра --plots")
     results = plotter.make_plots(jobs, output_dir=outdir)
     made = sorted({p for paths in results.values() for p in paths})
     summary_path = write_visual_summary(outdir, summaries, made, warnings)

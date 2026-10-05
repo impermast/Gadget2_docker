@@ -1,162 +1,113 @@
 ---
 name: make-plots
-description: Create plots and animations from an existing simulation run using the project plotting infrastructure nbody/scripts/plot_scripts/ (NbodyPlotter registry, data contracts, loaders). Standard analysis plots (density, log_slope, sigma_v, interactions_radial) and animations (particles_2d, particles_3d). Use when the user asks to plot, visualize, animate, or analyze snapshots of a completed run. Not for launching simulations.
+description: Create plots and animations for simulation runs through the single analysis layer nbody/scripts/analysis/ (registry as the source of truth, AnalysisPaths output tree, runners CLI, loaders). Blocks ic/prerun/core/campaigns/presentations; standard plots (density, log_slope, sigma_v, interactions_radial, disk_edgeon, particles_2d/3d) and group comparisons. Use when the user asks to plot, visualize, animate, or analyze snapshots of a run or a run group. Not for launching simulations.
 metadata:
   short-description: Plot and analyze finished simulation runs
 ---
 
-# Visualization Pipeline (plot_scripts)
+# Visualization pipeline (`nbody/scripts/analysis/`)
 
-All standard plotting goes through `nbody/scripts/plot_scripts/`.
-Read `nbody/scripts/plot_scripts/README.md` before extending it.
+Единственный слой рисования: и код, и runners живут в
+`nbody/scripts/analysis/`. Standalone-скрипты с matplotlib запрещены
+(AST-guard: `tests/test_layout_guard.py`, маркер `guard`).
 
 ## Preamble (always do first)
 
 Read `.clinerules/00-entrypoint.md`, then every file in `llm/rules/` and
 `llm/memory-bank/`. Communicate with the user in Russian.
 
-## Architecture in one paragraph
+## Источник истины — REGISTRY.md, а не код
 
-`PlotSettings` (global visual policy) + `RunPaths`/`SimulationInfo` (run data)
-live in `settings.py`. `BasePlot` (`base.py`) is the single ABC: every concrete
-plot has `name`, `description`, `data_contract` (runtime-validated),
-`default_config`, `render()`. `NbodyPlotter` (`plotter.py`) only orchestrates:
-registry, config deep-merge, validation, render. `loaders.py` prepares
-plot-ready data from HDF5 snapshots (math copied verbatim from the legacy
-analysis scripts). Plots never read HDF5 and never compute physics.
+Первый шаг любой задачи по графикам: прочитать каталог графиков
+`nbody/analysis/REGISTRY.md` (в контейнере `/nbody/analysis/REGISTRY.md`).
+Код plot'ов читать НЕ нужно. Для каждого графика там: `summary`, `data_source`,
+`inputs`, `runner`, `filename`, `config keys`.
 
-## Registry (standard plots)
+Актуализация/проверка каталога (сам файл руками не правим):
 
-| name | class | data source | output |
-|------|-------|-------------|--------|
-| `density` | DensityPlot | 1 snapshot, `PartType3/Coordinates+Masses`, shrinkage center | `01_density_profile.png` |
-| `log_slope` | LogSlopePlot | same, slope window 0.25 dex | `02_log_slope.png` |
-| `sigma_v` | SigmaVPlot | same, `PartType3/Velocities` | `03_sigma_v.png` |
-| `interactions_radial` | InteractionsRadialPlot | same, `PartType3/NInteractions` | `04_ninteractions_radial.png` |
-| `density_compare` | DensityComparePlot | несколько прогонов (series) | `density_compare.png` |
-| `log_slope_compare` | LogSlopeComparePlot | несколько прогонов (series) | `log_slope_compare.png` |
-| `sigma_v_compare` | SigmaVComparePlot | несколько прогонов (series) | `sigma_v_compare.png` |
-| `log_rho_compare` | LogRhoComparePlot | несколько прогонов; верх + Δ(log ρ) vs CDM в нижнем сабплоте | `log_rho_compare.png` |
-| `rot_curve_compare` | RotCurveComparePlot | v_circ(r) (M(<r)) несколько прогонов; верх + Δv vs CDM внизу | `rot_curve_compare.png` |
-| `core_density_vs_sigma` | CoreDensityVsSigmaPlot | σ и ρ_core по прогонам | `core_density_vs_sigma.png` |
-| `particles_2d` | Particles2DAnimation | snapshot series, hist2d xy | `evolution_2d.gif` |
-| `particles_3d` | Particles3DAnimation | snapshot series, 3D scatter | `evolution_3d.gif` |
+```bash
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/registry_docs.py
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/registry_docs.py --check
+```
 
-Collections: `ANALYSIS_PLOTS`, `ANIMATION_PLOTS`, `ALL_PLOTS` (in `plotter.py`).
+## Блоки и куда падают артефакты
+
+Выход вычисляет ТОЛЬКО `AnalysisPaths` (`analysis/paths.py`); CLI-флага
+`--outdir` нет — это guard-инвариант. Корень: `NBODY_ANALYSIS_ROOT`
+(по умолчанию `/nbody/analysis`).
+
+| блок | что это | путь | runner |
+|------|---------|------|--------|
+| `ic` | начальные условия: target-профиль, гейт разрешения каспа | `analysis/ic/<ic_name>/` | `make_ic_plots.py` (этап 3) |
+| `prerun` | ранние снапшоты: гейт первых шагов, серия | `analysis/prerun/<run>/` | `make_prerun_plots.py` (этап 3) |
+| `core` | один production-прогон | `analysis/core/<run>/` | `make_run_plots.py` |
+| `campaigns` | сравнение группы прогонов | `analysis/campaigns/<campaign>[/<member>]/` | см. ниже (3 runner'а) |
+| `presentations` | фигуры под слайды | `analysis/presentations/<label>/` | `make_presentation_figures.py` (этап 5) |
+
+## Runners (готовый CLI)
+
+```bash
+# core: профили, карты, анимации одного прогона
+#  -> analysis/core/<run>/{01_density_profile.png,...}
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/make_run_plots.py \\
+    --run-root /nbody/runs/<run> [--plots density,log_slope] [--frames 12] [--nmax 80000]
+
+# campaigns: сравнение профилей группы (density/log_slope/sigma_v/log_rho/rot_curve compare)
+#  -> analysis/campaigns/<campaign>/<member>/
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/make_campaign_plots.py \\
+    /nbody/runs/<run-a> /nbody/runs/<run-b> \\
+    --labels CDM SIDM_sigma2 --campaign <campaign> --member compare_2runs --rcore 2.0
+
+# campaigns: морфология группы (montage, residuals, radial profiles, R-vphi, dashboard)
+docker exec gadget-gizmo python3 \\
+    /nbody/scripts/analysis/runners/make_campaign_morphology_plots.py \\
+    --group-root /nbody/runs/<group> --campaign <campaign> [--runs a b] [--nmax 300000]
+
+# campaigns: DIAG-панели (dE/E vs D, criteria-time, runaway timestep)
+docker exec gadget-gizmo python3 \\
+    /nbody/scripts/analysis/runners/make_campaign_diag_plots.py \\
+    --group-root /nbody/runs/<group> --campaign <campaign> \\
+    --eloss-runs a b --eloss-baseline <elastic-run> \\
+    --criteria-runs a b --runaway-runs <run>
+```
+
+Позиционные run-каталоги указывать ДО `--labels` (`nargs='*'` съедает всё после).
 
 ## Protocol
 
-1. Identify the run directory (default `nbody/runs/<run_name>/`).
-2. List snapshot files by names/sizes only; never open binary contents yourself — loaders do it.
-3. Run inside the container (`docker exec gadget-gizmo ...`).
-4. Introspect first: `plotter.available_plots()` and `plotter.describe(name)`
-   give the exact data contract and default config of each plot.
-5. Prepare data:
-   - analysis plots: `loaders.prepare_profile_data(snapshot, rcore=...)` — one dict feeds all four analysis plots;
-   - animations: `loaders.prepare_series(run.output, nmax=..., max_frames=...)`.
-6. Render and verify outputs (existence, non-zero size, GIF frame count).
-7. Outputs go directly to `nbody/runs/<run_name>/plots/` (no nested folders);
-   comparative analyses to `nbody/analyse/<topic>/`.
-8. Update `llm/memory-bank/experimentLog.md` (Type: visualization).
+1. Определи предмет: один прогон (`--run-root`) или группа (campaign + member).
+2. Прочитай `nbody/analysis/REGISTRY.md`, выбери графики по блоку и смыслу.
+3. Запусти соответствующий runner в контейнере (`docker exec gadget-gizmo`).
+   Никаких собственных скриптов и никакого `--outdir`.
+4. Проверь результат: файлы в `analysis/<block>/...`, ненулевой размер, для GIF —
+   число кадров > 1 (runner'ы печатают `[OK]`-проверки).
+5. Отчитайся по-русски: графики, вход, каталог вывода, точная команда, файлы и
+   размеры, warnings/skips.
 
-## One-shot full pipeline (preferred default)
-
-```bash
-docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/run_full_test.py \
-    --run-root /nbody/runs/<run_name> \
-    [--frames 12] [--nmax 80000] [--outdir /nbody/runs/<run_name>/plots]
-```
-
-It runs introspection, negative validation smoke-tests, all 6 plots and
-output verification. Use it as the standard post-run visualization step.
-
-## Python usage examples
-
-```python
-import sys; sys.path.insert(0, "/nbody/scripts/plot_scripts")
-from settings import PlotSettings, RunPaths, SimulationInfo
-from plotter import create_plotter, ANALYSIS_PLOTS
-from loaders import prepare_profile_data, prepare_series
-
-run = RunPaths("/nbody/runs/<run_name>")
-plotter = create_plotter(PlotSettings(), output_dir=run.plots)
-
-print(plotter.available_plots())     # what plots exist
-print(plotter.describe("density"))   # data contract + default config
-
-info = SimulationInfo.from_snapshot(run.latest_snapshot())
-
-# analysis batch: one prepared dict feeds all four plots
-prof = prepare_profile_data(run.latest_snapshot(), rcore=2.0)
-plotter.make_plots({n: {"data": prof} for n in ANALYSIS_PLOTS},
-                   output_dir=run.plots)
-
-# single plot with individual overrides (defaults are not mutated)
-plotter.make_plot("density", prof,
-                  config={"ylim": (1e-6, 1e-1), "filename": "density_zoom.png"})
-
-# animations
-series = prepare_series(run.output, nmax=80_000, max_frames=12)
-plotter.make_plots({
-    "particles_2d": {"data": series,
-                     "config": {"sigma_label": info.cross_section}},
-    "particles_3d": {"data": series,
-                     "config": {"label": f"{info.model} sigma={info.cross_section:g}"}},
-}, output_dir=run.plots)
-```
+Данные готовят только лоадеры (`analysis/loaders/`):
+`prepare_profile_data`, `prepare_particle_snapshot`, `prepare_series`,
+`prepare_visual_snapshot`, `projection_histograms`, `phase_space_histogram`,
+`radial_morphology_profiles`, `load_metrics_series`, `interacted_kinetic_energy`.
+Plots HDF5 не читают и физику не считают.
 
 ## Adding a new plot
 
-1. Create `MyPlot(BasePlot)` in `analysis_plots.py` (or `animation_plots.py`).
-2. Fill `name`, `description` (data provenance for humans and AI),
-   `data_contract` (FieldSpec shapes — enforced at runtime),
-   `default_config` (including `filename`), implement `render()`.
-3. Add the class to `ANALYSIS_PLOT_CLASSES` / `ANIMATION_PLOT_CLASSES`.
-4. Check `plotter.describe("my_plot")`, test on real data; extend
-   `run_full_test.py` if it becomes a standard plot.
-Do not write standalone plotting scripts — extend the registry.
-
-## Legacy / non-standard diagnostics
-
-Все legacy analysis/plotting скрипты удалены и заменены `plot_scripts/`:
-`analyze_final_snapshot.py` (сводка -> `loaders.write_summary()`, вызывается в
-`run_full_test.py`), `analyze_halo.py` и `compare_all.py` (multi-run сравнение
--> `compare_runs.py` + compare-plots в registry), `png_to_gif.py`,
-`make_run_evolution.py`, `make_3d_animation.py`, `example_snap*.py`, `ytvis.py`,
-`field_maker.py`, `plot_config.py` (поглощён `settings.py`).
-Остались только run-wrappers и IC-инструменты (`run_sim.sh`, `generate_ics.sh`,
-`merge_ics.py`, `convert_to_pt3.py`, `check_snapshot.py`, `run_sidm_batch.sh`,
-`run_sidm20.sh`) и `plot_scripts/`.
-
-Multi-run comparison (замена compare_all.py):
-
-```bash
-docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/compare_runs.py \
-    --outdir /nbody/analyse/cdm_sidm_all --rcore 50 \
-    /nbody/runs/cdm_N1e6 /nbody/runs/sidm_sigma0.1_N1e6 \
-    /nbody/runs/sidm_sigma1_N1e6 /nbody/runs/sidm_sigma2_N1e6 \
-    /nbody/runs/sidm_sigma5_N1e6
-```
-
-Строит density_compare, log_slope_compare, sigma_v_compare и
-core_density_vs_sigma (если >=2 SIDM-прогонов).
+1. Класс-наследник `BasePlot` в `analysis/plots/<block>.py` с декоратором
+   `@register` и обязательными атрибутами: `name`, `block`, `summary`,
+   `data_source`, `inputs`, непустой `default_config["filename"]`.
+2. Данные — из лоадера; контракт (`data_contract`, `FieldSpec`) проверяется в
+   рантайме и его ошибки обязаны называть plot и поле.
+3. Если для plot'а нужен свой CLI — `analysis/runners/<name>.py` + атрибут
+   `runner = "runners/<name>.py"` в классе (реестр проверяет существование файла).
+4. Тесты: `tests/test_render_smoke.py` рисует ВСЕ plots блока на синтетической
+   фикстуре — добавь данные для нового plot'а туда.
+5. Перегенерируй `REGISTRY.md`; прогони `pytest -q -m 'guard or math or render'`.
 
 ## Rules
 
-- Prefer the registry; never duplicate plot code in standalone scripts.
-- Never mutate `default_config` or the user config dict; overrides are merged by the plotter.
-- Do not change physical methodology in loaders/plots (centering, binning,
-  formulas) — that is a separate, explicit task.
-- Do not overwrite existing plots unless explicitly requested.
-- Errors must name the plot and the field; if a validation message is
-  unclear, fix the message, not the test.
-
-## Produce (in Russian)
-
-1. plot names used;
-2. input run directory;
-3. output plot directory;
-4. exact command(s);
-5. generated files with sizes;
-6. warnings or failures.
-
+- Только реестр и runners; дублирование plot-кода в скриптах запрещено.
+- `default_config` и пользовательский config не мутируются — merge делает plotter.
+- Физическую методику в `loaders/`/`plots/` (центрирование, биннинг, формулы)
+  менять нельзя — это отдельная явная задача.
+- Существующие графики не перезаписывать без явной просьбы пользователя.
+- Не читать крупные HDF5/снапшоты/PNG самому — этим занимаются лоадеры.

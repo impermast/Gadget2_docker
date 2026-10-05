@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
-"""make_campaign_diagnostics.py — DIAG-графики для группы runs (презентация).
+"""make_campaign_diag_plots.py — runner блока campaigns: DIAG-панели группы.
 
-Тонкий integration-слой поверх registry plotting-архитектуры (как в
-compare_visual_morphology.py). Данные готовятся через loaders.py, рендер —
-через NbodyPlotter. Три новых графика:
+Перенос plot_scripts/make_campaign_diagnostics.py (логика дословно):
+  diag_eloss_vs_f         — заданная диссипация D vs измеренная потеря dE/E;
+  criteria_time_panel     — c/a(t), z_rms/R_rms(t), |Vrot|/sigma(t) с порогами;
+  runaway_timestep_panel  — N_interactions(t) vs min dt(t).
 
-- `diag_eloss_vs_f`         — заданная диссипация f (DM_DissipationFactor) vs
-                              измеренная относительная потеря кинетической
-                              энергии рассеявшихся частиц dE/E;
-- `criteria_time_panel`     — c/a(t), z_rms/R_rms(t), |Vrot|/sigma(t) с порогами
-                              для выбранных кандидатов (metrics_series.csv);
-- `runaway_timestep_panel`  — N_interactions(t) vs min dt(t) для патологического
-                              run (metrics_series.csv).
+Отличия от предка:
+  --campaign   ОБЯЗАТЕЛЬНО: имя кампании (валидированный сегмент пути);
+  --member     подкаталог внутри кампании (дефолт diag);
+  --plots      подмножество имён реестра (дефолт: все plots этого runner'а);
+  выход        ТОЛЬКО AnalysisPaths.campaign_dir(campaign, member) — флага
+               --outdir НЕТ (guard-тест test_runners_have_no_outdir_flags).
 
 Пример:
     docker exec gadget-gizmo python3 \\
-        /nbody/scripts/plot_scripts/make_campaign_diagnostics.py \\
-        --group-root /nbody/runs/dsidm_spin_k08_transition \\
-        --eloss-runs dsidm_s2p5_D0p10_N1e5_T2 dsidm_s2p5_D0p25_N1e5_T2 \\
-            dsidm_s2p5_D0p50_N1e5_T2 \\
-        --eloss-baseline sidm_s2p5_N1e5_T2 \\
+        /nbody/scripts/analysis/runners/make_campaign_diag_plots.py \\
+        --campaign dsidm_spin --group-root /nbody/runs/dsidm_spin_k08_transition \\
         --criteria-runs dsidm_s2p5_D0p10_N1e5_T2 dsidm_s2p5_D0p25_N1e5_T2 \\
-            dsidm_s2p5_D0p50_N1e5_T2 \\
-        --runaway-runs dsidm_s2p5_D0p75_N1e5_T2 \\
-        --metrics-rel partial_analysis/metrics_series.csv
+        --runaway-runs dsidm_s2p5_D0p75_N1e5_T2
 """
 from __future__ import annotations
 
@@ -38,17 +33,22 @@ from typing import Dict, List, Optional
 import numpy as np
 
 _HERE = Path(__file__).resolve().parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
+for _p in (_HERE.parent.parent, _HERE.parent):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-from loaders import (  # noqa: E402
+from analysis.loaders import (  # noqa: E402
     interacted_kinetic_energy,
     load_metrics_series,
     prepare_visual_snapshot,
 )
-from plotter import create_plotter  # noqa: E402
-from settings import PlotSettings, RunPaths  # noqa: E402
+from analysis.paths import AnalysisPaths  # noqa: E402
+from analysis.plotter import NbodyPlotter  # noqa: E402
+from analysis.registry import find  # noqa: E402
+from analysis.style import PlotSettings, RunPaths  # noqa: E402
 
+# Plots, которые строит именно этот runner.
+OWN_PLOTS = ("diag_eloss_vs_f", "criteria_time_panel", "runaway_timestep_panel")
 
 
 def _dissipation_factor(run: Path) -> Optional[float]:
@@ -105,13 +105,16 @@ def _pick_metric_key(data: Dict[str, np.ndarray], names: List[str]) -> Optional[
     return None
 
 
-
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--group-root", required=True)
-    ap.add_argument("--outdir", default=None,
-                    help="default: <group-root>/diagnostics")
+    ap.add_argument("--campaign", required=True,
+                    help="имя кампании (один сегмент пути)")
+    ap.add_argument("--member", default="diag",
+                    help="подкаталог внутри кампании (default: diag)")
+    ap.add_argument("--plots", default=None,
+                    help="подмножество имён реестра (дефолт: все plots этого runner'а)")
     ap.add_argument("--ptype", type=int, default=3)
     ap.add_argument("--eloss-runs", nargs="*", default=[])
     ap.add_argument("--eloss-baseline", default=None,
@@ -123,18 +126,33 @@ def main() -> int:
 
     t0 = time.time()
     group = Path(args.group_root)
-    outdir = Path(args.outdir) if args.outdir else group / "diagnostics"
-    outdir.mkdir(parents=True, exist_ok=True)
+    outdir = AnalysisPaths().campaign_dir(args.campaign, args.member)
+    print(f"[INFO] campaign={args.campaign}/{args.member} -> {outdir}")
+
+    wanted = set(OWN_PLOTS)
+    if args.plots:
+        wanted = set()
+        for raw in args.plots.split(","):
+            name = raw.strip()
+            if not name:
+                continue
+            spec = find(name)  # валидация имени + подсказка при опечатке
+            if name not in OWN_PLOTS:
+                raise SystemExit(
+                    f"[FAIL] '{name}' строится не этим runner'ом, а {spec.runner}")
+            wanted.add(name)
 
     def resolve(name_or_path: str) -> Path:
         p = Path(name_or_path)
         return p if p.is_absolute() else group / p
 
-    plotter = create_plotter(PlotSettings(), output_dir=outdir)
+    plotter = NbodyPlotter(PlotSettings(), renderer="matplotlib",
+                           output_dir=outdir)
+    plotter.register_defaults()
     jobs = {}
 
     # ---- 1) diag_eloss_vs_f ----
-    if args.eloss_runs:
+    if args.eloss_runs and "diag_eloss_vs_f" in wanted:
         eloss_runs = [resolve(r) for r in args.eloss_runs]
         baseline_k = None
         if args.eloss_baseline:
@@ -170,39 +188,37 @@ def main() -> int:
             }
 
     # ---- 2) criteria_time_panel ----
-    if args.criteria_runs:
-        times, ca, thick, vrot = None, None, None, None
-        label_texts = []
+    # Контракт plot'а: data["series"] — список per-run dict'ов
+    # {times, ca, thickness, vrot_over_sigma, label}. У каждого прогона своя
+    # временная база (сравнивать длину серий между прогонами не нужно).
+    if args.criteria_runs and "criteria_time_panel" in wanted:
+        series = []
         for name in args.criteria_runs:
             run = resolve(name)
             mdata = _find_metrics(run, args.metrics_rel)
             if mdata is None:
                 print(f"[WARN] criteria {name}: нет metrics series -> skip")
                 continue
-            t = mdata["time"]
             ca_k = _pick_metric_key(mdata, ["ca_r5", "ca"])
             th_k = _pick_metric_key(mdata, ["z_rms_over_R_rms_r5", "thickness"])
             vr_k = _pick_metric_key(mdata, ["vrot_over_sigma_r5", "vrot_over_sigma"])
             if not (ca_k and th_k and vr_k):
                 print(f"[WARN] criteria {name}: неполные metrics -> skip")
                 continue
-            times = t if times is None else times
-            if len(t) != len(times):
-                print(f"[WARN] criteria {name}: длина серии != первая -> skip")
-                continue
-            ca = mdata[ca_k] if ca is None else ca
-            thick = mdata[th_k] if thick is None else thick
-            vrot = mdata[vr_k] if vrot is None else vrot
-            label_texts.append(name.replace("_N1e5_T2", ""))
-        if times is not None and len(times) > 1:
-            jobs["criteria_time_panel"] = {
-                "data": {"times": times, "ca": ca, "thickness": thick,
-                         "vrot_over_sigma": vrot,
-                         "labels": np.asarray(label_texts, dtype=object)},
-            }
+            series.append({
+                "times": mdata["time"],
+                "ca": mdata[ca_k],
+                "thickness": mdata[th_k],
+                "vrot_over_sigma": mdata[vr_k],
+                "label": name.replace("_N1e5_T2", ""),
+            })
+            print(f"[INFO] criteria {name}: {len(mdata['time'])} точек")
+        if series:
+            jobs["criteria_time_panel"] = {"data": {"series": series}}
 
     # ---- 3) runaway_timestep_panel ----
-    if args.runaway_runs:
+    if args.runaway_runs and "runaway_timestep_panel" in wanted:
+        series = []
         for name in args.runaway_runs:
             run = resolve(name)
             mdata = _find_metrics(run, args.metrics_rel)
@@ -214,12 +230,15 @@ def main() -> int:
             if not (ni_k and dt_k):
                 print(f"[WARN] runaway {name}: неполные metrics -> skip")
                 continue
-            jobs["runaway_timestep_panel"] = {
-                "data": {"times": mdata["time"], "ninteractions": mdata[ni_k],
-                         "dt_min": mdata[dt_k],
-                         "labels": np.asarray([name.replace("_N1e5_T2", "")],
-                                              dtype=object)},
-            }
+            series.append({
+                "times": mdata["time"],
+                "ninteractions": mdata[ni_k],
+                "dt_min": mdata[dt_k],
+                "label": name.replace("_N1e5_T2", ""),
+            })
+            print(f"[INFO] runaway {name}: {len(mdata['time'])} точек")
+        if series:
+            jobs["runaway_timestep_panel"] = {"data": {"series": series}}
 
     if not jobs:
         print("[ERROR] нет данных для построения DIAG-графиков")

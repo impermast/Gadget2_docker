@@ -162,23 +162,23 @@ for i in "${!NAMES[@]}"; do
     continue
   fi
   SUCCESS_NAMES+=("$name")
-  log "--- run_full_test: $name ---"
-  python3 /nbody/scripts/plot_scripts/run_full_test.py \
+  log "--- make_run_plots: $name ---"
+  python3 /nbody/scripts/analysis/runners/make_run_plots.py \
     --run-root "/nbody/runs/$GROUP/$name" >> "$LOG" 2>&1 || ANALYSIS_FAIL=$((ANALYSIS_FAIL+1))
-  log "--- analyze_series: $name ---"
-  python3 /nbody/scripts/check_simulations/analyze_series.py \
+  log "--- make_prerun_plots series: $name ---"
+  python3 /nbody/scripts/analysis/runners/make_prerun_plots.py \
     --run-root "/nbody/runs/$GROUP/$name" \
-    --outdir "/nbody/runs/$GROUP/$name/partial_analysis" \
     --max-frames 10 >> "$LOG" 2>&1 || ANALYSIS_FAIL=$((ANALYSIS_FAIL+1))
 done
 
 if [[ ${#SUCCESS_NAMES[@]} -gt 0 ]]; then
-  log "--- compare_shape_series ---"
-  python3 /nbody/scripts/check_simulations/compare_shape_series.py \
+  log "--- make_prerun_plots shape ---"
+  python3 /nbody/scripts/analysis/runners/make_prerun_plots.py \
     --group-root "/nbody/runs/$GROUP" \
     --runs "${SUCCESS_NAMES[@]}" \
-    --outdir "/nbody/runs/$GROUP/shape_compare" \
-    --tg >> "$LOG" 2>&1 || ANALYSIS_FAIL=$((ANALYSIS_FAIL+1))
+    --campaign "$GROUP" \
+    --member shape_compare \
+    --plots shape_panel >> "$LOG" 2>&1 || ANALYSIS_FAIL=$((ANALYSIS_FAIL+1))
 fi
 
 total_min=$(( ($(date +%s) - SERIES_START_S) / 60 ))

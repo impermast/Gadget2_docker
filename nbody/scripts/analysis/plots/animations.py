@@ -1,19 +1,7 @@
 #!/usr/bin/env python3
+"""plots/animations.py — переезд animation_plots.py (дословно).
+Анимации серий снапшотов; сборка GIF через PIL (guard-исключение).
 """
-animation_plots.py — эволюционные анимации частиц (GIF).
-
-Оба plots получают одинаковые подготовленные series-данные
-(loaders.prepare_series): positions (T, N, 3) — уже halo-centered
-(shrinkage center), masses (T, N), times (T,) в кодовых единицах.
-
-- particles_2d: проекция плотности xy (hist2d) — перенос make_run_evolution.py;
-- particles_3d: 3D scatter с цветом по log(r), wireframe-куб, scale bar —
-  перенос make_3d_animation.py (reference implementation).
-
-Временная конвертация: t_Gyr = t_code * GYR_PER_CODE.
-"""
-
-from __future__ import annotations
 
 import os
 import shutil
@@ -28,7 +16,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from PIL import Image
 
-from base import BasePlot, F
+from analysis.base import BasePlot, F
+from analysis.registry import register
 
 GYR_PER_CODE = 0.9777923542981722
 
@@ -58,8 +47,13 @@ def _series_contract():
 
 # ──────────────────────────── 2D animation ──────────────────────────────────
 
+@register
 class Particles2DAnimation(BasePlot):
     name = "particles_2d"
+    block = "core"
+    summary = "Анимация проекции плотности xy по серии снапшотов (GIF)"
+    data_source = "prepare_series"
+    inputs = ('run',)
     description = (
         "Эволюционная GIF: проекция массовой плотности halo на плоскость xy "
         "(hist2d, log colorbar). Серия HDF5 snapshot'ов одного run; данные "
@@ -116,7 +110,7 @@ class Particles2DAnimation(BasePlot):
                 cb = fig.colorbar(hh[3], ax=ax, fraction=0.046)
                 cb.set_label(config["colorbar_label"])
                 fp = os.path.join(frames_dir, f"frame_{i:03d}.png")
-                fig.savefig(fp, dpi=config["dpi"], bbox_inches="tight")
+                self.settings.save_figure(fig, fp, dpi=config["dpi"])
                 plt.close(fig)
                 frame_files.append(fp)
             out = _save_gif(frame_files, config["filename"],
@@ -128,8 +122,15 @@ class Particles2DAnimation(BasePlot):
 
 # ──────────────────────────── 3D animation ──────────────────────────────────
 
+
+
+@register
 class Particles3DAnimation(BasePlot):
     name = "particles_3d"
+    block = "core"
+    summary = "Анимация 3D-разлёта частиц по серии снапшотов (GIF)"
+    data_source = "prepare_series"
+    inputs = ('run',)
     description = (
         "Эволюционная GIF: настоящая 3D-визуализация частиц (scatter в осях "
         "projection='3d'), цвет по log(радиусу), тёмный фон, wireframe-куб и "
@@ -238,8 +239,7 @@ class Particles3DAnimation(BasePlot):
                 self._draw_frame(ax, positions[i], self.settings, config,
                                  int(snap_numbers[i]), times[i] * gyr)
                 fp = os.path.join(frames_dir, f"frame_{i:03d}.png")
-                fig.savefig(fp, dpi=self.settings.dpi_3d,
-                            bbox_inches="tight", pad_inches=0)
+                self.settings.save_figure(fig, fp, dpi=self.settings.dpi_3d)
                 plt.close(fig)
                 frame_files.append(fp)
             out = _save_gif(frame_files, config["filename"],

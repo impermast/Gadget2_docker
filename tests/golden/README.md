@@ -1,7 +1,7 @@
 # Golden values (answer testing)
 
 `values.json` contains reference metrics of the analysis pipeline
-(`nbody/scripts/plot_scripts/loaders.py`) computed on the deterministic
+(`nbody/scripts/analysis/loaders/`) computed on the deterministic
 synthetic snapshot from `tests/synth_snap.py` (uniform sphere, seed=42,
 N=2000). Pattern borrowed from the yt project's answer testing.
 

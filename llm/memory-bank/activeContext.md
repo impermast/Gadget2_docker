@@ -1,12 +1,47 @@
 # Active Context
 
+## 2026-10-05 — prerun pipeline переведён на canonical runner
+
+### Gitignore cleanup
+
+- `.gitignore` теперь покрывает canonical IC-gate artifacts в
+  `nbody/ics/*/ic_gate/`, legacy IC-gate files, которые писались прямо в
+  `nbody/ics/<ic>/`, legacy generated output в `nbody/analyse/`, а также
+  generated presentation exports (`pptx`, `gif/`, `images/`, HTML).
+- Исходники `nbody/scripts/analysis/` и presentation source scripts/prompts
+  намеренно не игнорируются. Уже tracked generated files не untrack'ились.
+
+- Legacy IC/early gate CLI теперь содержит только аргументы, вызов loader-метрик
+  и registry-based rendering; прямых импортов matplotlib/savefig в этих CLI нет.
+- `nbody/scripts/run_matrix_dissipation_focused_T5.sh` переключён с
+  `check_simulations/analyze_series.py` и `compare_shape_series.py` на
+  `analysis/runners/make_prerun_plots.py` для series и shape режимов.
+- `loaders.prerun.resolve_metrics_path()` поддерживает и новый путь
+  `NBODY_ANALYSIS_ROOT/prerun/<run>/metrics_series.csv`, и старый
+  `<run>/partial_analysis/metrics_series.csv`; это позволяет групповой shape
+  анализу работать с уже существующими legacy runs.
+- Проверено: `git diff --check`, `bash -n` pipeline, CLI `--help`, полный pytest
+  (`50 passed`; остаётся только ожидаемое warning про пустой presentations block).
+
 Current focus:
 
-- **corecusp: ранняя фаза завершена, статус WAITING_FOR_REVIEW (2026-09-28)**:
-  IC собран (N=1e7, gate PASS), ранний CDM (t=0.02, 65 шагов) PASS 7/7,
-  касп сохранён (slope −1.19 vs target −1.25). Остановлен штатно через stop-file,
-  restart.0–11 свежие. Production CDM T=5 ещё не запущен — следующий шаг
-  (resume-команда в `nbody/runs/corecusp_cdm_N1e7_T5/early_gate/NEXT_STEP.md`).
+- **corecusp: CDM↔SIDM σ/m=2 сравнение на первых снапшотах (2026-10-01)**:
+  оба рана доведены до t=0.52 (snapshot_000/001/002), остановлены штатно
+  (stop-file + свежие restart). Контроль: на t=0.02 раны идентичны
+  (N_sidm/N_cdm median=0.9976) — разные только σ. **Ядро у SIDM сформировано**:
+  slope 0.3–3 kpc CDM −1.279/−1.225/−1.273 (t=0.02/0.27/0.52) — касп держится;
+  SIDM −1.186/−0.630/−0.445. ρ_SIDM/ρ_CDM = 0.19 (0.15 кпк), 0.46 (0.54 кпк),
+  ~1 (1.5 кпк), 1.12 (2.6 кпк) — масса вынесена наружу. N(<0.5 кпк) упал в 3×
+  (18269→6032), N(<1) −45%. σ_1D стала изотермальной (96–99 км/с), у CDM
+  растёт 81→101. NI: 5.53M, 22.2% частиц (в ядре 99% r<0.3 кпк). Гейты:
+  CDM PASS 7/7 все три точки; SIDM FAIL — интерпретировать как «ожидаемая
+  физика» (no_immediate_core, central_density_stable, snap_matches_target,
+  cdm_no_interactions — это CDM-семантика) + артефакт порога timesteps_sane
+  (dtmin 7.45e-08 — 5 из 8563 точек, медиана стабильна 3.8e-5, темп растёт
+  4.8→7.3e-5 Gyr/шаг). Энергия сохраняется: ΔE/|E| = 0.09% (SIDM), 0.004% (CDM);
+  2T/|W| = 1.0059 / 1.0023. Графики: `/nbody/analysis/campaigns/corecusp/
+  cdm_vs_sidm2_t052/` (5 из 6, montage упал по контракту — см. issues).
+  Решение пользователя ждёт: продолжать ли оба до T=5.0.
 - Pipeline hardening done (2026-08-25): git policy (`agent/dev`), fast test
   suite (`tests/`, 23 tests ~1 s), pre-commit auto-run, GitHub Actions CI
   (runs #1, #2 green). Memory bank synced with this state.
@@ -70,6 +105,11 @@ Known issues (broken paths):
 
 Known issues (tests/analysis, found while writing tests):
 
+- `compare_runs.py` падает на последнем шаге с `visual_morphology_montage`:
+  data contract требует поля `labels`, `faceon`, `edgeon` (dtype S), которые
+  compare-путь не формирует. Пять остальных compare-графиков строятся до падения,
+  поэтому фикс отложен (2026-10-01, `nbody/analysis/campaigns/corecusp/cdm_vs_sidm2_t052/`
+  содержит 5 PNG + сводку).
 - `loaders.write_summary()` CRASHES on snapshots without the `Masses` dataset
   (`d["mass"][:, None]`) — documented by tests; fix loaders if needed later.
 - `shrink_center` is statistical: at N=2000 the 10% cut gives ~1–2.5 kpc

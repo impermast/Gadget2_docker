@@ -131,7 +131,7 @@ Steps:
 5. Execute the wrapper.
 6. Validate: read `run_dir/experiment.md` (full config + log) and `run_dir/snapshot_check.txt`. Check exit status and that snapshot files exist (names/sizes only, never open contents).
 7. Telegram notifications are AUTOMATIC: `run_sim.sh` sends START/FINISH/ERROR to Telegram by default when `/nbody/tg/telegram.conf` exists — the agent must not pass any TG flags or send messages itself (opt-out only via `--no-tg`; periodic progress via `--tg-progress` or `--tg-interval <n>`).
-8. Optionally visualize (`plot_scripts/run_full_test.py` or the make-plots skill).
+8. Optionally visualize (`nbody/scripts/analysis/runners/make_run_plots.py` or the make-plots skill).
 9. Append a concise `experiment.md` summary to `llm/memory-bank/experimentLog.md`.
 
 What `run_sim.sh` does internally (for reference): creates `nbody/runs/<name>/` with `configs/`, `output/`, `plots/` subdirs; copies template `.param` and `Config.sh` from `nbody/gizmo_test/`; patches only `InitCondFile`, `OutputDir`, `TimeMax`, `TimeBetSnapshot`, `SigmaSIDM`; preflight checks (IC exists, output dir free, binary ready, deps available); rebuilds GIZMO only if `Config.sh` changed (md5 check); runs `mpirun` with `tee run.log`; validates the last snapshot via `check_snapshot.py`; writes `experiment.md`.

@@ -32,6 +32,10 @@
 #   --log-suffix <s>     суффикс лога: run.log<s> (напр. --log-suffix .early)
 #   --part-alloc <f>     PartAllocFactor (память под ParticleData на задачу;
 #                        шаблон 5.0 слишком жадный для N=1e7 на 14 GB RAM)
+#   --max-step <t>       MaxSizeTimestep (обязательно согласовать между
+#                        сравниваемыми CDM/SIDM прогонами: шаблоны 0.01 vs 0.005)
+#   --time-limit <s>     TimeLimitCPU (wall-time до авто-остановки, секунды;
+#                        дефолт GIZMO 86000 = 24 ч — не физический параметр)
 
 set -euo pipefail
 
@@ -56,6 +60,8 @@ SIGMA=""
 IC_FILE=""
 FIRST_SNAP=""
 PART_ALLOC=""
+MAX_STEP=""
+TIME_LIMIT=""
 RESUME=0
 LOG_SUFFIX=""
 MPI_PROCS=4
@@ -92,6 +98,8 @@ usage() {
                       подразумевает --tg-progress)
   --first-snapshot <t> TimeOfFirstSnapshot: время первого снапшота
   --part-alloc <f>    PartAllocFactor (контроль памяти; шаблон 5.0)
+  --max-step <t>      MaxSizeTimestep (согласовать CDM/SIDM: 0.01 vs 0.005)
+  --time-limit <s>    TimeLimitCPU в секундах (дефолт GIZMO 86000 = 24 ч)
   --resume            продолжить тот же прогон из restart-файлов (RestartFlag=1)
   --log-suffix <s>    суффикс файла лога (run.log<s>)
 EOF
@@ -208,6 +216,9 @@ preflight() {
     [[ -n "$TIME_MAX" ]] && info "TimeMax:          $TIME_MAX"
     [[ -n "$TIME_BET" ]] && info "TimeBetSnapshot:  $TIME_BET"
     [[ -n "$FIRST_SNAP" ]] && info "TimeOfFirstSnapshot: $FIRST_SNAP"
+    [[ -n "$MAX_STEP" ]] && info "MaxSizeTimestep:   $MAX_STEP"
+    [[ -n "$TIME_LIMIT" ]] && info "TimeLimitCPU:      $TIME_LIMIT s"
+    [[ -n "$PART_ALLOC" ]] && info "PartAllocFactor:   $PART_ALLOC"
     [[ -n "$SIGMA" ]]    && info "SIDM sigma:       $SIGMA"
     [[ "$REBUILD" -eq 1 ]] && info "Пересборка:       да"
     if [[ "$TG_FLAG" -eq 1 ]]; then
@@ -285,6 +296,24 @@ setup_run_dir() {
             echo "PartAllocFactor            ${PART_ALLOC}" >> "${RUN_DIR}/.gizmo_run.param"
         fi
         info "PartAllocFactor: ${PART_ALLOC}"
+    fi
+
+    if [[ -n "$MAX_STEP" ]]; then
+        if grep -q '^MaxSizeTimestep' "${RUN_DIR}/.gizmo_run.param"; then
+            sed -i "s|^MaxSizeTimestep[[:space:]]*.*|MaxSizeTimestep         ${MAX_STEP}   % in code units|" "${RUN_DIR}/.gizmo_run.param"
+        else
+            echo "MaxSizeTimestep         ${MAX_STEP}" >> "${RUN_DIR}/.gizmo_run.param"
+        fi
+        info "MaxSizeTimestep: ${MAX_STEP}"
+    fi
+
+    if [[ -n "$TIME_LIMIT" ]]; then
+        if grep -q '^TimeLimitCPU' "${RUN_DIR}/.gizmo_run.param"; then
+            sed -i "s|^TimeLimitCPU[[:space:]]*.*|TimeLimitCPU      ${TIME_LIMIT}|" "${RUN_DIR}/.gizmo_run.param"
+        else
+            printf '\n%%---- Wall-time limit (auto-stop). NOT a physical parameter\nTimeLimitCPU      %s\n' "${TIME_LIMIT}" >> "${RUN_DIR}/.gizmo_run.param"
+        fi
+        info "TimeLimitCPU: ${TIME_LIMIT} s"
     fi
 
     if [[ "$SIM_TYPE" == "sidm" && -n "$SIGMA" ]]; then
@@ -642,6 +671,8 @@ main() {
             --ic-file)   IC_FILE="$2";     shift 2 ;;
             --first-snapshot) FIRST_SNAP="$2"; shift 2 ;;
             --part-alloc)   PART_ALLOC="$2";  shift 2 ;;
+            --max-step)     MAX_STEP="$2";    shift 2 ;;
+            --time-limit)   TIME_LIMIT="$2";  shift 2 ;;
             --log-suffix) LOG_SUFFIX="$2"; shift 2 ;;
             --resume)    RESUME=1;         shift ;;
             --mpi-procs) MPI_PROCS="$2";   shift 2 ;;

@@ -25,14 +25,14 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PLOT_DIR = SCRIPT_DIR.parent / "plot_scripts"
-for p in [SCRIPT_DIR, PLOT_DIR]:
+SCRIPTS_DIR = SCRIPT_DIR.parent
+for p in [SCRIPT_DIR, SCRIPTS_DIR]:
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
 from gizmo_log import SYNC_RE, SyncPoint  # noqa: E402
 try:
-    from loaders import shrink_center, _snapshot_number  # noqa: E402
+    from analysis.loaders import shrink_center, _snapshot_number  # noqa: E402
 except Exception:  # pragma: no cover
     shrink_center = None
     def _snapshot_number(path: str) -> int:

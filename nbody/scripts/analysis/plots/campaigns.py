@@ -1,362 +1,27 @@
 #!/usr/bin/env python3
+"""plots/campaigns — переезд из plot_scripts (математика дословно, см. этап 1).
+Сравнение группы прогонов и диагностика кампаний (блок campaigns).
 """
-analysis_plots.py — стандартные статические analysis-графики одного run.
-
-Все plots получают УЖЕ рассчитанные radial-профили (см. loaders.py).
-Математика подготовки данных не менялась: профили считаются ровно как в
-analyze_final_snapshot.py (shrinkage centering, лог-биннинг, slope-окно
-0.25 dex, порог >=3 бинов / >=5 частиц).
-"""
-
 from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Optional
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 
-from base import BasePlot, F, PlotValidationError, validate_fields
+from analysis.base import (
+    BasePlot,
+    FieldSpec as F,
+    PlotValidationError,
+    format_contract,
+    validate_fields,
+)
+from analysis.registry import register
 
-
-# ──────────────────────────── общие helpers ─────────────────────────────────
-
-def _line_plot(settings, data_x, data_y, cfg):
-    """Обычная однолинейная отрисовка в глобальном стиле проекта."""
-    fig, ax = plt.subplots(figsize=settings.figsize(cfg["figsize_key"]))
-    ax.plot(data_x, data_y,
-            color=settings.palette[cfg["color_index"]],
-            lw=cfg.get("line_width") or settings.line_width_main)
-    settings.style_axis(
-        ax,
-        title=cfg.get("title"),
-        xlabel=cfg.get("xlabel"),
-        ylabel=cfg.get("ylabel"),
-        xscale=cfg.get("xscale"),
-        yscale=cfg.get("yscale"),
-        xlim=cfg.get("xlim"),
-        ylim=cfg.get("ylim"),
-        grid=True,
-    )
-    fig.tight_layout()
-    path = settings.save_figure(fig, cfg["filename"], dpi=cfg.get("dpi"))
-    plt.close(fig)
-    return path
-
-
-# ───────────────────────────── concrete plots ───────────────────────────────
-
-class DensityPlot(BasePlot):
-    name = "density"
-    description = (
-        "Radial density profile rho(r) финального halo. Обычно строится по ОДНОМУ "
-        "Gadget HDF5 snapshot (PartType3/Coordinates + Masses; центрирование "
-        "shrinkage). В render() передаётся уже рассчитанный профиль (r, rho) — "
-        "подготовка через loaders.prepare_profile_data()."
-    )
-    data_contract = {
-        "r": F(("R",)),
-        "rho": F(("R",)),
-        "time": F((), required=False),
-        "cross_section": F((), required=False),
-        "unresolved_r_max": F((), required=False),
-    }
-    default_config = {
-        "title": "Radial density profile",
-        "xlabel": "r [kpc]",
-        "ylabel": r"$\rho(r)$",
-        "xscale": "log",
-        "yscale": "log",
-        "xlim": None,
-        "ylim": None,
-        "unresolved_r_max": None,
-        "unresolved_label": "below resolution",
-        "color_index": 0,
-        "line_width": None,
-        "figsize_key": "page",
-        "dpi": None,
-        "filename": "01_density_profile.png",
-    }
-
-    def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
-        from settings import resolve_xlim, shade_unresolved
-
-        rmax = config.get("unresolved_r_max", None)
-        if rmax is None:
-            rmax = data.get("unresolved_r_max", None)
-        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
-        ax.plot(data["r"], data["rho"],
-                color=self.settings.palette[config["color_index"]],
-                lw=config.get("line_width") or self.settings.line_width_main)
-        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
-        self.settings.style_axis(
-            ax, title=config.get("title"), xlabel=config.get("xlabel"),
-            ylabel=config.get("ylabel"), xscale=config.get("xscale"),
-            yscale=config.get("yscale"),
-            xlim=resolve_xlim(config.get("xlim"), rmax),
-            ylim=config.get("ylim"), grid=True)
-        fig.tight_layout()
-        path = self.settings.save_figure(fig, config["filename"],
-                                         dpi=config.get("dpi"))
-        plt.close(fig)
-        return path
-
-
-class LogSlopePlot(BasePlot):
-    name = "log_slope"
-    description = (
-        "Локальный наклон d log rho / d log r по радиусу (ядро vs cusp). Один HDF5 "
-        "snapshot; slope считается на этапе подготовки данных (loaders), окно "
-        "0.25 dex, минимум 3 бина. Опорная линия -1 (NFW) рисуется автоматически."
-    )
-    data_contract = {
-        "r": F(("R",)),
-        "slope": F(("R",)),
-        "unresolved_r_max": F((), required=False),
-    }
-    default_config = {
-        "title": None,
-        "xlabel": "r [kpc]",
-        "ylabel": r"$d\log\rho/d\log r$",
-        "xscale": "log",
-        "yscale": "linear",
-        "xlim": None,
-        "ylim": (-3.5, -0.4),
-        "unresolved_r_max": None,
-        "unresolved_label": "below resolution",
-        "reference_line": -1.0,
-        "color_index": 1,
-        "line_width": None,
-        "figsize_key": "page",
-        "dpi": None,
-        "filename": "02_log_slope.png",
-    }
-
-    def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
-        from settings import resolve_xlim, shade_unresolved
-
-        rmax = config.get("unresolved_r_max", None)
-        if rmax is None:
-            rmax = data.get("unresolved_r_max", None)
-        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
-        ax.plot(data["r"], data["slope"],
-                color=self.settings.palette[config["color_index"]],
-                lw=config.get("line_width") or self.settings.line_width_main)
-        ref = config.get("reference_line")
-        if ref is not None:
-            ax.axhline(ref, ls=":", color="0.4", lw=0.8)
-        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
-        self.settings.style_axis(
-            ax, title=config.get("title"), xlabel=config.get("xlabel"),
-            ylabel=config.get("ylabel"), xscale=config.get("xscale"),
-            yscale=config.get("yscale"),
-            xlim=resolve_xlim(config.get("xlim"), rmax),
-            ylim=config.get("ylim"), grid=True)
-        fig.tight_layout()
-        path = self.settings.save_figure(fig, config["filename"],
-                                         dpi=config.get("dpi"))
-        plt.close(fig)
-        return path
-
-
-class SigmaVPlot(BasePlot):
-    name = "sigma_v"
-    description = (
-        "Профиль 1D velocity dispersion sigma_1D(r). Один HDF5 snapshot; "
-        "считается по PartType3/Velocities в радиальных бинах на этапе "
-        "подготовки данных (loaders)."
-    )
-    data_contract = {
-        "r": F(("R",)),
-        "sigma_v": F(("R",)),
-        "unresolved_r_max": F((), required=False),
-    }
-    default_config = {
-        "title": "1D velocity dispersion profile",
-        "xlabel": "r [kpc]",
-        "ylabel": r"$\sigma_{1D}(r)$ [km/s]",
-        "xscale": "log",
-        "yscale": "linear",
-        "xlim": None,
-        "ylim": None,
-        "unresolved_r_max": None,
-        "unresolved_label": "below resolution",
-        "color_index": 0,
-        "line_width": None,
-        "figsize_key": "page",
-        "dpi": None,
-        "filename": "03_sigma_v.png",
-    }
-
-    def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
-        from settings import resolve_xlim, shade_unresolved
-
-        import matplotlib.pyplot as plt
-
-        rmax = config.get("unresolved_r_max", None)
-        if rmax is None:
-            rmax = data.get("unresolved_r_max", None)
-        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
-        ax.plot(data["r"], data["sigma_v"],
-                color=self.settings.palette[config["color_index"]],
-                lw=config.get("line_width") or self.settings.line_width_main)
-        shade_unresolved(ax, rmax, label=config.get("unresolved_label") or None)
-        self.settings.style_axis(
-            ax, title=config.get("title"), xlabel=config.get("xlabel"),
-            ylabel=config.get("ylabel"), xscale=config.get("xscale"),
-            yscale=config.get("yscale"),
-            xlim=resolve_xlim(config.get("xlim"), rmax),
-            ylim=config.get("ylim"), grid=True)
-        fig.tight_layout()
-        path = self.settings.save_figure(fig, config["filename"],
-                                         dpi=config.get("dpi"))
-        plt.close(fig)
-        return path
-
-
-class InteractionsRadialPlot(BasePlot):
-    name = "interactions_radial"
-    description = (
-        "Радиальный профиль SIDM-взаимодействий: mean NInteractions(r) и процент "
-        "частиц, взаимодействовавших хотя бы раз. Один HDF5 snapshot с dataset "
-        "PartType3/NInteractions (пишется при DM_SIDM-конфиге с патчем "
-        "NInteractions). Две панели на одной фигуре."
-    )
-    data_contract = {
-        "r_ni": F(("B",)),
-        "ni_mean": F(("B",)),
-        "ni_frac": F(("B",)),
-        "unresolved_r_max": F((), required=False),
-    }
-    default_config = {
-        "mean_ylabel": "mean NInteractions",
-        "frac_ylabel": "% particles interacted",
-        "xlabel": "r [kpc]",
-        "xscale": "log",
-        "mean_yscale": "log",
-        "frac_yscale": "linear",
-        "xlim": None,
-        "mean_ylim": None,
-        "frac_ylim": (0.0, 105.0),
-        "unresolved_r_max": None,
-        "unresolved_label": "below resolution",
-        "figsize": (11.0, 4.2),
-        "dpi": 200,
-        "filename": "04_ninteractions_radial.png",
-    }
-
-    def render(self, data: Mapping[str, Any], config: Dict[str, Any]):
-        import numpy as np
-
-        from settings import resolve_xlim, shade_unresolved
-
-        r = np.asarray(data["r_ni"])
-        ni_mean = np.asarray(data["ni_mean"], dtype=float)
-        ni_frac = np.asarray(data["ni_frac"], dtype=float)
-        rmax = config.get("unresolved_r_max", None)
-        if rmax is None:
-            rmax = data.get("unresolved_r_max", None)
-        xlim = resolve_xlim(config.get("xlim"), rmax)
-        label = config.get("unresolved_label") or None
-
-        fig, axs = plt.subplots(1, 2, figsize=tuple(config["figsize"]))
-        m = np.isfinite(ni_mean) & (ni_mean > 0)
-        if m.any():
-            axs[0].plot(r[m], ni_mean[m],
-                        color=self.settings.palette[0],
-                        lw=self.settings.line_width_main)
-        shade_unresolved(axs[0], rmax, label=label)
-        self.settings.style_axis(axs[0], xlabel=config["xlabel"],
-                                 ylabel=config["mean_ylabel"],
-                                 xscale=config["xscale"],
-                                 yscale=config["mean_yscale"],
-                                 xlim=xlim,
-                                 ylim=config.get("mean_ylim"), grid=True)
-
-        f = np.isfinite(ni_frac) & (ni_frac > 0)
-        if f.any():
-            axs[1].plot(r[f], ni_frac[f],
-                        color=self.settings.palette[1],
-                        lw=self.settings.line_width_main)
-        shade_unresolved(axs[1], rmax, label=None)
-        self.settings.style_axis(axs[1], xlabel=config["xlabel"],
-                                 ylabel=config["frac_ylabel"],
-                                 xscale=config["xscale"],
-                                 yscale=config["frac_yscale"],
-                                 xlim=xlim,
-                                 ylim=config.get("frac_ylim"), grid=True)
-
-        fig.tight_layout()
-        path = self.settings.save_figure(fig, config["filename"], dpi=config["dpi"])
-        plt.close(fig)
-        return path
-
-
-class DiskEdgeOnPlot(BasePlot):
-    name = "disk_edgeon"
-    description = (
-        "Edge-on карта поверхностной плотности (x-z проекция) финального "
-        "снапшота — главный график для демонстрации формирования диска: "
-        "сплюснутая структура в x-y-плоскости видна как горизонтальная полоса. "
-        "Данные: particles из prepare_particle_snapshot() (positions уже "
-        "shrinkage-центрированы)."
-    )
-    data_contract = {
-        "positions": F(("N", 3)),
-        "masses": F(("N",), required=False),
-        "time": F((), required=False),
-        "cross_section": F((), required=False),
-    }
-    default_config = {
-        "title": None,
-        "xlabel": "x [kpc]",
-        "ylabel": "z [kpc]",
-        "bins": 220,
-        "lim": None,
-        "min_lim": 2.0,
-        "percentile": 98,
-        "cmap": "inferno",
-        "dpi": 150,
-        "figsize_key": "square",
-        "filename": "disk_edgeon.png",
-    }
-
-    def render(self, data, config):
-        from matplotlib.colors import LogNorm
-
-        pos = np.asarray(data["positions"], dtype=np.float64)
-        masses = data.get("masses")
-        w = (np.asarray(masses, dtype=np.float64)
-             if masses is not None else np.ones(len(pos)))
-
-        lim = config.get("lim")
-        if lim is None:
-            r = np.linalg.norm(pos[:, :2], axis=1)  # x-y радиус
-            lim = max(float(np.percentile(r[r > 0], config["percentile"])),
-                      float(config["min_lim"]))
-
-        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
-        hh = ax.hist2d(pos[:, 0], pos[:, 2], bins=config["bins"],
-                       range=[[-lim, lim], [-lim, lim]],
-                       weights=w, norm=LogNorm(), cmap=config["cmap"])
-        ax.set_aspect("equal")
-        self.settings.style_axis(ax, title=config.get("title"),
-                                 xlabel=config.get("xlabel"),
-                                 ylabel=config.get("ylabel"))
-        cb = fig.colorbar(hh[3], ax=ax, fraction=0.046)
-        cb.set_label("mass per pixel")
-        fig.tight_layout()
-        path = self.settings.save_figure(fig, config["filename"],
-                                         dpi=config["dpi"])
-        plt.close(fig)
-        return path
-
-
-ANALYSIS_PLOT_CLASSES = [DensityPlot, LogSlopePlot, SigmaVPlot, InteractionsRadialPlot,
-                         DiskEdgeOnPlot]
-
-
-# ═══════════════════════ multi-run comparison plots ═════════════════════════
+from analysis.style import resolve_xlim, shade_unresolved
 
 def _validate_series_list(plot_name, data, inner_contract, min_series=1):
     """
@@ -410,7 +75,7 @@ class _MultiSeriesPlot(BasePlot):
 
     def _render_series(self, data, config, y_field):
         import numpy as np
-        from settings import resolve_xlim, shade_unresolved
+        from analysis.style import resolve_xlim, shade_unresolved
 
         fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
         for i, s in enumerate(data["series"]):
@@ -433,8 +98,15 @@ class _MultiSeriesPlot(BasePlot):
         return path
 
 
+
+
+@register
 class DensityComparePlot(_MultiSeriesPlot):
     name = "density_compare"
+    block = "campaigns"
+    summary = "Сравнение rho(r) группы прогонов на одних осях"
+    data_source = "series"
+    inputs = ('runs',)
     description = (
         "Сравнение radial density profiles нескольких прогонов (CDM vs SIDM и "
         "т.п.) на одних осях. Данные — список серий из prepare_profile_data() "
@@ -460,8 +132,15 @@ class DensityComparePlot(_MultiSeriesPlot):
         return self._render_series(data, config, "rho")
 
 
+
+
+@register
 class LogSlopeComparePlot(_MultiSeriesPlot):
     name = "log_slope_compare"
+    block = "campaigns"
+    summary = "Сравнение наклона dlnrho/dlnr группы прогонов"
+    data_source = "series"
+    inputs = ('runs',)
     description = (
         "Сравнение локальных наклонов d log rho / d log r нескольких прогонов. "
         "Список серий из prepare_profile_data() (r, slope, label)."
@@ -486,8 +165,15 @@ class LogSlopeComparePlot(_MultiSeriesPlot):
         return self._render_series(data, config, "slope")
 
 
+
+
+@register
 class SigmaVComparePlot(_MultiSeriesPlot):
     name = "sigma_v_compare"
+    block = "campaigns"
+    summary = "Сравнение sigma_v(r) группы прогонов"
+    data_source = "series"
+    inputs = ('runs',)
     description = (
         "Сравнение профилей 1D velocity dispersion нескольких прогонов. "
         "Список серий из prepare_profile_data() (r, sigma_v, label)."
@@ -510,6 +196,8 @@ class SigmaVComparePlot(_MultiSeriesPlot):
 
     def render(self, data, config):
         return self._render_series(data, config, "sigma_v")
+
+
 
 
 class _DeltaComparePlot(BasePlot):
@@ -577,7 +265,7 @@ class _DeltaComparePlot(BasePlot):
 
         ax_diff.axhline(0.0, ls=":", color="0.4", lw=0.9)
         rmax = _series_unresolved_r(series, config)
-        from settings import resolve_xlim, shade_unresolved
+        from analysis.style import resolve_xlim, shade_unresolved
 
         shade_unresolved(ax_top, rmax, label=config.get("unresolved_label") or None)
         shade_unresolved(ax_diff, rmax, label=None)
@@ -600,8 +288,15 @@ class _DeltaComparePlot(BasePlot):
         return path
 
 
+
+
+@register
 class LogRhoComparePlot(_DeltaComparePlot):
     name = "log_rho_compare"
+    block = "campaigns"
+    summary = "Верх: rho(r); низ: Delta log rho vs CDM-референс"
+    data_source = "series"
+    inputs = ('runs',)
     description = (
         "Сравнение radial density profiles (log rho vs r) нескольких прогонов "
         "с нижним сабплотом разностей Δlog10(rho) относительно CDM. "
@@ -631,8 +326,15 @@ class LogRhoComparePlot(_DeltaComparePlot):
         return self._render_delta(data, config)
 
 
+
+
+@register
 class RotCurveComparePlot(_DeltaComparePlot):
     name = "rot_curve_compare"
+    block = "campaigns"
+    summary = "Верх: v_circ(r); низ: Delta v vs CDM-референс"
+    data_source = "series"
+    inputs = ('runs',)
     description = (
         "Кривые вращения v_circ(r) нескольких прогонов (v_circ из "
         "prepare_profile_data, sqrt(G M(<r)/r)) с нижним сабплотом разностей "
@@ -661,8 +363,15 @@ class RotCurveComparePlot(_DeltaComparePlot):
         return self._render_delta(data, config)
 
 
+
+
+@register
 class CoreDensityVsSigmaPlot(BasePlot):
     name = "core_density_vs_sigma"
+    block = "campaigns"
+    summary = "rho_core vs sigma/m по прогонам (тренд «больше sigma — мягче ядро»)"
+    data_source = "series"
+    inputs = ('runs',)
     description = (
         "Core density (в фиксированном радиусе) как функция SIDM cross-section "
         "по нескольким прогонам. Данные готовит compare_runs.py: sigma из "
@@ -714,8 +423,16 @@ class CoreDensityVsSigmaPlot(BasePlot):
         return path
 
 
+
+
+@register
 class VisualMorphologyMontagePlot(BasePlot):
     name = "visual_morphology_montage"
+    block = "campaigns"
+    runner = "runners/make_campaign_morphology_plots.py"
+    summary = "Монтаж карт поверхностной плотности группы прогонов"
+    data_source = "prepare_visual_snapshot"
+    inputs = ('runs',)
     description = (
         "Presentation-quality face-on/edge-on surface-density montage for a run "
         "group. Data are precomputed projection histograms; render() never reads HDF5."
@@ -758,8 +475,16 @@ class VisualMorphologyMontagePlot(BasePlot):
         return path
 
 
+
+
+@register
 class SurfaceDensityResidualsPlot(BasePlot):
     name = "surface_density_residuals"
+    block = "campaigns"
+    runner = "runners/make_campaign_morphology_plots.py"
+    summary = "Остатки поверхностной плотности vs CDM-база"
+    data_source = "prepare_visual_snapshot"
+    inputs = ('runs',)
     description = "Residual maps log10 Sigma_model - log10 Sigma_baseline for face-on and edge-on projections."
     data_contract = {"labels": F(("S",), dtype="str"), "faceon": F(("S", "B", "B")), "edgeon": F(("S", "B", "B"))}
     default_config = {"title": "Surface-density residuals vs CDM", "baseline_index": 0, "lim": 12.0, "eps": 1e-12, "cmap": "RdBu_r", "vmax": 1.0, "dpi": 190, "filename": "02_surface_density_residual_vs_cdm_final.png"}
@@ -794,8 +519,16 @@ class SurfaceDensityResidualsPlot(BasePlot):
         return path
 
 
+
+
+@register
 class MorphologyProfilesComparePlot(BasePlot):
     name = "morphology_profiles_compare"
+    block = "campaigns"
+    runner = "runners/make_campaign_morphology_plots.py"
+    summary = "Радиальные морфологические профили группы (c/a, вращение)"
+    data_source = "series"
+    inputs = ('runs',)
     description = "Final cumulative radial profiles: b/a, c/a, z_rms/R_rms and |vrot|/sigma for group comparison."
     data_contract = {"series": F(("S",), dtype="any")}
     default_config = {"title": "Radial morphology and rotation-support profiles", "dpi": 180, "filename": "03_shape_radial_profiles_final.png"}
@@ -821,8 +554,16 @@ class MorphologyProfilesComparePlot(BasePlot):
         return path
 
 
+
+
+@register
 class PhaseSpaceComparePlot(BasePlot):
     name = "phase_space_compare"
+    block = "campaigns"
+    runner = "runners/make_campaign_morphology_plots.py"
+    summary = "Фазовое пространство R-vphi группы прогонов"
+    data_source = "phase_space_histogram"
+    inputs = ('runs',)
     description = "Cylindrical phase-space panels: R vs v_phi mass-weighted histograms for disk/cold-branch search."
     data_contract = {"labels": F(("S",), dtype="str"), "phase": F(("S", "V", "R")), "extent": F((4,))}
     default_config = {"title": r"Phase space: $R$ vs $v_\phi$", "cmap": "viridis", "floor": 1e-12, "dpi": 190, "filename": "04_phase_space_R_vphi_final.png"}
@@ -852,8 +593,16 @@ class PhaseSpaceComparePlot(BasePlot):
         return path
 
 
+
+
+@register
 class DiskDashboardPlot(BasePlot):
     name = "disk_dashboard"
+    block = "campaigns"
+    runner = "runners/make_campaign_morphology_plots.py"
+    summary = "Дашборд дисковых диагностик группы прогонов"
+    data_source = "series"
+    inputs = ('runs',)
     description = "Compact presentation dashboard combining final metric bars, morphology time-series and interaction/core evolution."
     data_contract = {"summary_labels": F(("S",), dtype="str"), "ca_final": F(("S",)), "thickness_final": F(("S",)), "vrot_final": F(("S",)), "ninteractions_final": F(("S",)), "disk_score": F(("S",)), "metric_series": F(("S",), dtype="any", required=False)}
     default_config = {"title": "Dark-disk candidate dashboard", "dpi": 190, "filename": "05_disk_dashboard.png"}
@@ -879,8 +628,16 @@ class DiskDashboardPlot(BasePlot):
 
 # ═══════════════════════════ presentation/diagnostic plots ══════════════════
 
+
+
+@register
 class EnergyLossVsFPlot(BasePlot):
     name = "diag_eloss_vs_f"
+    block = "campaigns"
+    runner = "runners/make_campaign_diag_plots.py"
+    summary = "Потери энергии vs фактор диссипации (dSIDM-серия)"
+    data_source = "load_metrics_series"
+    inputs = ('runs',)
     description = (
         "Диагностика dSIDM dissipation: по оси X заданная диссипация f/D "
         "(DM_DissipationFactor), по оси Y измеренная относительная потеря "
@@ -954,8 +711,16 @@ class EnergyLossVsFPlot(BasePlot):
         return path
 
 
+
+
+@register
 class CriteriaTimePanelPlot(BasePlot):
     name = "criteria_time_panel"
+    block = "campaigns"
+    runner = "runners/make_campaign_diag_plots.py"
+    summary = "Панель временных критериев disk-transition (dSIDM-серия)"
+    data_source = "load_metrics_series"
+    inputs = ('runs',)
     description = (
         "Объединённая панель критериев диска: три вертикальные панели c/a(t), "
         "z_rms/R_rms(t), |Vrot|/sigma(t). Данные — 'series': список per-run "
@@ -1033,8 +798,16 @@ class CriteriaTimePanelPlot(BasePlot):
         return path
 
 
+
+
+@register
 class RunawayTimestepPanelPlot(BasePlot):
     name = "runaway_timestep_panel"
+    block = "campaigns"
+    runner = "runners/make_campaign_diag_plots.py"
+    summary = "Панель dt-runaway диагностики серии прогонов"
+    data_source = "load_metrics_series"
+    inputs = ('runs',)
     description = (
         "Диагностика runaway: две вертикальные панели с общей осью времени. "
         "Верх — interaction rate (N_interactions на снапшот, diff от "

@@ -17,7 +17,11 @@ IC=/nbody/ics/dwarf_N1e6/dwarf_N1e6
 TIME_MAX=5.0
 TIME_BET=0.1
 RCORE=2
-OUTDIR=/nbody/analyse/dwarf_series
+# Куда AnalysisPaths кладёт сравнение группы (см. analysis/paths.py):
+#   <NBODY_ANALYSIS_ROOT>/campaigns/<CAMPAIGN>/<MEMBER>
+CAMPAIGN=dwarf_series
+MEMBER=compare_5runs
+OUTDIR=/nbody/analysis/campaigns/$CAMPAIGN/$MEMBER
 LOG=/nbody/runs/series_dwarf.log
 MSGFILE=/tmp/series_tg_msg.txt
 
@@ -144,17 +148,17 @@ log "=== ANALYSIS PHASE START ==="
 analyze_fail=0
 for name in "${RUN_NAMES[@]}"; do
   log "--- analysis: $name ---"
-  if ! python3 /nbody/scripts/plot_scripts/run_full_test.py \
+  if ! python3 /nbody/scripts/analysis/runners/make_run_plots.py \
         --run-root "/nbody/runs/$name" >> "$LOG" 2>&1; then
     analyze_fail=$((analyze_fail + 1))
     log "ANALYSIS FAILED: $name"
   fi
 done
 
-log "--- compare_runs (5 серий, rcore=$RCORE) ---"
+log "--- make_campaign_plots (5 серий, rcore=$RCORE) ---"
 # ВАЖНО: позиционные аргументы (run-каталоги) — ДО --labels, т.к. nargs='*'
-if ! python3 /nbody/scripts/plot_scripts/compare_runs.py \
-      --outdir "$OUTDIR" --rcore "$RCORE" \
+if ! python3 /nbody/scripts/analysis/runners/make_campaign_plots.py \
+      --campaign "$CAMPAIGN" --member "$MEMBER" --rcore "$RCORE" \
       /nbody/runs/cdm_dwarf_N1e6_T5 \
       /nbody/runs/sidm0.1_dwarf_N1e6_T5 \
       /nbody/runs/sidm1_dwarf_N1e6_T5 \

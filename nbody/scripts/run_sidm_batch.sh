@@ -186,16 +186,17 @@ print_status_table
 echo ""
 
 # ----------------------------------------------------------------------
-# Post‑processing: multi-run comparison via plot_scripts (dry-run prints command)
+# Post‑processing: multi-run comparison via analysis runners (dry-run prints command)
 # ----------------------------------------------------------------------
 if [ $DRY_RUN -eq 0 ]; then
     RUN_ARGS=""
     for sigma in "${SIGMAS[@]}"; do
         RUN_ARGS="$RUN_ARGS runs/sidm_sigma${sigma}_N1e6"
     done
-    python3 scripts/plot_scripts/compare_runs.py runs/cdm_N1e6 $RUN_ARGS \
+    python3 nbody/scripts/analysis/runners/make_campaign_plots.py \
+        runs/cdm_N1e6 $RUN_ARGS \
         --labels CDM ${SIGMAS[@]/#/SIDM} --rcore 50 \
-        --outdir analyse/cdm_sidm_all
+        --campaign cdm_sidm_sigma --member compare_all
 else
-    echo "[DRY]  python3 scripts/plot_scripts/compare_runs.py runs/cdm_N1e6 <sidm runs> --rcore 50 --outdir analyse/cdm_sidm_all"
+    echo "[DRY]  python3 nbody/scripts/analysis/runners/make_campaign_plots.py runs/cdm_N1e6 <sidm runs> --rcore 50 --campaign cdm_sidm_sigma --member compare_all"
 fi

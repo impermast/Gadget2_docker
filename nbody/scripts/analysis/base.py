@@ -1,4 +1,3 @@
-#nbody/scripts/plot_scripts/base.py
 """
 base.py — data contract (runtime validation) и абстрактный BasePlot.
 
@@ -156,7 +155,7 @@ class BasePlot(ABC):
     def __init__(self, settings=None):
         # settings — PlotSettings; импорт здесь, чтобы избежать цикла модулей.
         if settings is None:
-            from settings import PlotSettings
+            from analysis.style import PlotSettings
             settings = PlotSettings()
         self.settings = settings
 

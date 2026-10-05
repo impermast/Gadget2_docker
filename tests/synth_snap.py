@@ -1,7 +1,7 @@
 """Deterministic synthetic HDF5 snapshot generator for tests.
 
 Creates miniature snapshots whose structure exactly matches what
-``nbody/scripts/plot_scripts/loaders.read_snapshot`` expects:
+``nbody/scripts/analysis/loaders.read_snapshot`` expects:
 
     Header/
         Time                        (float)

@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 import matplotlib
 matplotlib.use("Agg")
 
-from base import BasePlot, format_contract
+from analysis.base import BasePlot, format_contract
 
 
 # ──────────────────────────────── Ошибки ────────────────────────────────────
@@ -86,7 +86,7 @@ class NbodyPlotter:
                  output_dir: Union[str, Path, None] = None):
         # settings — PlotSettings (ленивый импорт против циклических зависимостей)
         if settings is None:
-            from settings import PlotSettings
+            from analysis.style import PlotSettings
             settings = PlotSettings()
         if renderer not in SUPPORTED_RENDERERS:
             raise UnsupportedRendererError(
@@ -124,13 +124,11 @@ class NbodyPlotter:
         return instance
 
     def register_defaults(self) -> "NbodyPlotter":
-        """Зарегистрировать все стандартные production-plots проекта."""
-        from analysis_plots import (ANALYSIS_PLOT_CLASSES, COMPARE_PLOT_CLASSES,
-                                    DIAG_PLOT_CLASSES)
-        from animation_plots import ANIMATION_PLOT_CLASSES
-        for cls in (ANALYSIS_PLOT_CLASSES + COMPARE_PLOT_CLASSES
-                    + DIAG_PLOT_CLASSES + ANIMATION_PLOT_CLASSES):
-            self.register(cls)
+        """Зарегистрировать все plots глобального REGISTRY (реестр — источник истины)."""
+        from analysis.registry import registry as global_registry
+        for name, spec in global_registry().items():
+            if name not in self._registry and spec.cls is not None:
+                self.register(spec.cls, name)
         return self
 
     def get(self, name: str) -> BasePlot:

@@ -186,7 +186,7 @@ for i in "${!NAMES[@]}"; do
   name=${NAMES[$i]}
   log "--- analysis: $name ---"
   if [[ ${STATUS[$i]:-1} -eq 0 ]]; then
-    python3 /nbody/scripts/plot_scripts/run_full_test.py \
+    python3 /nbody/scripts/analysis/runners/make_run_plots.py \
         --run-root "/nbody/runs/$GROUP/$name" >> "$LOG" 2>&1 \
       || log "ANALYSIS FAILED: $name"
   else

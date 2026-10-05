@@ -76,17 +76,22 @@ Machine-readable output is available for tooling:
 --format json
 ```
 
-Partial-series diagnostics for stopped/incomplete/pathological runs:
+Partial-series diagnostics for stopped/incomplete/pathological runs are built by
+the canonical `prerun` runner. It computes metrics through loaders and renders
+all static images through the registry; it does not read or write a user-chosen
+output directory:
 
 ```bash
-docker exec gadget-gizmo python3 /nbody/scripts/check_simulations/analyze_series.py \
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/make_prerun_plots.py \
   --run-root /nbody/runs/<run-or-group/run> \
-  --outdir /nbody/runs/<run-or-group/run>/partial_analysis
+  --max-frames 10
 ```
 
-This writes `metrics_series.csv`, `summary_partial_series.txt`, and static PNG
-diagnostics. GIF/animation viewing must not be used as the agent's evidence;
-agent verdicts must come from CSV/TXT metrics and static PNG file existence.
+The output is under `analysis/prerun/<run-name>/` (or the path selected by
+`NBODY_ANALYSIS_ROOT`) and contains `metrics_series.csv`,
+`summary_partial_series.txt`, and registry-rendered static PNG diagnostics.
+GIF/animation viewing must not be used as the agent's evidence; agent verdicts
+must come from CSV/TXT metrics and static PNG file existence.
 
 ## Mode selection
 
@@ -121,7 +126,8 @@ The scripts collect only cheap/safe information:
 
 Do not manually open large snapshot arrays. The checker may read the small
 `NInteractions` dataset of the latest snapshot for diagnostics; heavy profile
-analysis remains in `plot_scripts/run_full_test.py`.
+analysis remains in the analysis layer
+(`nbody/scripts/analysis/runners/make_run_plots.py`).
 
 ## Verdict semantics
 
@@ -158,11 +164,11 @@ Answer in Russian and include:
 ## Interaction with plotting
 
 For incomplete/pathological runs where the user asks what happened dynamically,
-prefer `analyze_series.py` before any final-only plotting. Its output directory
-is normally:
+prefer `make_prerun_plots.py --run-root ...` before any final-only plotting. Its
+output directory is normally:
 
 ```text
-/nbody/runs/<run>/partial_analysis/
+/nbody/analysis/prerun/<run>/
 ```
 
 Use its `summary_partial_series.txt` and `metrics_series.csv` for scientific
@@ -170,15 +176,17 @@ judgement. Static contact-sheet PNGs are for qualitative human inspection;
 do not claim conclusions from GIFs because the AI agent cannot inspect them.
 
 If `check-run` says a run is complete and the user asks for plots/analysis, use
-`make-plots` / `run_full_test.py`:
+`make-plots` and the `core` runner:
 
 ```bash
-docker exec gadget-gizmo python3 /nbody/scripts/plot_scripts/run_full_test.py \
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/make_run_plots.py \
   --run-root /nbody/runs/<run>
 ```
 
-For comparisons, only run `compare_runs.py` when all compared runs are complete
-and non-pathological. Otherwise label any result as preliminary or skip compare.
+Артефакты попадают в `/nbody/analysis/core/<run>/` (см. REGISTRY.md). Для
+сравнения группы используйте `make_campaign_plots.py` — только когда все
+сравниваемые прогоны завершены и не патологичны; иначе пометьте результат как
+предварительный или пропустите сравнение.
 
 ## Safety
 
