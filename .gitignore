@@ -1,6 +1,8 @@
 # Editor / local history
 .history/
 .venv/
+.github/
+githooks/
 **/.local/
 **/.bash*
 
@@ -58,9 +60,44 @@ test_graph_*
 *.pdf
 
 # Analysis artifacts (nbody/analysis/<block>/...) — трекается только каталог
-# графиков REGISTRY.md, сгенерированный runners/registry_docs.py.
+# графиков REGISTRY.md, сгенерированный runners/registry_docs.py,
+# плюс карта блоков README.md и перенесённые текстовые артефакты
+# (summary*.txt, *.param, мигрированный sidm20 README). Сгенерированные
+# PNG/GIF остаются ignored глобальными правилами выше.
+# Отдельные README-карты previous_runs/кампаний не ведутся (решение 2026-10-09:
+# излишне; след миграции — git-история переименований).
 nbody/analysis/**
 !nbody/analysis/REGISTRY.md
+!nbody/analysis/README.md
+!nbody/analysis/previous_runs/
+!nbody/analysis/previous_runs/cdm_sidm_comparison/
+!nbody/analysis/previous_runs/cdm_sidm_comparison/*.txt
+!nbody/analysis/previous_runs/sidm20_N1e6_T5/
+!nbody/analysis/previous_runs/sidm20_N1e6_T5/*.md
+!nbody/analysis/previous_runs/sidm20_N1e6_T5/*.txt
+!nbody/analysis/previous_runs/sidm20_N1e6_T5/*.param
+!nbody/analysis/previous_runs/sidm20_N1e6_T5/analysis/
+!nbody/analysis/previous_runs/sidm20_N1e6_T5/analysis/*.txt
+!nbody/analysis/previous_runs/sidm_sigma0.1/
+!nbody/analysis/campaigns/
+!nbody/analysis/campaigns/cdm_sidm_N1e6/
+!nbody/analysis/campaigns/cdm_sidm_N1e6/compare/
+!nbody/analysis/campaigns/cdm_sidm_N1e6/compare/N100k/
+!nbody/analysis/campaigns/cdm_sidm_N1e6/compare/N100k/*.txt
+!nbody/analysis/campaigns/cdm_sidm_N1e6/compare/N1e6/
+!nbody/analysis/campaigns/cdm_sidm_N1e6/compare/N1e6/*.txt
+!nbody/analysis/ic/
+!nbody/analysis/ic/corecusp_N1e7/
+!nbody/analysis/ic/corecusp_N1e7/*.json
+!nbody/analysis/ic/corecusp_N1e7/*.txt
+!nbody/analysis/ic/corecusp_N1e7/*.csv
+!nbody/analysis/prerun/
+!nbody/analysis/prerun/corecusp_cdm_N1e7_T5/
+!nbody/analysis/prerun/corecusp_cdm_N1e7_T5/early_gate/
+!nbody/analysis/prerun/corecusp_cdm_N1e7_T5/early_gate/*.txt
+!nbody/analysis/prerun/corecusp_cdm_N1e7_T5/early_gate/*.json
+!nbody/analysis/prerun/corecusp_cdm_N1e7_T5/early_gate/*.csv
+!nbody/analysis/prerun/corecusp_cdm_N1e7_T5/early_gate/*.md
 # Curated presentation inputs are source assets, not disposable analysis output.
 !nbody/analysis/presentations/
 !nbody/analysis/presentations/**

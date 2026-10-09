@@ -1,5 +1,10 @@
 # Implementation Plan — унификация анализа и визуализации
 
+> **Статус на 2026-10-09:** основной этап унификации CLI и перенос curated
+> presentation assets завершён и закоммичен (`17de885`). Файл оставлен как
+> backlog только для явно перечисленных ниже отложенных миграций/приёмки;
+> эти пункты не блокируют завершённый этап.
+
 ## [Overview]
 
 Цель: собрать весь визуал в один пакет `nbody/scripts/analysis/` с **реестром как
@@ -149,7 +154,7 @@ nbody/analysis/
   ic/<ic_name>/                 # ic_gate_profile.{png,csv,json}, ic_target_vs_particles.png, logs/
   prerun/<run_name>/            # early_gate.{png,csv,json}, series_evolution_*.png, shape_panel.png
   core/<run_name>/              # core-плоты одного production run + summary.txt
-  campaigns/<campaign>/         # README.md кампании + <run>/ (core-выходы участников) + compare/
+  campaigns/<campaign>/         # <run>/ (core-выходы участников) + compare/
   previous_runs/                # README.md: таблица «старый путь → новый путь»; артефакты
                                 #   прежних прогонов, встроенные в кампании по логике
 ```
@@ -212,15 +217,15 @@ nbody/analysis/
 | Старый путь | Новый путь |
 |---|---|
 | `nbody/analyse/cdm_sidm_all/{N100k,N1e6}` | `campaigns/cdm_sidm_N1e6/compare/` |
-| `nbody/analyse/cdm_sidm_comparison/` | `previous_runs/cdm_sidm_comparison/` (исходные run'ы удалены — помечаем в README кампании как historical) |
+| `nbody/analyse/cdm_sidm_comparison/` | `previous_runs/cdm_sidm_comparison/` (исходные run'ы удалены — historical) |
 | `nbody/analyse/dwarf_series/` | `campaigns/sidm_dwarf_N1e6_T5/compare/` |
-| `nbody/analyse/sidm20_N1e6_T5/` | `previous_runs/sidm20_N1e6_T5/` (+ README-переход в `campaigns/sidm_dwarf_N1e6_T5/sidm20_dwarf_N1e6_T5/`) |
+| `nbody/analyse/sidm20_N1e6_T5/` | `previous_runs/sidm20_N1e6_T5/` |
 | `nbody/analyse/sidm_sigma0.1/` | `previous_runs/sidm_sigma0.1/` (historical) |
 | `nbody/analyse/test_dissipation_block/` | `campaigns/dissipation/compare/legacy_block/` |
 | `nbody/presentations/2026-09-10/`, `nbody/presentations/figs_v2/` | `nbody/analysis/presentations/2026-09-10/`, `…/2026-09-10-figs_v2/` |
 
-Каждый `mv` фиксируется в `previous_runs/README.md` (таблица «откуда → куда») + в
-`campaigns/<c>/README.md` (состав кампании, связь с experimentLog). Каталоги `runs/`, `ics/`
+След миграции — git-история переименований (отдельные README-карты
+previous_runs/кампаний вычеркнуты 2026-10-09 как излишние). Каталоги `runs/`, `ics/`
 **не переименовываем** — это сломало бы логи/состояние прогонов.
 
 ### Обратная совместимость CLI
@@ -466,9 +471,8 @@ skill-creator не трогаем (мета-скилл, покрыт `skills/ins
 5. **Presentations:** перенесены tracked source/assets из `nbody/presentations/*` в
    `nbody/analysis/presentations/*`. Отдельный presentation runner и plot-классы
    не нужны (решение пользователя); block `presentations` остаётся asset-only и пустым в реестре.
-6. **Раскладка выходов и кампании:** `mv` по таблице [Migration], `previous_runs/README.md`,
-   `campaigns/<c>/README.md`, `analysis/README.md`, `.gitignore` (analyse→analysis,
-   presentations), удаление пустого `nbody/analyse/`.
+6. **Раскладка выходов и кампании:** `mv` по таблице [Migration], `analysis/README.md`,
+  `.gitignore` (analyse→analysis, presentations), удаление пустого `nbody/analyse/`.
 7. **Уборка мусора** по списку [Files]; отдельный запрос на `nbody/scratch/*_copy*`.
 8. **Документы и навыки:** `skills/{make-plots,check-run,gizmo-sim}/SKILL.md`,
    `llm/rules/04-gadget.md`, `06-simulation-pipeline.md`, memory-bank
@@ -501,6 +505,8 @@ skill-creator не трогаем (мета-скилл, покрыт `skills/ins
   запуском в контейнере на реальных прогонах; `--outdir` нигде нет (guard-тест).
 - [x] **Текущая валидация:** полный suite 51 passed; registry `--check`, shell syntax,
   legacy CLI `--help`, `git diff --check` и asset checksum validation прошли.
+- [x] Актуализированы текущие source/output paths и статус migration в memory-bank;
+  исторические experiment entries сохранены как история.
 - **Историческая база тестов:** первоначально 50 зелёных, включая `test_registry.py`, `test_paths.py`,
   `test_render_smoke.py` (рендер ВСЕХ plots блоков core и campaigns на синтетической
   фикстуре), `test_plotter_contract.py` (негативные контракты, перенесены из
@@ -520,29 +526,44 @@ skill-creator не трогаем (мета-скилл, покрыт `skills/ins
 
 ### Осталось / отложено
 
-- [ ] Перенос tracked/generated outputs `nbody/analyse/` в `previous_runs/` и кампании
-  (не выполнялся: отдельная миграция данных, требует ревизии содержимого и ссылок).
-- [ ] Создать `previous_runs/README.md` и README кампаний с картой перемещённых результатов.
-- [ ] Удаление перечисленного мусора (не выполнялось: удаление требует отдельного подтверждения).
-- [ ] Завершить актуализацию `skills/{check-run,gizmo-sim}`, `llm/rules/04-gadget.md`,
+- [x] Перенос tracked/generated outputs `nbody/analyse/` в `previous_runs/` и кампании
+  (выполнено 2026-10-09: `mv` по таблице [Migration] через writable bind mount
+  контейнера; tracked тексты зафиксированы как git renames, PNG/GIF остались
+  ignored; пустой `nbody/analyse/` удалён).
+- [x] ~~Создать `previous_runs/README.md` и README кампаний с картой перемещённых результатов~~ —
+  вычеркнуто 2026-10-09 как излишнее (решение пользователя): след миграции —
+  git-история переименований, карта блоков — `nbody/analysis/README.md`.
+- [x] Удаление перечисленного мусора (выполнено 2026-10-09 с подтверждения
+  пользователя: `nbody/scripts/.test_write`, `nbody/runs/corecusp_pipeline.*`,
+  `corecusp_resume.log`, оба `*.launcher.log`, `nbody/ics/corecusp_gen.log`;
+  `nbody/scratch/*_copy*` отсутствует в дереве; удаление PPTX подтверждено и
+  включено в этот же коммит).
+- [x] Завершить актуализацию `skills/{check-run,gizmo-sim}`, `llm/rules/04-gadget.md`,
   `06-simulation-pipeline.md`, `techContext.md`, `systemPatterns.md` и ссылок во всех shell scripts.
-- [ ] Приёмка «ИИ-путеводителя» §8.5; `registry_docs.py --check` в контейнере.
+  (выполнено 2026-10-09: `06-simulation-pipeline.md` и оба skill указывают на
+  canonical `nbody/analysis/`; `run_matrix_dissipation.sh` и `run_series_dwarf.sh`
+  читают `analysis/core/<run>/`; `04-gadget.md` не содержал устаревших путей;
+  techContext/systemPatterns отражают миграцию. Остаточные упоминания
+  `run_full_test`/`plot_scripts` — только исторические комментарии о происхождении
+  кода и записи experimentLog.)
+- [ ] Приёмка «ИИ-путеводителя» §8.5.
 - [ ] Проверить с пользователем оставшийся старый legacy gate CLI whitelist
   (`check_ic_cusp.py`, `early_cdm_gate.py`) и убрать его после проверки потребителей.
 
 ## [Risks / Constraints]
 
-- **Отдельная, более приоритетная проблема (вне рамок этого плана, требует вашего решения):**
-  production-прогон `corecusp_cdm_N1e7_T5` остановлен на t=0.27 (wall-time лимит), при этом
-  `run_sim.sh` записал в `experiment.md` «completed / finished normally», а `run.state` отсутствует
-  — то есть статус гонки врёт, и pipeline не сделал resume до T=5.0. Нужно либо решить, что делать
-  с этим прогоном (resume / увеличение wall-time / фикс детекции time-limit в `run_sim.sh`), либо
-  явно принять t=0.27 как промежуточную точку. Пока этого нет, шаг 6 (перенос outputs в `campaigns/`)
-  для corecusp лучше отложить.
+- **Отдельная, более приоритетная проблема (вне рамок этого плана):**
+  production-прогон `corecusp_cdm_N1e7_T5` приостановлен решением пользователя
+  2026-10-09 (cusp-решение уже видно, дальнейший ран не требуется); его IC-gate
+  тексты и early-gate скопированы в `analysis/ic/corecusp_N1e7/` и
+  `analysis/prerun/corecusp_cdm_N1e7_T5/`, summary — в
+  `analysis/core/corecusp_cdm_N1e7_T5/`. Сами каталоги `nbody/runs/` и `nbody/ics/`
+  не переименовывались.
 - Если вы перезапустите прогон: шаги 1–8 не пишут в `output/`, `restartfiles/`, `run.log*`
   выбранного рана и не удаляют его артефакты (только копируем; оригиналы убираем на шаге 6).
 - Все перемещения — `mv`/`git mv`, ничего не удаляется кроме явного списка мусора;
-  `previous_runs/README.md` хранит полный след «откуда → куда».
+  след миграции — git-история переименований (отдельные README-карты
+  previous_runs/кампаний вычеркнуты 2026-10-09 как излишние).
 - Каталоги `nbody/runs/**` и `nbody/ics/**` не переименовываем (иначе порвём логи/состояние
   прогонов и ссылки в experimentLog).
 - Реестр — единственный источник описаний: `REGISTRY.md` генерируется, ручная правка запрещена

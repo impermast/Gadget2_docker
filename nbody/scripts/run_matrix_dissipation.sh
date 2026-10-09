@@ -201,7 +201,7 @@ series_total_min=$(( ($(date +%s) - SERIES_START_S) / 60 ))
 ANALYSIS_FAIL=0
 for i in "${!NAMES[@]}"; do
   [[ ${STATUS[$i]:-1} -eq 0 ]] || continue
-  [[ -f "/nbody/runs/$GROUP/${NAMES[$i]}/plots/summary_analysis.txt" ]] || ANALYSIS_FAIL=$((ANALYSIS_FAIL+1))
+  [[ -f "/nbody/analysis/core/${NAMES[$i]}/summary_analysis.txt" ]] || ANALYSIS_FAIL=$((ANALYSIS_FAIL+1))
 done
 
 if [[ $FAILED -gt 0 ]]; then
@@ -223,7 +223,7 @@ fi
   echo "Run | sigma | f | NI total | rho_core | slope | time"
   for i in "${!NAMES[@]}"; do
     name=${NAMES[$i]}
-    f="/nbody/runs/$GROUP/$name/plots/summary_analysis.txt"
+    f="/nbody/analysis/core/$name/summary_analysis.txt"
     if [[ ${STATUS[$i]:-1} -eq 0 && -f "$f" ]]; then
       rc_v=$(grep -oP 'Core density \\(r<[0-9.]+\\): \\K[0-9.e+-]+' "$f" | head -1)
       sl_v=$(grep -oP 'Inner log-slope.*: \\K[-0-9.]+' "$f" | head -1)
@@ -239,8 +239,8 @@ fi
 tg_send "$MSGFILE"
 
 for png in "${NAMES[@]}"; do
-  [[ -f "/nbody/runs/$GROUP/$png/plots/disk_edgeon.png" ]] && \
-    tg_photo "disk_edgeon: $png" "/nbody/runs/$GROUP/$png/plots/disk_edgeon.png"
+  [[ -f "/nbody/analysis/core/$png/disk_edgeon.png" ]] && \
+    tg_photo "disk_edgeon: $png" "/nbody/analysis/core/$png/disk_edgeon.png"
 done
 
 log "=== MATRIX COMPLETE (failed=$FAILED, verdict=$VERDICT) ==="

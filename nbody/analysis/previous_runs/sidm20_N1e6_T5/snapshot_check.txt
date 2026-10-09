@@ -1,0 +1,42 @@
+=======================================================
+  File: /nbody/runs/sidm20_dwarf_N1e6_T5/output/snapshot_051.hdf5
+  Particle type: PartType3
+=======================================================
+  Time:           5.0000
+  Redshift:       0.0000
+  BoxSize:        0.0000
+  Cross-section:  20.0
+  Particles/file: [0, 0, 0, 1000000, 0, 0]
+
+  --- Coordinates ---
+    count:  1000000
+    r_min:      0.05
+    r_max:   7618.67
+    r_med:     10.67
+  --- Velocities ---
+    v_min:    0.0660
+    v_max:  187.5403
+    v_med:   27.6883
+  --- Masses ---
+    m_min:  6.2763e-07
+    m_max:  6.2763e-07
+    m_mean: 6.2763e-07
+    m_sum:  6.2763e-01
+  --- Centering ---
+    COM:         (-0.7426, -0.6227, -1.1645)
+    COM offset:  1.5150
+  --- Potential ---
+    pot_min:   -6892.28
+    pot_max:      -3.54
+  --- AGS kernel radius ---
+    hsml_min:  0.0003
+    hsml_max:  4126.0112
+    hsml_med:  0.6517
+  --- IDs ---
+    id_min:  1
+    id_max:  1000000
+    unique:  1000000 / 1000000
+  --- SIDM NInteractions ---
+    total:         8147390
+    nonzero:       513991 / 1000000 (51.40%)
+=======================================================

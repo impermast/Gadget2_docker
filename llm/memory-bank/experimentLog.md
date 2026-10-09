@@ -2,6 +2,10 @@
 
 Use this file to record completed or attempted simulations.
 
+> This is an append-only historical log. Old commands and paths describe the
+> environment at the time; current analysis layout is `nbody/scripts/analysis/`
+> with output root `nbody/analysis/`.
+
 ### 2026-10-09 make-plots catalog discovery and migration audit
 
 Type:
@@ -16,24 +20,24 @@ What changed:
 - `nbody/scripts/analysis/README.md` explains not to duplicate plot names in
   skills and documents local `--print` with a temporary analysis root.
 - `tests/test_layout_guard.py` whitelist comments now distinguish transitional
-  wrappers from two outstanding direct-matplotlib CLIs and presentation-source
-  migration.
+  wrappers and the then-unfinished direct-matplotlib/presentation migrations
+  (both completed in the continuation below).
 
 Catalog audit:
 
 - 26 plots: `ic=1`, `prerun=4`, `core=7`, `campaigns=14`, `presentations=0`.
 - `make_presentation_figures.py` is referenced by metadata/docs but does not
   exist; presentations block has no registered plots.
-- Direct legacy rendering remains in `check_simulations/analyze_series.py` and
-  `compare_shape_series.py`; migration was identified but not attempted here.
-- The only pre-existing uncommitted deletion remains
-  `nbody/presentations/2026-09-10/nbody_deepseek.pptx`; it was not touched.
+- At that audit point direct legacy rendering remained in `check_simulations/`
+  series/shape CLIs; this was fixed in the later 2026-10-09 continuation below.
+- At that point, an unrelated PPTX deletion was present; its final status is
+  recorded below.
 
 Validation:
 
 - `registry_docs.py --print` succeeded with `NBODY_ANALYSIS_ROOT=/tmp/...`.
-- `registry_docs.py --check` against default `/nbody/analysis` cannot run on host
-  because `/nbody` is unavailable/inaccessible; run inside the container.
+- Host `/nbody` was unavailable for that audit; the later continuation ran
+  `registry_docs.py --check` successfully inside the container.
 - Guard suite: `7 passed`; full pytest suite: `50 passed`; `git diff --check`
   clean. No simulation data was read.
 
@@ -55,13 +59,16 @@ What changed:
 - Host-side `nbody/analysis/` is root-owned; `registry_docs.py --check` passed in
   the container against the shared bind mount.
 - The pre-existing deletion of `nbody/presentations/2026-09-10/nbody_deepseek.pptx`
-  remains untouched; it was not restored or staged as an independent deletion.
+  remains as a separate unstaged working-tree deletion; it was not restored or
+  included in commit `17de885`.
 - Migration of historical output directories and cleanup remain deferred.
 
 Validation: full pytest suite passed (51 tests), guard tests passed (8 tests),
 `git diff --check`, pipeline `bash -n`, CLI `--help`, registry check, and SHA-256
 comparison of all 29 copied assets passed. Telegram was not sent: no simulation
 or user-requested notification occurred.
+
+Commit: `17de885` on `agent/dev`.
 
 ### 2026-09-29 plot_scripts: политика «не показывать r → 0» + серую зону софтенинга
 

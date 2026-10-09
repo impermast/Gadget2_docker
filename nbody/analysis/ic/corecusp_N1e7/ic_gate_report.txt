@@ -1,0 +1,33 @@
+IC gate report (check_ic_cusp.py v2)
+================================================================
+IC:           /nbody/ics/corecusp_N1e7/corecusp_N1e7.hdf5
+N:            10000000   m_p = 2.3246e-06 (1e10 Msun)
+GalIC output: /nbody/ics/corecusp_N1e7/galic_dm
+GalIC params (fact): CC=20.0  V200=100.0 km/s
+target: rotcurve GalIC напрямую (v^2 r / G), v_max=156.3 km/s @ 10.17 kpc, r range [0.010, 100.0] kpc
+справочно NFW-fit к rotcurve (для чеков НЕ используется): r_s=3.685 kpc rho_s=1.4839e-02 rms(v^2)=1070
+
+Radial resolution / enclosed quantities:
+  r[kpc]      N(<r)          M(<r)[1e10 Msun]   t_relax[Gyr]
+    0.10           350       8.1360e-04          0.2
+    0.30          7104       1.6514e-02          3.0
+    0.50         20657       4.8019e-02          9.9
+    1.00         78622       1.8276e-01         48.3
+    2.00        267873       6.2269e-01        227.6
+    5.00       1081725       2.5145e+00       1626.1
+
+Central gate: 0.3-3.0 kpc, 20 bins with N>=200
+  median rho_meas/rho_target = 1.005  (expect 1.00 +-0.15)
+  median local slope (meas)  = -1.255
+  median local slope (target)= -1.253
+  |Delta slope|              = 0.002 (<=0.25)
+
+Resolution: N(<1 kpc)=78622 (Power criterion >=3000), t_relax(1 kpc)=48.3 Gyr (need >=10)
+
+  [PASS] ratio_ok
+  [PASS] cusp_ok
+  [PASS] slope_match
+  [PASS] min_count_ok
+  [PASS] resolution_ok
+
+GATE: PASS

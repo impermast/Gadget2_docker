@@ -176,6 +176,10 @@ Use its `summary_partial_series.txt` and `metrics_series.csv` for scientific
 judgement. Static contact-sheet PNGs are for qualitative human inspection;
 do not claim conclusions from GIFs because the AI agent cannot inspect them.
 
+Plotting and analysis artifacts are separate from run data: canonical runners
+write under `/nbody/analysis/{prerun,core,campaigns}/`, never to a new
+`nbody/runs/<run>/plots/` directory.
+
 If `check-run` says a run is complete and the user asks for plots/analysis, use
 `make-plots` and the `core` runner:
 

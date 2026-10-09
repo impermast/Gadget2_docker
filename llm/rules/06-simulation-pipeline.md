@@ -95,9 +95,10 @@ After run:
 
 Run the selected visualization script on produced outputs.
 
-Generated images should go to:
+Generated images should go through the canonical analysis runner into:
 
-`nbody/runs/<run_name>/plots/`
+`nbody/analysis/core/<run_name>/` (or `prerun/` / `campaigns/` as appropriate).
+Do not use the historical `nbody/runs/<run_name>/plots/` location for new plots.
 
 ## Stage 9. Report
 

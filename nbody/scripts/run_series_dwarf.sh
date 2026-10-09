@@ -186,7 +186,7 @@ fi
   echo ""
   echo "Метрики (r<${RCORE} kpc / inner slope):"
   for name in "${RUN_NAMES[@]}"; do
-    f="/nbody/runs/$name/plots/summary_analysis.txt"
+    f="/nbody/analysis/core/$name/summary_analysis.txt"
     if [[ -f "$f" ]]; then
       rc_line=$(grep 'Core density' "$f" | head -1)
       sl_line=$(grep 'Inner log-slope' "$f" | head -1)

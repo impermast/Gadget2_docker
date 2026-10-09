@@ -1,5 +1,14 @@
 # Tech Context
 
+> Older entries below are historical; current layout is the `analysis` package
+> and canonical output root documented here.
+
+> Historical notes below include old paths/layouts. Current source of truth for
+> plotting and analysis is `nbody/scripts/analysis/`; canonical output root is
+> `nbody/analysis/`. Legacy outputs from `nbody/analyse/` were migrated on
+> 2026-10-09 (move trace: git rename history). Separate previous_runs/campaign
+> README maps were dropped the same day as redundant.
+
 Host tools:
 
 - VS Code
@@ -27,22 +36,19 @@ Scientific stack:
 - GIZMO config `Config_cdm_sidm.sh` enables `DM_SIDM=8` (particle type 3)
 - GADGET-2 Makefile uses `-DPERIODIC -DUNEQUALSOFTENINGS -DPEANOHILBERT -DWALLCLOCK -DPMGRID=128 -DSYNCHRONIZATION`
 
-Plot config — единый модуль стиля (`nbody/scripts/plot_scripts/settings.py`):
-  Бывший `plot_config.py` УДАЛЁН (2026-08-24) и поглощён `settings.py`.
-  Теперь один модуль содержит всё оформление: COLORS (palette/pastel/
-  sequential/diverging/mono), SIZES, LINE_STYLES/MARKERS, STYLE, setup(),
-  apply(ax, ...), save(fig, path) — плюс dataclass'ы RunPaths /
-  SimulationInfo / PlotSettings.
-  - Новая инфраструктура использует PlotSettings (фасад; применяется через
-    NbodyPlotter, конкретные plots — settings.style_axis()/save_figure()).
+Analysis/plotting package: `nbody/scripts/analysis/` — canonical реестр,
+`AnalysisPaths`, `NbodyPlotter`, стиль, loaders, plots и CLI runners.
+Presentation inputs/assets хранятся отдельно в `nbody/analysis/presentations/`;
+этот registry block asset-only и отдельного runner не имеет.
 
-Analysis output directory:
-  `nbody/analyse/` — единая папка для всех результатов анализа.
-  Каждый тест/сравнение — в своей подпапке:
-    `nbody/analyse/sidm_sigma0.1/`     — одиночный прогон sigma0.1
-    `nbody/analyse/cdm_sidm_comparison/` — сводные графики CDM vs все SIDM
-  Все старые папки analysis/, analysis_all/ и т.д. удалены.
-  Графики строятся скриптами, сохраняются напрямую или копируются в nbody/analyse/.
+Canonical analysis output root: `nbody/analysis/` (container: `/nbody/analysis/`),
+with generated `REGISTRY.md` and `ic/`, `prerun/`, `core/`, `campaigns/`,
+`previous_runs/` blocks. Runners derive output destinations through `AnalysisPaths`.
+Migrated text artifacts (summaries, READMEs, params) are tracked via `.gitignore`
+exceptions; generated PNG/GIF stay ignored. The old `nbody/analyse/` directory
+was removed after the move (contents verified byte-identical via git rename
+detection for the tracked texts); corecusp outputs under `nbody/runs/` were
+deliberately left in place pending the run-status decision.
 
 Important command classes:
 
@@ -52,21 +58,16 @@ Important command classes:
 - GIZMO run scripts
 - GalIC IC generation
 - PartType1→PartType3 conversion (`nbody/scripts/convert_to_pt3.py`)
-- Multi-run comparison (`nbody/scripts/plot_scripts/compare_runs.py`)
-- Standard plotting pipeline (`nbody/scripts/plot_scripts/`, см. ниже)
+- Multi-run comparison and standard plotting (`nbody/scripts/analysis/`)
 - Python visualization scripts
 
-New plotting infrastructure (`nbody/scripts/plot_scripts/`, 2026-08-24):
-- `settings.py` — ЕДИНЫЙ модуль стиля: COLORS/SIZES/STYLE/setup/apply/save (ex plot_config.py) + RunPaths / SimulationInfo / PlotSettings (глобальный стиль через rcParams);
-- `base.py` — BasePlot ABC + data contract с runtime validation;
-- `plotter.py` — NbodyPlotter (registry, describe, make_plot/make_plots), коллекции ANALYSIS_PLOTS / COMPARE_PLOTS / ANIMATION_PLOTS / ALL_PLOTS;
-- `analysis_plots.py` — density, log_slope, sigma_v, interactions_radial + compare: density_compare, log_slope_compare, sigma_v_compare, log_rho_compare (top + Δlogρ vs CDM), rot_curve_compare (top + Δv_circ vs CDM), core_density_vs_sigma;
-- `animation_plots.py` — particles_2d, particles_3d (GIF, PIL);
-- `loaders.py` — HDF5 → plot-ready данные + write_summary() + v_circ (G M(<r)/r, G_code=43009.17);
-- `run_full_test.py` — полный прогон всех plots одного run + validation-тесты + сводка;
-- `compare_runs.py` — сравнение нескольких прогонов (замена compare_all.py / analyze_halo.py).
+Canonical analysis layout (migration completed 2026-10-09):
+- `registry.py`, `paths.py`, `base.py`, `plotter.py`, `style.py`;
+- `loaders/` converts IC/snapshot/series inputs into plot-ready data;
+- `plots/` contains registered plot classes by block;
+- `runners/` contains IC, prerun, run, campaign, and registry-doc CLIs.
 
-Removed legacy analysis/graphics scripts (2026-08-24, заменены `plot_scripts/`):
+Historical removals from the pre-registry plotting layer (2026-08-24):
 - `png_to_gif.py` (imageio отсутствовал — был нерабочим);
 - `make_run_evolution.py`, `make_3d_animation.py` (заменены particles_2d/particles_3d);
 - `nbody/gadget_test/example_snap.py`, `example_snap3D.py` (glio);
@@ -82,7 +83,7 @@ Test infrastructure (2026-08-25):
 - pytest 9.1.1 in `.venv` (direct PyPI unreachable from this host — install
   via mirror: `pip install -i https://pypi.tuna.tsinghua.edu.cn/simple <pkg>`).
 - `pytest.ini` в корне (`testpaths = tests`, addopts `-q`).
-- Запуск: `.venv/bin/python -m pytest tests/ -q` (~0.2–1 s, 23 теста).
+- Запуск: `.venv/bin/python -m pytest tests/ -q` (suite grows as regression tests are added).
   Агент может гонять свободно, без подтверждений.
 - `tests/synth_snap.py` — детерминированный генератор синтетических HDF5
   снапшотов (однородный шар N=2000 seed=42, центр (10,20,30), NI=5050 сумм,
@@ -127,7 +128,7 @@ Git policy (2026-08-25):
 
 Operational validation workflow:
 - `nbody/scripts/check_simulations/` — reusable monitoring/diagnostic tools: `check_run.py` for one run, `check_block.py` for groups, and `analyze_series.py` for partial/pathological series diagnostics; parse `run.log`, `run.state`, run params, snapshot inventory/latest metadata, detect timestep pathology, estimate simple ETA, output `human`, `json`, or compact Telegram-safe `tg` reports, and quantify shape/thickness/rotation/core-density/NInteractions evolution over completed snapshots.
-- `skills/check-run/SKILL.md` — thin orchestration skill that invokes these scripts instead of ad-hoc checks; plotting remains in `plot_scripts` and is used only when runs are complete enough.
+- `skills/check-run/SKILL.md` — thin orchestration skill that invokes these scripts instead of ad-hoc checks; plotting uses the canonical analysis runners when runs are complete enough.
 
 High-risk actions:
 

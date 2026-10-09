@@ -1,0 +1,73 @@
+{
+  "ic": "/nbody/ics/corecusp_N1e7/corecusp_N1e7.hdf5",
+  "snap": "/nbody/runs/corecusp_cdm_N1e7_T5/output/snapshot_000.hdf5",
+  "t_snap": 0.02,
+  "galic_dir": "/nbody/ics/corecusp_N1e7/galic_dm",
+  "N": 10000000,
+  "m_p": 2.3245797819981817e-06,
+  "nfw_fit": {
+    "r_s_kpc": 3.685021637375144,
+    "rho_s": 0.014839483151798477,
+    "rms_v2": 1069.7102811012712,
+    "used_for_checks": false
+  },
+  "galic_params": {
+    "CC": 20.0,
+    "V200": 100.0
+  },
+  "dCOM_kpc": 0.0007321161881921088,
+  "v_bulk_ic": [
+    0.02685372903943062,
+    -0.014971069991588593,
+    -0.019205570220947266
+  ],
+  "v_bulk_snap": [
+    0.026696231216192245,
+    -0.01145025622099638,
+    -0.023858165368437767
+  ],
+  "slope_target": -1.2530244777970154,
+  "rho_snap_over_target": 0.9846460259127714,
+  "slope_ic": -1.2546377934677284,
+  "slope_snap": -1.1896045485474618,
+  "d_slope": 0.06503324492026663,
+  "rho_ic_over_snap": 1.0183765781738656,
+  "gate_bins": 20,
+  "N_lt_0.1_ic": 350,
+  "N_lt_0.1_snap": 233,
+  "N_lt_0.3_ic": 7105,
+  "N_lt_0.3_snap": 4797,
+  "N_lt_0.5_ic": 20657,
+  "N_lt_0.5_snap": 16796,
+  "N_lt_1.0_ic": 78623,
+  "N_lt_1.0_snap": 73052,
+  "N_lt_2.0_ic": 267874,
+  "N_lt_2.0_snap": 264219,
+  "N_lt_5.0_ic": 1081726,
+  "N_lt_5.0_snap": 1082248,
+  "T_ic": 190132.234375,
+  "T_snap": 189945.15625,
+  "W_snap": -379356.40625,
+  "virial_2T_W_snap": 1.001407400115574,
+  "W_target": -361639.7723015313,
+  "dE_over_W": -0.04950703281203485,
+  "virial_2T_W_ic_target": 1.0515006862490215,
+  "n_steps": 65,
+  "dt_min": 0.000305176,
+  "dt_max": 0.000610352,
+  "soft_min": 0.14000000059604645,
+  "soft_median": 0.14000000059604645,
+  "soft_inner_median": 0.14000000059604645,
+  "mean_spacing_1kpc": 0.03856134436267604,
+  "nint_max": 0,
+  "checks": {
+    "no_immediate_core": true,
+    "central_density_stable": true,
+    "snap_matches_target": true,
+    "resolution_ok": true,
+    "virial_sane": true,
+    "timesteps_sane": true,
+    "cdm_no_interactions": true
+  },
+  "gate_pass": true
+}

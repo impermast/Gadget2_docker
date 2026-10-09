@@ -2,6 +2,12 @@
 
 ## 2026-10-05 — инфраструктурное упрощение анализа
 
+> Исторический снимок статуса на 2026-10-05; актуальный layout —
+> `nbody/scripts/analysis/`, актуальный output root — `nbody/analysis/`.
+
+> Историческая запись. Текущий статус analysis migration см. ниже, запись
+> от 2026-10-09.
+
 ### Gitignore cleanup
 
 - Приведены к canonical layout правила `.gitignore`: новые и legacy IC-gate
@@ -25,17 +31,19 @@
   описан как read-only способ вывести каталог, без ручного дублирования plot list.
 - `nbody/scripts/analysis/README.md` документирует тот же контракт и локальный
   вариант `--print` через временный `NBODY_ANALYSIS_ROOT`.
+- Реестр `nbody/analysis/REGISTRY.md` проверен в контейнере командой
+  `registry_docs.py --check` (прошло в continuation ниже).
 - Актуальный реестр содержит 26 plot specs: IC 1, prerun 4, core 7, campaigns
   14, presentations 0. В документации skill убрана недействительная рекомендация
   вызывать ещё не существующий presentation runner.
-- Guard whitelist пояснён как незавершённая миграция, а не формальность:
-  direct rendering ещё найден в `check_simulations/analyze_series.py` и
-  `compare_shape_series.py`; package `nbody/presentations/` тоже требует
-  отдельного переноса. Это выявленная работа, не исправленная этим этапом.
-- Проверки после правок: guard `7 passed`, полный suite `50 passed`,
+- На момент аудита были найдены direct rendering в series/shape CLI и
+  presentation sources вне analysis; оба пункта закрыты последующим этапом
+  2026-10-09 (коммит `17de885`). В whitelist остались только IC/early gate CLI.
+- На момент аудита `/nbody` был недоступен с хоста; позже реестр успешно
+  проверен командой `registry_docs.py --check` в контейнере.
+- На момент аудита: guard `7 passed`, полный suite `50 passed`;
   `git diff --check` чистый. `registry_docs.py --print` успешен с временным
-  analysis root; контейнерный `--check` здесь недоступен, поскольку `/nbody`
-  смонтирован только в контейнере.
+  analysis root.
 
 ## 2026-10-09 — продолжение унификации analysis
 
@@ -52,6 +60,11 @@
   `/nbody/analysis` доступен на запись; на хосте каталог root-owned.
 - Полный pytest: 51 passed; CLI guard: 8 passed; shell syntax, CLI help,
   `git diff --check` и хеш-сверка presentation assets прошли.
+- Коммит: `17de885` (`refactor(analysis): unify prerun CLIs and move presentation assets`).
+- Незакоммиченное удаление `nbody/presentations/2026-09-10/nbody_deepseek.pptx`
+  оставлено отдельно и не входит в коммит.
+- Оставшийся backlog исходного плана: ревизия/миграция старых analysis outputs,
+  archive/campaign README, отложенная уборка и остаточная документационная приёмка.
 
 What works:
 
@@ -134,8 +147,8 @@ TODO:
 - [x] Create `nbody/scripts/generate_ics.sh` — GalIC wrapper with JSON config, auto-component generation.
 - [x] Create `nbody/scripts/merge_ics.py` — universal HDF5 PartType converter/merger.
 - [x] Test full pipeline: GalIC → merge_ics → IC generated (example_cdm, 10k particles).
-- [x] Refactor plotting layer: `nbody/scripts/plot_scripts/` (NbodyPlotter, registry, data contracts, 2D/3D animations), удалить png_to_gif/make_run_evolution/make_3d_animation после успешного теста.
-- [x] Переписать skill `make-plots` под plot_scripts (registry, describe, примеры), переустановить skills.
+- [x] Refactor plotting layer into canonical analysis package (historical destination was `nbody/scripts/plot_scripts/`; migrated 2026-10-09).
+- [x] Переписать skill `make-plots` под registry и canonical runners, переустановить skills.
 - [x] Удалить старые графические скрипты (glio/yt: example_snap*.py, ytvis.py, field_maker.py), адаптировать memory-bank.
 - [x] Слить plot_config.py с PlotSettings (единый settings.py).
 - [x] Multi-run comparison в registry + compare_runs.py; сводка -> loaders.write_summary; удалить analyze_final_snapshot.py, analyze_halo.py, compare_all.py; переключить run_sidm_batch.sh.

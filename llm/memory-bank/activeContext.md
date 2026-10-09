@@ -1,5 +1,8 @@
 # Active Context
 
+> Historical notes below retain earlier state snapshots; current status and paths
+> are in the 2026-10-09 entries and `techContext.md`.
+
 ## 2026-10-05 — prerun pipeline переведён на canonical runner
 
 ### Gitignore cleanup
@@ -13,15 +16,14 @@
 
 - Legacy IC/early gate CLI теперь содержит только аргументы, вызов loader-метрик
   и registry-based rendering; прямых импортов matplotlib/savefig в этих CLI нет.
-- `nbody/scripts/run_matrix_dissipation_focused_T5.sh` переключён с
-  `check_simulations/analyze_series.py` и `compare_shape_series.py` на
+- Pipeline `nbody/scripts/run_matrix_dissipation_focused_T5.sh` использует
   `analysis/runners/make_prerun_plots.py` для series и shape режимов.
 - `loaders.prerun.resolve_metrics_path()` поддерживает и новый путь
   `NBODY_ANALYSIS_ROOT/prerun/<run>/metrics_series.csv`, и старый
   `<run>/partial_analysis/metrics_series.csv`; это позволяет групповой shape
   анализу работать с уже существующими legacy runs.
 - Проверено: `git diff --check`, `bash -n` pipeline, CLI `--help`, полный pytest
-  (`50 passed`; остаётся только ожидаемое warning про пустой presentations block).
+  (на тот момент 50 passed; см. актуальный итог ниже).
 
 ## 2026-10-09 — make-plots: актуальный каталог из реестра
 
@@ -33,11 +35,10 @@
   `presentations=0`). Описание presentations runner в skill было преждевременным:
   runner отсутствует, блок пуст.
 - Проверка перехода нашла незакрытый plotting debt: `analyze_series.py` и
-  `compare_shape_series.py` всё ещё содержат matplotlib/savefig; legacy
-  presentation source также остаётся вне analysis. IC/early gate wrappers уже
-  используют общий layer, однако whitelist-комментарии раньше создавали
-  впечатление, что весь этап миграции завершён. Уточнён статус whitelist.
-- Проверки после правок: guard `7 passed`, полный suite `50 passed`;
+  `compare_shape_series.py` содержали matplotlib/savefig; это исправлено в
+  коммите `17de885`. Legacy presentation assets также перенесены в целевой
+  analysis-каталог. Остаточный whitelist относится только к IC/early gate CLI.
+- Проверки на момент аудита: guard `7 passed`, полный suite `50 passed`;
   `git diff --check` чистый. Registry выведен через `--print` с временным
   `NBODY_ANALYSIS_ROOT`; `--check` на хосте с default `/nbody/analysis` не
   работает, т.к. `/nbody` недоступен вне контейнера.
@@ -49,7 +50,10 @@
   произвольных каталогов намеренно не поддерживается (AnalysisPaths invariant).
 - Presentation source/assets перенесены через writable bind mount контейнера в
   `nbody/analysis/presentations/`; отдельный plotting runner не нужен.
-- Предварительное удаление `nbody_deepseek.pptx` не трогалось.
+- Изменения закоммичены в `agent/dev`: `17de885`; полный suite — 51 passed,
+  registry `--check`, shell syntax, CLI help и diff checks прошли.
+- Удаление `nbody/presentations/2026-09-10/nbody_deepseek.pptx` оставлено
+  незакоммиченным отдельно; файл не восстанавливался и в коммит не включался.
 - Миграция `nbody/analyse/` и мусора остаётся отложенной; архивные результаты,
   в частности незавершённый corecusp, не перемещались.
 
@@ -87,7 +91,9 @@ Current focus:
   auto-deletes run folders. Default matrix launch now uses PROCS=8 and supports
   env override `GROUP=...`.
 - Revised grid `/nbody/runs/test_dissipation_grid_sigma1/` completed. Pathological `dsidm10_f02_k0_N1e5_T2` was removed; 10 stable runs passed `run_full_test.py`. Shape/thickness comparison (`shape_compare/`) shows no T=2 dark-disk signature (`c/a(r<5)≈0.94`, `z/R≈0.67`, `|vrot|/sigma≈0.07`).
-- Added presentation visual morphology package in `nbody/scripts/plot_scripts/compare_visual_morphology.py` plus registry plots. First T=5 partial render exists at `/nbody/runs/test_dissipation_focused_T5/visual_compare/` using current available snapshots: CDM t=5.0 and SIDM10 t=0.9; other focused runs will be included automatically when snapshots appear.
+- Historical: presentation visual-morphology tooling was introduced in the former
+  `plot_scripts` package (since migrated to `nbody/scripts/analysis/`). First T=5
+  partial render exists at `/nbody/runs/test_dissipation_focused_T5/visual_compare/`.
 - Old N1e6 dwarf production runs are grouped under `/nbody/runs/sidm_dwarf_N1e6_T5/`.
   Oversized old `/nbody/runs/cdm_N1e6/` was deleted by user request.
 - Legacy runs are archived under `/nbody/runs/archive/`: `legacy_cdm_sidm_N1e6/`,
@@ -163,11 +169,11 @@ Known file paths:
 - GADGET run script: `nbody/gadget_test/run_gadget.sh`
 - GADGET params: `nbody/gadget_test/lcdm_gas.param`
 - GADGET Makefile: `nbody/gadget_test/Makefile`
-- Visualization: `nbody/scripts/plot_scripts/` (единственная plotting-инфраструктура: NbodyPlotter + registry + compare_runs), `nbody/scripts/convert_to_pt3.py`, `nbody/scripts/check_snapshot.py`
+- Visualization: `nbody/scripts/analysis/` (canonical NbodyPlotter + registry + runners), `nbody/scripts/convert_to_pt3.py`, `nbody/scripts/check_snapshot.py`
 - Run wrappers: `nbody/scripts/run_sim.sh` (GIZMO CDM/SIDM), `nbody/scripts/generate_ics.sh` (GalIC IC generation)
 - IC tools: `nbody/scripts/merge_ics.py` (universal HDF5 PartType converter/merger)
-- Skills (operational protocols): `skills/gizmo-sim/SKILL.md` (run/debug/generate-ic/summarize), `skills/make-plots/SKILL.md` (visualization через plot_scripts), `skills/check-run/SKILL.md` (monitor/diagnose/summary existing runs via reusable `nbody/scripts/check_simulations/`, with human/json/tg output); installed into `~/.codex/skills/` and `~/.agents/skills/` via `skills/install.sh`
+- Skills (operational protocols): `skills/gizmo-sim/SKILL.md` (run/debug/generate-ic/summarize), `skills/make-plots/SKILL.md` (visualization через analysis registry/runners), `skills/check-run/SKILL.md` (monitor/diagnose/summary existing runs via reusable `nbody/scripts/check_simulations/`, with human/json/tg output); installed into `~/.codex/skills/` and `~/.agents/skills/` via `skills/install.sh`
 
-Removed legacy graphics scripts (2026-08-24, заменены `plot_scripts/`):
+Removed legacy graphics scripts (2026-08-24, заменены analysis package):
 `png_to_gif.py`, `make_run_evolution.py`, `make_3d_animation.py`,
 `nbody/gadget_test/example_snap.py`, `example_snap3D.py`, `ytvis.py`, `field_maker.py`.

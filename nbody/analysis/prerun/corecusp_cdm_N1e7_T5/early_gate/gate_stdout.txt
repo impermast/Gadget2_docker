@@ -1,0 +1,54 @@
+Early CDM gate report (early_cdm_gate.py)
+======================================================================
+IC:   /nbody/ics/corecusp_N1e7/corecusp_N1e7.hdf5
+snap: /nbody/runs/corecusp_cdm_N1e7_T5/output/snapshot_000.hdf5   Time = 0.020000 (~0.0 Gyr)
+N snap: 10000000  (IC N: 10000000)   m_p = 2.3246e-06 (1e10 Msun)
+target: rotcurve GalIC напрямую (v^2 r / G) [CC=20.0, V200=100.0]; справочно NFW-fit: r_s=3.685 kpc rms(v^2)=1070
+
+Center & bulk drift:
+  COM(IC)   = (+0.0056, +0.1746, +0.0412)
+  COM(snap) = (+0.0061, +0.1743, +0.0408)
+  |dCOM|    = 0.00073 kpc
+  v_bulk(IC)   = [ 0.027 -0.015 -0.019] km/s |v|=0.036
+  v_bulk(snap) = [ 0.027 -0.011 -0.024] km/s |v|=0.038
+
+Central gate range 0.3-3.0 kpc: 20 bins with N>=200
+  median slope IC    = -1.255
+  median slope snap  = -1.190   (Delta = +0.065, tol 0.2)
+  median rho_IC/rho_snap = 1.0184 (tol 5%)
+  median slope target = -1.253  (|snap-target| = 0.063)
+  median rho_snap/rho_target = 0.9846
+
+Enclosed mass / N(<r):
+  r[kpc]     N_IC       N_snap     M_IC[1e10]   M_snap[1e10]   dM/M
+    0.10         350         233     8.1360e-04    5.4162e-04   -3.34e-01
+    0.30        7105        4797     1.6516e-02    1.1151e-02   -3.25e-01
+    0.50       20657       16796     4.8019e-02    3.9043e-02   -1.87e-01
+    1.00       78623       73052     1.8276e-01    1.6981e-01   -7.09e-02
+    2.00      267874      264219     6.2269e-01    6.1420e-01   -1.36e-02
+    5.00     1081726     1082248     2.5145e+00    2.5158e+00   +4.83e-04
+  resolution check: N(<1 kpc)=73052, t_relax(1 kpc)=46.9 Gyr
+
+Energy / virial diagnostics (units 1e10 Msun (km/s)^2):
+  T(IC)   = 1.901322e+05     T(snap) = 1.899452e+05   dT/T = -9.839e-04
+  W(snap) = -3.793564e+05 (из блока Potential)   2T/|W| = 1.0014
+  W(target rotcurve) = -3.616398e+05   2T/|W|(IC,target) = 1.0515
+  dE/|W_target| = -4.951e-02  (энергия IC+target-W vs snap)
+
+Timestep / softening sanity:
+  шагов (Sync-Point): 65;  t range [0.000e+00, 2.014e-02]
+  dt (ненулевые): min=3.052e-04 median=3.052e-04 max=6.104e-04
+  Softening_KernelRadius: min=1.4000e-01 median=1.4000e-01 (code units); inner(r<1kpc) median=1.4000e-01
+  среднее межчастичное расстояние (r<1 kpc) ~ 0.0386 kpc (n=73052)
+  NInteractions max = 0 (CDM: ожидается 0)
+
+  [PASS] no_immediate_core
+  [PASS] central_density_stable
+  [PASS] snap_matches_target
+  [PASS] resolution_ok
+  [PASS] virial_sane
+  [PASS] timesteps_sane
+  [PASS] cdm_no_interactions
+
+EARLY GATE: PASS
+Next state: WAITING_FOR_REVIEW (production continuation НЕ запускается автоматически)
