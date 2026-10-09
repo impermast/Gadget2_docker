@@ -13,21 +13,35 @@
 | `plotter.py` | `NbodyPlotter` — оркестратор: config-merge, валидация данных, render; `UnknownPlotError`/`DuplicatePlotError` |
 | `base.py` | `BasePlot` (ABC), data contract (`FieldSpec`/`F`, `validate_fields`), `PlotValidationError` |
 | `style.py` | ЕДИНЫЙ стиль (`PlotSettings`, палитры, rcParams), `RunPaths` (пути прогона), `SimulationInfo`; узкая горловина `save_figure`/`savefig` |
-| `loaders/` | HDF5 → plot-ready данные: `snapshots.py`, `profiles.py`, `particles.py` (математика перенесена дословно, golden-тесты) |
-| `plots/` | concrete plots по блокам: `core.py`, `campaigns.py`, `animations.py` (+ `ic.py`, `prerun.py` — этап 3) |
-| `runners/` | CLI: `make_run_plots.py`, `make_campaign_plots.py`, `make_campaign_morphology_plots.py`, `make_campaign_diag_plots.py`, `registry_docs.py` (+ `make_ic_plots.py`, `make_prerun_plots.py` — этап 3) |
+| `loaders/` | HDF5 → plot-ready данные: `snapshots.py`, `profiles.py`, `particles.py`, `ic.py`, `prerun.py` (математика перенесена дословно, golden-тесты) |
+| `plots/` | concrete plots по блокам: `core.py`, `campaigns.py`, `animations.py`, `ic.py`, `prerun.py` |
+| `runners/` | CLI: `make_run_plots.py`, `make_campaign_plots.py`, `make_campaign_morphology_plots.py`, `make_campaign_diag_plots.py`, `registry_docs.py`, `make_ic_plots.py`, `make_prerun_plots.py` |
+| `presentations/` (в корне `nbody/analysis/`) | Исходники/готовые assets презентаций; отдельного runner'а нет по решению пользователя |
 
-## Главный вход для ИИ-агента — REGISTRY.md
+## Главный вход для ИИ-агента — актуальный каталог реестра
 
-Код читать не нужно: каталог графиков генерируется из реестра и лежит в
+Код plot'ов читать не нужно: каталог генерируется из реестра и лежит в
 `nbody/analysis/REGISTRY.md` (в контейнере путь тот же). Для каждого plot там
 есть `summary`, `data_source`, `inputs`, `runner`, `filename`, `config keys`.
+В skill `make-plots` достаточно держать ссылку и схему выбора runner'а, а не
+дублировать список имён/описаний: при каждом запросе агент читает этот файл,
+поэтому новый plot появляется в каталоге после регенерации без правки skill.
+Для перечня без записи файла используйте `registry_docs.py --print`; для
+проверки committed/generated каталога — `--check`.
 
 ```bash
 # сгенерировать/обновить каталог:
 docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/registry_docs.py
 # проверить актуальность (CI/pre-commit):
 docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/registry_docs.py --check
+```
+
+Локально, если контейнер недоступен, можно получить тот же каталог без записи
+в `/nbody/analysis`:
+
+```bash
+NBODY_ANALYSIS_ROOT=/tmp/nbody-analysis \
+  python3 nbody/scripts/analysis/runners/registry_docs.py --print
 ```
 
 Инварианты реестра (падают тестом `tests/test_registry.py`):
@@ -71,9 +85,9 @@ docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/make_campaign_p
    `name`, `block`, `summary`, `data_source`, `inputs`, `default_config`
    (в нём — `filename`) и декоратором `@register`.
 2. Данные для него готовит лоадер из `loaders/` (plots HDF5 не читают).
-3. Тест: `tests/test_render_smoke.py` рисует каждый plot блока на синтетической
-   фикстуре; для нового блока/plot'а добавьте данные в `_campaign_jobs`-подобный
-   builder.
+4. Тест: `tests/test_render_smoke.py` сейчас рисует plots блоков core и
+   campaigns на синтетической фикстуре. Для нового plot добавьте synthetic data
+   builder; для нового блока добавьте соответствующий smoke job/тест.
 4. Перегенерируйте `REGISTRY.md`. Процедура этапов — `implementation_plan.md` §8.2.
 
 ## Тесты

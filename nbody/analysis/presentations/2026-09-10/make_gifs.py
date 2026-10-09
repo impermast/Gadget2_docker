@@ -25,12 +25,12 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from PIL import Image
 
-REPO = Path("/home/kds/sci/gadget2_docker")
-sys.path.insert(0, str(REPO / "nbody/scripts/plot_scripts"))
-from loaders import read_snapshot, shrink_center, list_snapshots  # noqa: E402
+REPO = Path(__file__).resolve().parents[5]
+sys.path.insert(0, str(REPO / "nbody/scripts/analysis"))
+from analysis.loaders import read_snapshot, shrink_center, list_snapshots  # noqa: E402
 
 BASE = REPO / "nbody/runs/dsidm_spin_k08_transition"
-OUT = REPO / "nbody/presentations/2026-09-10/gif"
+OUT = Path(__file__).resolve().parent / "gif"
 PREVIEW = OUT / "preview"
 
 RUNS = [

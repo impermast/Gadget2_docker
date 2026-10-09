@@ -10,19 +10,58 @@
 3. Доступные настройки графика — в колонке `config keys`.
 4. Внутри блока runner может отличаться (см. `runner` у plot'а); любой runner принимает `--plots a,b,c` для подмножества.
 
-Всего графиков: **21**; блоки: `ic` (0), `prerun` (0), `core` (7), `campaigns` (14), `presentations` (0)
+Всего графиков: **26**; блоки: `ic` (1), `prerun` (4), `core` (7), `campaigns` (14), `presentations` (0)
 
 ## Блок `ic`
 
 IC — начальные условия (GalIC): target-профиль, гейт разрешения каспа
 
-_пока пусто_
+| plot | что показывает | данные | вход | выходной файл |
+|---|---|---|---|---|
+| `ic_gate_profile` | IC-gate: измеренный профиль vs NFW-target + наклон + разрешение | prepare_ic_figure_data | ic | `ic_gate_profile.png` |
+
+### `ic_gate_profile`
+
+- **runner:** `runners/make_ic_plots.py`
+- **inputs:** ic
+- **config keys:** dpi, figsize, gate_range, nmin, title
+
 
 ## Блок `prerun`
 
 PRERUN — ранние снапшоты: гейт первых шагов, диагностика серии
 
-_пока пусто_
+| plot | что показывает | данные | вход | выходной файл |
+|---|---|---|---|---|
+| `contact_sheet` | Contact-sheet серии: face-on/edge-on кадры по снапшотам | prepare_series_frames | run | `contact_{plane}.png` |
+| `early_cusp_compare` | Ранний гейт: IC vs snapshot vs target + сохранение каспа | prepare_early_figure_data | run | `early_cusp_compare.png` |
+| `series_evolution` | Эволюция серии: плотность ядра, форма, NI по времени | metrics_series.csv | run | `series_evolution.png` |
+| `shape_panel` | Сравнение shape-серий группы: 5 панелей по времени | metrics_series.csv (группа) | runs | `shape_panel_{key}.png` |
+
+### `contact_sheet`
+
+- **runner:** `runners/make_prerun_plots.py`
+- **inputs:** run
+- **config keys:** bins, cmap, dpi, min_lim, percentile, plane, title
+
+### `early_cusp_compare`
+
+- **runner:** `runners/make_prerun_plots.py`
+- **inputs:** run
+- **config keys:** dpi, figsize, gate_range, title
+
+### `series_evolution`
+
+- **runner:** `runners/make_prerun_plots.py`
+- **inputs:** run
+- **config keys:** dpi, figsize, title
+
+### `shape_panel`
+
+- **runner:** `runners/make_prerun_plots.py`
+- **inputs:** runs
+- **config keys:** dpi, figsize, title
+
 
 ## Блок `core`
 

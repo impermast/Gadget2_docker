@@ -1,11 +1,11 @@
-"""Guard-раскладка анализа (этап 0, маркер `guard`): запрет рандомных графиков.
+"""Guard-раскладка анализа (маркер `guard`): запрет ad-hoc графиков.
 
 Инварианты (нарушение = красный тест, красный pre-commit, красный CI):
 
 1. `matplotlib` / `PIL` импортируется ТОЛЬКО в `nbody/scripts/analysis/`
-   (whitelist ниже — легаси, убывает по мере этапов 3-5).
+   (whitelist ниже — явные незавершённые миграции).
 2. `.savefig(` вызывается ТОЛЬКО в узких горловинах `analysis/plotter.py`
-   и `analysis/style.py` (этап 2: единственный вызов переезжает из settings.py);
+   и `analysis/style.py`;
    сборка GIF через PIL — только в `analysis/plots/animations.py`.
 3. В `nbody/scripts/analysis/runners/*.py` запрещены CLI-флаги
    `--outdir/--output/--output-dir/-o`: выход вычисляется из AnalysisPaths.
@@ -14,18 +14,21 @@
 5. Whitelist обязан быть точным: запись на несуществующий файл = fail
    (список не может копиться — только убывать).
 
-Whitelist-легенда (удалять строку вместе с этапом миграции):
-  check_simulations/{4 шт} — этап 3 (гейты -> метрики, графики -> plots/)
-  presentations/**         — этап 5 (слайды -> analysis/presentations)
-  plot_scripts/**          — этап 4 ВЫПОЛНЕН: legacy-каталог удалён, весь код
-                             живёт в nbody/scripts/analysis/ (runner'ы + реестр).
+Whitelist-легенда: удалять запись только после фактической миграции/удаления
+рисующего кода и проверки потребителей.
+  check_ic_cusp.py, early_cdm_gate.py — метрики в loaders; legacy CLI вызывает
+                                        registry-based plotter, но не рисует напрямую.
+  analyze_series.py, compare_shape_series.py — совместимые CLI-прокси; rendering
+                                               передан make_prerun_plots.py.
 """
 
 from __future__ import annotations
 
 import ast
 import builtins
+import importlib.util
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -33,13 +36,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = REPO_ROOT / "nbody" / "scripts"
 ANALYSIS = SCRIPTS / "analysis"
 
-# Относительные пути от корня репо (файлы) или каталоги целиком.
+# Относительные пути от корня репо (файлы) или каталоги целиком. В whitelist
+# остаются только два legacy gate CLI; они пока импортируют plotting layer.
 LEGACY_PLOT_WHITELIST = {
-    "nbody/scripts/check_simulations/check_ic_cusp.py",            # этап 3
-    "nbody/scripts/check_simulations/early_cdm_gate.py",           # этап 3
-    "nbody/scripts/check_simulations/analyze_series.py",           # этап 3
-    "nbody/scripts/check_simulations/compare_shape_series.py",     # этап 3
-    "nbody/presentations",                                         # этап 5
+    "nbody/scripts/check_simulations/check_ic_cusp.py",            # transitional CLI
+    "nbody/scripts/check_simulations/early_cdm_gate.py",           # transitional CLI
 }
 
 SAVEFIG_CHOKE_POINTS = {ANALYSIS / "plotter.py", ANALYSIS / "style.py"}
@@ -51,6 +52,47 @@ FAIL_MSG = ("Рисование только через nbody/scripts/analysis/ 
             "(реестр + runners + AnalysisPaths). См. implementation_plan.md §[Skills].")
 
 FORBIDDEN_OUTDIR_FLAGS = {"--outdir", "--output", "--output-dir", "-o"}
+
+
+@pytest.mark.guard
+def test_legacy_series_clis_forward_compatible_options(monkeypatch):
+    """Legacy CLI names keep their documented arguments and dispatch canonically."""
+    check_scripts = SCRIPTS / "check_simulations"
+    for filename, argv, expected in (
+        ("analyze_series.py",
+         ["analyze_series.py", "--run-root", "/runs/one", "--ptype", "3",
+          "--max-frames", "10"],
+         ["--run-root", "/runs/one", "--ptype", "3", "--max-frames", "10"]),
+        ("compare_shape_series.py",
+         ["compare_shape_series.py", "--group-root", "/runs/group", "--runs",
+          "one", "two", "--metrics-rel", "partial_analysis/metrics_series.csv", "--tg"],
+         ["--group-root", "/runs/group", "--campaign", "group", "--member",
+          "shape_compare", "--metrics-rel", "partial_analysis/metrics_series.csv",
+          "--runs", "one", "two", "--tg"]),
+    ):
+        captured = {}
+
+        def dispatch(filename=filename, captured=captured):
+            captured["argv"] = sys.argv[1:]
+            return 0
+
+        runner_path = SCRIPTS / "analysis" / "runners" / "make_prerun_plots.py"
+        runner_spec = importlib.util.spec_from_file_location(
+            "test_make_prerun_runner", runner_path)
+        assert runner_spec.loader is not None
+        runner = importlib.util.module_from_spec(runner_spec)
+        runner_spec.loader.exec_module(runner)
+        monkeypatch.setattr(runner, "main", dispatch)
+        monkeypatch.setitem(sys.modules,
+                            "analysis.runners.make_prerun_plots", runner)
+        monkeypatch.setattr(sys, "argv", argv)
+        spec = importlib.util.spec_from_file_location(
+            f"legacy_{filename[:-3]}", check_scripts / filename)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        assert module.main() == 0
+        assert captured["argv"] == expected
 
 
 def _rel(p: Path) -> str:
@@ -100,7 +142,9 @@ def test_no_matplotlib_outside_analysis():
     """matplotlib/PIL — только в analysis/ (+ точный whitelist)."""
     bad: list[str] = []
     for path in _py_files():
-        if _rel(path).startswith("nbody/scripts/analysis/"):
+        rel = _rel(path)
+        if rel.startswith("nbody/scripts/analysis/") or rel.startswith(
+                "nbody/analysis/presentations/"):
             continue
         if _is_whitelisted(path):
             continue
@@ -116,6 +160,9 @@ def test_savefig_only_in_plotter():
     """savefig — только узкие горловины (plotter.py, style.py)."""
     bad: list[str] = []
     for path in _py_files():
+        rel = _rel(path)
+        if rel.startswith("nbody/analysis/presentations/"):
+            continue  # Curated slide-building source, not an analysis plot class.
         if path in SAVEFIG_CHOKE_POINTS:
             continue
         if _is_whitelisted(path):

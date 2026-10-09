@@ -147,8 +147,8 @@ done
 cat > "$MSGFILE" <<EOF
 🔬 FOCUSED T=5 simulations finished. Starting final analysis:
 - run_full_test.py for each successful run
-- analyze_series.py shape/thickness diagnostics
-- compare_shape_series.py group report
+- canonical make_prerun_plots.py series diagnostics (AnalysisPaths output)
+- canonical make_prerun_plots.py group shape report (AnalysisPaths output)
 EOF
 tg_send "$MSGFILE"
 log "=== ANALYSIS PHASE START ==="
@@ -199,7 +199,7 @@ Run failures: $FAILED
 Analysis failures: $ANALYSIS_FAIL
 Вердикт: $VERDICT
 
-Shape report: /nbody/runs/$GROUP/shape_compare/shape_summary.txt
+Shape report: /nbody/analysis/campaigns/$GROUP/shape_compare/shape_summary.txt
 Лог: $LOG
 EOF
 tg_send "$MSGFILE"

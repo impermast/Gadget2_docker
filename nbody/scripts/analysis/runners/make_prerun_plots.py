@@ -25,6 +25,9 @@ _HERE = Path(__file__).resolve().parent
 for _p in (_HERE.parent.parent, _HERE.parent):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
+_CHECK_SCRIPTS = _HERE.parents[1] / "check_simulations"
+if str(_CHECK_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_CHECK_SCRIPTS))
 
 from analysis.loaders import (  # noqa: E402
     classify_series,
@@ -136,7 +139,9 @@ def do_series(args, names: list) -> int:
                for k in ("time", "rho_core_r2", "ca_r5",
                          "z_rms_over_R_rms_r5", "mean_vphi_r5",
                          "ninteractions_total")}
-        jobs = {"series_evolution": {"data": evo}}
+        jobs = {"series_evolution": {
+            "data": evo,
+            "config": {"filename": "shape_evolution.png"}}}
         for paths in _plotter(outdir).make_plots(jobs, output_dir=outdir).values():
             created.extend(paths)
     if "contact_sheet" in names:
@@ -189,10 +194,10 @@ def main() -> int:
     ap.add_argument("--run-log", default=None)
     ap.add_argument("--run-name", default=None)
     ap.add_argument("--galic-dir", default=None)
-    ap.add_argument("--run-root", default=None)
+    ap.add_argument("--run-root", "--run", dest="run_root", default=None)
     ap.add_argument("--ptype", type=int, default=3)
     ap.add_argument("--max-frames", type=int, default=None)
-    ap.add_argument("--group-root", default=None)
+    ap.add_argument("--group-root", "--group", dest="group_root", default=None)
     ap.add_argument("--runs", nargs="*", default=None)
     ap.add_argument("--metrics-rel", default="partial_analysis/metrics_series.csv")
     ap.add_argument("--campaign", default=None)
@@ -201,6 +206,8 @@ def main() -> int:
     ap.add_argument("--rlo", type=float, default=0.3)
     ap.add_argument("--rhi", type=float, default=3.0)
     ap.add_argument("--plots", default=None)
+    ap.add_argument("--tg", action="store_true",
+                    help="send the shape-series text report to Telegram")
     args = ap.parse_args()
 
     names = _wanted(args.plots)
@@ -214,7 +221,13 @@ def main() -> int:
         return do_series(args, names)
     if not args.campaign:
         raise SystemExit("[FAIL] режим группы требует --campaign")
-    return do_shape(args, names)
+    result = do_shape(args, names)
+    if args.tg and result == 0:
+        from formatting import send_tg
+        report = AnalysisPaths().campaign_dir(args.campaign, args.member) / "shape_summary.txt"
+        if report.is_file():
+            send_tg(report.read_text())
+    return result
 
 
 if __name__ == "__main__":

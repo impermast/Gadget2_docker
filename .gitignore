@@ -61,15 +61,18 @@ test_graph_*
 # графиков REGISTRY.md, сгенерированный runners/registry_docs.py.
 nbody/analysis/**
 !nbody/analysis/REGISTRY.md
+# Curated presentation inputs are source assets, not disposable analysis output.
+!nbody/analysis/presentations/
+!nbody/analysis/presentations/**
+# Presentation exports — keep source scripts/prompts, ignore generated bundles
+nbody/analysis/presentations/**/*.pptx
+nbody/analysis/presentations/**/gif/preview/
+nbody/analysis/presentations/2026-09-10/dsidm_progress_report_html_v6_fixed.html
 
 # Legacy analysis output; retained files remain readable/tracked, new artifacts do not.
 nbody/analyse/**
 
-# Presentation exports — keep source scripts/prompts, ignore generated bundles
-nbody/presentations/**/*.pptx
-nbody/presentations/**/gif/
-nbody/presentations/**/images/
-nbody/presentations/**/*.html
+# Legacy output location is gone; presentation source now lives in analysis/presentations.
 
 # Python caches
 **/__pycache__/

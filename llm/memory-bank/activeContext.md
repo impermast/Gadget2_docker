@@ -23,6 +23,36 @@
 - Проверено: `git diff --check`, `bash -n` pipeline, CLI `--help`, полный pytest
   (`50 passed`; остаётся только ожидаемое warning про пустой presentations block).
 
+## 2026-10-09 — make-plots: актуальный каталог из реестра
+
+- Skill уточнён как динамический путеводитель: на каждом запросе читать
+  `nbody/analysis/REGISTRY.md`; для read-only вывода свежего каталога использовать
+  `registry_docs.py --print`, не дублировать перечень в skill и не запускать
+  запись каталога без отдельной необходимости.
+- Фактический реестр: 26 графиков (`ic=1`, `prerun=4`, `core=7`, `campaigns=14`,
+  `presentations=0`). Описание presentations runner в skill было преждевременным:
+  runner отсутствует, блок пуст.
+- Проверка перехода нашла незакрытый plotting debt: `analyze_series.py` и
+  `compare_shape_series.py` всё ещё содержат matplotlib/savefig; legacy
+  presentation source также остаётся вне analysis. IC/early gate wrappers уже
+  используют общий layer, однако whitelist-комментарии раньше создавали
+  впечатление, что весь этап миграции завершён. Уточнён статус whitelist.
+- Проверки после правок: guard `7 passed`, полный suite `50 passed`;
+  `git diff --check` чистый. Registry выведен через `--print` с временным
+  `NBODY_ANALYSIS_ROOT`; `--check` на хосте с default `/nbody/analysis` не
+  работает, т.к. `/nbody` недоступен вне контейнера.
+
+## 2026-10-09 — продолжение унификации analysis
+
+- Перенесены legacy series/shape CLI на `make_prerun_plots.py`; wrapper-сценарии
+  оставляют прежние имена/основные флаги, но не рисуют напрямую. `--outdir` для
+  произвольных каталогов намеренно не поддерживается (AnalysisPaths invariant).
+- Presentation source/assets перенесены через writable bind mount контейнера в
+  `nbody/analysis/presentations/`; отдельный plotting runner не нужен.
+- Предварительное удаление `nbody_deepseek.pptx` не трогалось.
+- Миграция `nbody/analyse/` и мусора остаётся отложенной; архивные результаты,
+  в частности незавершённый corecusp, не перемещались.
+
 Current focus:
 
 - **corecusp: CDM↔SIDM σ/m=2 сравнение на первых снапшотах (2026-10-01)**:

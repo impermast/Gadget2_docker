@@ -46,13 +46,13 @@ BLOCK_TITLES: Dict[str, str] = {
 # атрибутом класса `runner` (пример: морфологические plots блока campaigns
 # строит make_campaign_morphology_plots.py, DIAG-панели — make_campaign_diag_plots.py).
 # validate_registry() проверяет, что файл runner'а существует — реестр не может
-# ссылаться на несуществующий CLI.
+# ссылаться на несуществующий CLI. `presentations` пока только asset storage.
 BLOCK_RUNNERS: Dict[str, str] = {
     "ic": "runners/make_ic_plots.py",
     "prerun": "runners/make_prerun_plots.py",
     "core": "runners/make_run_plots.py",
     "campaigns": "runners/make_campaign_plots.py",
-    "presentations": "runners/make_presentation_figures.py",
+    "presentations": "",
 }
 
 # Какой вход ожидает блок по умолчанию.
@@ -284,7 +284,7 @@ def validate_registry() -> None:
         import warnings
         warnings.warn(
             f"блоки реестра пока пусты: {empty} "
-            f"(наполнятся на этапах 3/5: ic/prerun/presentations)")
+            f"(пустые блоки не требуют runner'а; presentations хранит assets)")
     for name, s in reg.items():
         if s.name != name:
             raise RegistryError(f"ключ реестра '{name}' != PlotSpec.name '{s.name}'")
@@ -298,6 +298,12 @@ def validate_registry() -> None:
             raise RegistryError(f"'{name}': пустой inputs")
         if s.block not in BLOCKS:
             raise RegistryError(f"'{name}': неизвестный block '{s.block}'")
+        # The presentation block currently stores curated assets; plots in that
+        # block will define a concrete runner when such a plot is introduced.
+        if not s.runner:
+            if s.block == "presentations":
+                continue
+            raise RegistryError(f"'{name}': пустой runner")
         runner_file = _HERE / s.runner
         if not runner_file.is_file():
             raise RegistryError(

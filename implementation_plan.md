@@ -120,7 +120,7 @@ nbody/scripts/analysis/               # ЕДИНЫЙ пакет визуала +
                      #   (block="prerun"; из early_cdm_gate.py, analyze_series.py,
                      #    compare_shape_series.py)
     animations.py    # particles_2d, particles_3d (из animation_plots.py)
-    presentations.py # figure-обёртки для слайдов (block="presentations")
+     presentations/ # исходники/готовые assets презентаций; отдельного runner/plot-класса нет
 ```
 
 ### Создание (runners — тонкие CLI поверх реестра)
@@ -133,7 +133,6 @@ nbody/scripts/analysis/               # ЕДИНЫЙ пакет визуала +
     make_campaign_plots.py       # сравнения группы run'ов (ex compare_runs.py +
                                  #   compare_shape_series.py + compare_visual_morphology.py +
                                  #   make_campaign_diagnostics.py)
-    make_presentation_figures.py # png/gif для слайдов (ex presentations/*/make_gifs.py)
     registry_docs.py             # генерирует nbody/analysis/REGISTRY.md из REGISTRY.to_markdown()
   README.md          # короткий: «источник истины — nbody/analysis/REGISTRY.md» + карта модулей
 ```
@@ -164,11 +163,14 @@ nbody/analysis/
 - `plot_scripts/animation_plots.py` → `analysis/plots/animations.py`
 - `plot_scripts/{run_full_test,compare_runs,compare_visual_morphology,make_campaign_diagnostics}.py`
   → логика в `analysis/runners/make_*.py`
-- `check_simulations/{analyze_series,compare_shape_series}.py` → метрики в `loaders/series.py`,
-  графики в `plots/prerun.py`, CLI в `runners/make_prerun_plots.py` / `make_campaign_plots.py`
+- `check_simulations/{analyze_series,compare_shape_series}.py` → метрики в
+  `loaders/prerun.py`, графики в `plots/prerun.py`, канонический CLI
+  `runners/make_prerun_plots.py`; старые CLI оставлены тонкими compatibility wrappers
 - plotting-часть `check_simulations/{check_ic_cusp,early_cdm_gate}.py` → `plots/{ic,prerun}.py`;
   в гейтах остаются только метрики + verdict + `*_report.{json,csv,txt}`
-- `nbody/presentations/2026-09-10/*` → `nbody/analysis/presentations/2026-09-10/*`
+- `nbody/presentations/*` → `nbody/analysis/presentations/*` (код и assets;
+  build outputs `*.pptx` остаются ignored);
+  runtime-выходы runner'ов по-прежнему размещаются через `AnalysisPaths` в `nbody/analysis/`
 - выходы `nbody/analyse/*` → `campaigns/…` / `previous_runs/…` (см. [Migration]); пустую
   `nbody/analyse/` удалить
 
@@ -215,7 +217,7 @@ nbody/analysis/
 | `nbody/analyse/sidm20_N1e6_T5/` | `previous_runs/sidm20_N1e6_T5/` (+ README-переход в `campaigns/sidm_dwarf_N1e6_T5/sidm20_dwarf_N1e6_T5/`) |
 | `nbody/analyse/sidm_sigma0.1/` | `previous_runs/sidm_sigma0.1/` (historical) |
 | `nbody/analyse/test_dissipation_block/` | `campaigns/dissipation/compare/legacy_block/` |
-| `nbody/presentations/2026-09-10/`, `nbody/presentations/figs_v2/` | `analysis/presentations/2026-09-10/`, `…/2026-09-10-figs_v2/` |
+| `nbody/presentations/2026-09-10/`, `nbody/presentations/figs_v2/` | `nbody/analysis/presentations/2026-09-10/`, `…/2026-09-10-figs_v2/` |
 
 Каждый `mv` фиксируется в `previous_runs/README.md` (таблица «откуда → куда») + в
 `campaigns/<c>/README.md` (состав кампании, связь с experimentLog). Каталоги `runs/`, `ics/`
@@ -223,9 +225,9 @@ nbody/analysis/
 
 ### Обратная совместимость CLI
 
-Старые имена (`run_full_test.py`, `compare_runs.py`, `analyze_series.py`,
-`compare_shape_series.py`, `check_ic_cusp.py`, `early_cdm_gate.py`) не оставляем — вместо них
-в skills/rules обновлённые команды. Слой `analysis/__init__.py` реэкспортирует
+`run_full_test.py` и `compare_runs.py` не оставляем; старые имена
+`analyze_series.py` и `compare_shape_series.py` сохранены как тонкие CLI-прокси
+на canonical runner без прямого matplotlib. Слой `analysis/__init__.py` реэкспортирует
 `NbodyPlotter, PlotSettings, RunPaths, REGISTRY, AnalysisPaths`, чтобы один импорт давал всё.
 
 ## [Functions]
@@ -282,7 +284,7 @@ nbody/analysis/
   cusp_slope, r_core_frac).
 - `make_campaign_plots.run_all(group: Path, runs: list[Path], ref: Path | None,
   analysis: AnalysisPaths, kinds: list[str]) -> list[Path]`.
-- `make_presentation_figures.run_all(campaign: Path, out: Path, slides: list[str])`.
+- Presentation assets are curated files; no `make_presentation_figures` API/runner is planned.
 - `registry_docs.main()` — `REGISTRY.md` (детерминированный вывод: сортировка по блоку/имени).
 
 ### check_simulations/ (сужение до мониторинга)
@@ -310,7 +312,7 @@ nbody/analysis/
 ## [Dependencies]
 
 - Новых pip-пакетов нет: matplotlib 3.7.5, numpy, h5py, Pillow (GIF) уже в образе.
-- `python-pptx` нужен только переносимому `build_pptx.py`; наличие проверяем на шаге 5, при
+- `python-pptx` нужен только опциональному `build_pptx.py`; наличие проверяем отдельно, при
   отсутствии pptx-сборка остаётся опциональной и не блокирует рефакторинг.
 - Внутренние: импорт `nbody/scripts/generate_ics_lib.py` (IC-target) через общий helper
   `paths.repo_scripts_dir()` вместо дублируемых `sys.path.insert` в 4 файлах.
@@ -461,8 +463,9 @@ skill-creator не трогаем (мета-скилл, покрыт `skills/ins
 4. **Миграция «рисующих себя» скриптов:** `loaders/{ic,series}.py`, `plots/{ic,prerun}.py`,
    `runners/{make_ic_plots,make_prerun_plots,make_campaign_plots}.py`; в гейтах остаются
    метрики/verdict; регрессия 5 (сверка старых и новых `*.json`).
-5. **Presentations:** перенос `nbody/presentations/*` → `nbody/analysis/presentations/*`;
-   slide-классы + `make_presentation_figures.py`; пересборка одной слайдовой фигуры.
+5. **Presentations:** перенесены tracked source/assets из `nbody/presentations/*` в
+   `nbody/analysis/presentations/*`. Отдельный presentation runner и plot-классы
+   не нужны (решение пользователя); block `presentations` остаётся asset-only и пустым в реестре.
 6. **Раскладка выходов и кампании:** `mv` по таблице [Migration], `previous_runs/README.md`,
    `campaigns/<c>/README.md`, `analysis/README.md`, `.gitignore` (analyse→analysis,
    presentations), удаление пустого `nbody/analyse/`.
@@ -476,35 +479,56 @@ skill-creator не трогаем (мета-скилл, покрыт `skills/ins
    `run_series_dwarf`, `run_sidm_batch` → `nbody/scripts/runs/`; `generate_ics.sh`,
    `merge_ics.py`, `convert_to_pt3.py`, `add_halo_rotation.py` → `nbody/scripts/ic/`.
 
-## [Status] — выполнено на текущий момент
+## [Status] — чеклист по состоянию на 2026-10-09
 
-- **Этап 0–2 завершены:** `test_layout_guard.py` (маркер `guard`), `AnalysisPaths`
+### Сделано
+
+- [x] **Этапы 0–3:** `test_layout_guard.py` (маркер `guard`), `AnalysisPaths`
   с проверкой сегментов/containment, `registry.py` (+ проверка существования файла
-  runner'а), `loaders/{snapshots,profiles,particles}`, `plots/{core,campaigns,animations}`
-  (21 plot c `@register` и `block`), перевод `NbodyPlotter.register_defaults()` на
+  runner'а), `loaders/{snapshots,profiles,particles,ic,prerun}`, `plots/{core,campaigns,animations,ic,prerun}`
+  (26 plot c `@register` и `block`), перевод `NbodyPlotter.register_defaults()` на
   глобальный реестр.
-- **Этап 4 (механический перенос) завершён:** legacy-каталог
+- [x] **Этап 4 (механический перенос):** legacy-каталог
   `nbody/scripts/plot_scripts/` удалён целиком; `analysis/README.md` — карта слоя;
-  whitelist в guard-тесте уменьшен (остались 4 гейта `check_simulations/` — этап 3 —
-  и `nbody/presentations/` — этап 5). Зависимые места обновлены:
+- whitelist в guard-тесте уменьшен (остались 2 legacy gate CLI — этап 3).
+  Зависимые места обновлены:
   `check_simulations/analyze_series.py` (импорт `analysis.loaders`),
   `tests/make_golden.py`, `run_*.sh` (runner'ы вместо legacy CLI), `.gitignore`
   (`nbody/analysis/**` + трекается только `REGISTRY.md`).
-- **Runners (этап 3/4):** `make_run_plots.py` (core), `make_campaign_plots.py`
+- [x] **Runners (этапы 3/4):** `make_run_plots.py` (core), `make_campaign_plots.py`
   (profile-compare), `make_campaign_morphology_plots.py`,
   `make_campaign_diag_plots.py`, `registry_docs.py` (+`--check`). Все проверены
   запуском в контейнере на реальных прогонах; `--outdir` нигде нет (guard-тест).
-- **Тесты:** 50 зелёных, включая новые `test_registry.py`, `test_paths.py`,
+- [x] **Текущая валидация:** полный suite 51 passed; registry `--check`, shell syntax,
+  legacy CLI `--help`, `git diff --check` и asset checksum validation прошли.
+- **Историческая база тестов:** первоначально 50 зелёных, включая `test_registry.py`, `test_paths.py`,
   `test_render_smoke.py` (рендер ВСЕХ plots блоков core и campaigns на синтетической
   фикстуре), `test_plotter_contract.py` (негативные контракты, перенесены из
   удалённого `run_full_test.py`) и guard-тест `no_undefined_names_in_analysis`
   (ловит потерянные при переносе импорты/хелперы — реально нашёл 3 регрессии:
   `Mapping`/`validate_fields`/`LogNorm` в plots и `_snapshot_number` в loaders).
-- **Осталось:** этап 3 (метрики гейтов `check_ic_cusp`/`early_cdm_gate`/`analyze_series`/
-  `compare_shape_series` → `plots/{ic,prerun}.py` + `make_ic_plots.py`/`make_prerun_plots.py`,
-  затем удалить 4 файла из whitelist), этап 5 (`presentations`), этап 6 (перенос
-  `nbody/analyse/` → `analysis/previous_runs/` + `campaigns/`, `previous_runs/README.md`),
-  этап 7 (мусор), этап 8 (memory-bank/rules), приёмка «ИИ-путеводителя» §8.5.
+### Сделано в текущем продолжении
+
+- [x] Перенос презентационных скриптов, prompt и существующих GIF/PNG, а также
+  дополнительных curated PNG/HTML в `nbody/analysis/presentations/`; скрипты
+  используют относительные пути и новый API loaders. Отдельный runner не создавался.
+- [x] `analyze_series.py` и `compare_shape_series.py` стали совместимыми CLI-прокси
+  на `make_prerun_plots.py`; прямой matplotlib из них удалён.
+- [x] Убран ложный `make_presentation_figures.py` из реестра; для asset-only блока
+  пустой runner допустим, а каждый зарегистрированный plot по-прежнему обязан иметь runner.
+- [x] Matrix script и `check-run` skill используют canonical prerun runner.
+
+### Осталось / отложено
+
+- [ ] Перенос tracked/generated outputs `nbody/analyse/` в `previous_runs/` и кампании
+  (не выполнялся: отдельная миграция данных, требует ревизии содержимого и ссылок).
+- [ ] Создать `previous_runs/README.md` и README кампаний с картой перемещённых результатов.
+- [ ] Удаление перечисленного мусора (не выполнялось: удаление требует отдельного подтверждения).
+- [ ] Завершить актуализацию `skills/{check-run,gizmo-sim}`, `llm/rules/04-gadget.md`,
+  `06-simulation-pipeline.md`, `techContext.md`, `systemPatterns.md` и ссылок во всех shell scripts.
+- [ ] Приёмка «ИИ-путеводителя» §8.5; `registry_docs.py --check` в контейнере.
+- [ ] Проверить с пользователем оставшийся старый legacy gate CLI whitelist
+  (`check_ic_cusp.py`, `early_cdm_gate.py`) и убрать его после проверки потребителей.
 
 ## [Risks / Constraints]
 

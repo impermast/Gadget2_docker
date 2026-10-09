@@ -122,7 +122,8 @@ The scripts collect only cheap/safe information:
 7. snapshot count and expected count;
 8. latest snapshot metadata and `NInteractions` summary only through the checker.
 9. for partial series: shape/thickness/rotation/core-density/NInteractions/time-step
-   evolution across all completed snapshots via `analyze_series.py`.
+   evolution across all completed snapshots via the canonical registry runner:
+   `python3 /nbody/scripts/analysis/runners/make_prerun_plots.py --run-root <run>`.
 
 Do not manually open large snapshot arrays. The checker may read the small
 `NInteractions` dataset of the latest snapshot for diagnostics; heavy profile

@@ -4,9 +4,10 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
+from pathlib import Path
 
-BASE = "/home/kds/sci/gadget2_docker/nbody/presentations/2026-09-10"
-OUT = BASE + "/nbody_deepseek.pptx"
+BASE = Path(__file__).resolve().parent
+OUT = BASE / "nbody_deepseek.pptx"
 
 BG = RGBColor(0x0B, 0x1F, 0x3A)
 ACC = RGBColor(0x4F, 0xC3, 0xF7)

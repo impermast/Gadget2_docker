@@ -16,12 +16,37 @@ metadata:
 Read `.clinerules/00-entrypoint.md`, then every file in `llm/rules/` and
 `llm/memory-bank/`. Communicate with the user in Russian.
 
-## Источник истины — REGISTRY.md, а не код
+## Актуальный каталог графиков — из реестра, не из этого skill
 
-Первый шаг любой задачи по графикам: прочитать каталог графиков
-`nbody/analysis/REGISTRY.md` (в контейнере `/nbody/analysis/REGISTRY.md`).
-Код plot'ов читать НЕ нужно. Для каждого графика там: `summary`, `data_source`,
-`inputs`, `runner`, `filename`, `config keys`.
+При каждом запросе на анализ/визуализацию сначала открой
+`nbody/analysis/REGISTRY.md` (в контейнере `/nbody/analysis/REGISTRY.md`). Это
+сгенерированный актуальный каталог; не полагайся на имена графиков или CLI,
+запомненные из этого skill, памяти или прежних запусков. Код plot'ов для обычного
+выбора читать не нужно. Для каждого графика реестр даёт `summary`, `data_source`,
+`inputs`, `runner`, `filename` и `config keys`.
+
+Чтобы показать пользователю перечень, сгруппируй записи реестра по блокам и
+перескажи имена + краткие `summary` + runner. Не переписывай каталог вручную в
+skill: изменение реестра должно отражаться в следующем чтении REGISTRY.md.
+
+Если файла нет или он явно не совпадает с нужным блоком, не угадывай список:
+сгенерируй/выведи его из реестра через `registry_docs.py --print` (без
+перезаписи каталога). В контейнере:
+
+```bash
+docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/registry_docs.py --print
+```
+
+Локально, когда контейнер недоступен, разрешён эквивалентный read-only вывод:
+
+```bash
+NBODY_ANALYSIS_ROOT=/tmp/nbody-analysis \
+  python3 nbody/scripts/analysis/runners/registry_docs.py --print
+```
+
+`--check` проверяет сохранённый generated-файл, но не является командой для
+показа каталога. Не запускай генератор без `--print`, если задача не просит
+обновить REGISTRY.md: обычный запрос каталога должен быть read-only.
 
 Актуализация/проверка каталога (сам файл руками не правим):
 
@@ -38,11 +63,16 @@ docker exec gadget-gizmo python3 /nbody/scripts/analysis/runners/registry_docs.p
 
 | блок | что это | путь | runner |
 |------|---------|------|--------|
-| `ic` | начальные условия: target-профиль, гейт разрешения каспа | `analysis/ic/<ic_name>/` | `make_ic_plots.py` (этап 3) |
-| `prerun` | ранние снапшоты: гейт первых шагов, серия | `analysis/prerun/<run>/` | `make_prerun_plots.py` (этап 3) |
+| `ic` | начальные условия: target-профиль, гейт разрешения каспа | `analysis/ic/<ic_name>/` | `make_ic_plots.py` |
+| `prerun` | ранние снапшоты: гейт первых шагов, серия | `analysis/prerun/<run>/` | `make_prerun_plots.py` |
 | `core` | один production-прогон | `analysis/core/<run>/` | `make_run_plots.py` |
 | `campaigns` | сравнение группы прогонов | `analysis/campaigns/<campaign>[/<member>]/` | см. ниже (3 runner'а) |
-| `presentations` | фигуры под слайды | `analysis/presentations/<label>/` | `make_presentation_figures.py` (этап 5) |
+| `presentations` | архив презентационных исходников и готовых экспортов | `analysis/presentations/<label>/` | отдельный runner не используется |
+
+Текущий реестр сообщает `presentations (0)`: это намеренно, так как презентация
+собирается из уже существующих графиков и подготовленных assets, а не отдельным
+runner'ом. Для новых графиков презентации используй зарегистрированные plots
+соответствующих блоков и перенаправление не меняй.
 
 ## Runners (готовый CLI)
 
@@ -76,7 +106,8 @@ docker exec gadget-gizmo python3 \\
 ## Protocol
 
 1. Определи предмет: один прогон (`--run-root`) или группа (campaign + member).
-2. Прочитай `nbody/analysis/REGISTRY.md`, выбери графики по блоку и смыслу.
+2. Прочитай актуальный `nbody/analysis/REGISTRY.md`; выбери записи по смыслу и
+   входу, затем используй runner и config keys именно из записи.
 3. Запусти соответствующий runner в контейнере (`docker exec gadget-gizmo`).
    Никаких собственных скриптов и никакого `--outdir`.
 4. Проверь результат: файлы в `analysis/<block>/...`, ненулевой размер, для GIF —
@@ -99,8 +130,9 @@ Plots HDF5 не читают и физику не считают.
    рантайме и его ошибки обязаны называть plot и поле.
 3. Если для plot'а нужен свой CLI — `analysis/runners/<name>.py` + атрибут
    `runner = "runners/<name>.py"` в классе (реестр проверяет существование файла).
-4. Тесты: `tests/test_render_smoke.py` рисует ВСЕ plots блока на синтетической
-   фикстуре — добавь данные для нового plot'а туда.
+4. Тесты: `tests/test_render_smoke.py` рисует доступные plots блоков core и
+   campaigns на синтетической фикстуре; для нового plot добавь подходящие
+   синтетические данные и покрой новый блок/режим.
 5. Перегенерируй `REGISTRY.md`; прогони `pytest -q -m 'guard or math or render'`.
 
 ## Rules

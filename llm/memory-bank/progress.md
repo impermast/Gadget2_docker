@@ -18,6 +18,41 @@
 - Валидация после изменений: 50 тестов зелёные, shell syntax и CLI smoke
   зелёные, synthetic проверка canonical metrics fallback зелёная.
 
+## 2026-10-09 — навигация make-plots и аудит legacy plotting
+
+- `skills/make-plots/SKILL.md` теперь предписывает читать актуальный
+  `nbody/analysis/REGISTRY.md` при каждом запросе; `registry_docs.py --print`
+  описан как read-only способ вывести каталог, без ручного дублирования plot list.
+- `nbody/scripts/analysis/README.md` документирует тот же контракт и локальный
+  вариант `--print` через временный `NBODY_ANALYSIS_ROOT`.
+- Актуальный реестр содержит 26 plot specs: IC 1, prerun 4, core 7, campaigns
+  14, presentations 0. В документации skill убрана недействительная рекомендация
+  вызывать ещё не существующий presentation runner.
+- Guard whitelist пояснён как незавершённая миграция, а не формальность:
+  direct rendering ещё найден в `check_simulations/analyze_series.py` и
+  `compare_shape_series.py`; package `nbody/presentations/` тоже требует
+  отдельного переноса. Это выявленная работа, не исправленная этим этапом.
+- Проверки после правок: guard `7 passed`, полный suite `50 passed`,
+  `git diff --check` чистый. `registry_docs.py --print` успешен с временным
+  analysis root; контейнерный `--check` здесь недоступен, поскольку `/nbody`
+  смонтирован только в контейнере.
+
+## 2026-10-09 — продолжение унификации analysis
+
+- Legacy series/shape команды стали тонкими compatibility wrappers на общий
+  `make_prerun_plots.py`; математика уже находилась в `loaders/prerun.py`, plots —
+  в `plots/prerun.py`. Произвольный `--outdir` запрещён; поддерживается только
+  canonical AnalysisPaths.
+- Presentation assets/scripts перенесены из legacy `nbody/presentations/` в
+  `nbody/analysis/presentations/`; скрипты используют новые import/path
+  соглашения. Presentation registry block оставлен asset-only без фиктивного runner;
+  пять дополнительных PNG и один HTML включены в каталог, generated exports ignored.
+- Перенос outputs `nbody/analyse/` и уборка данных отложены ради сохранности архива.
+- Generated registry проверен штатным `--check` в контейнере, где bind mount
+  `/nbody/analysis` доступен на запись; на хосте каталог root-owned.
+- Полный pytest: 51 passed; CLI guard: 8 passed; shell syntax, CLI help,
+  `git diff --check` и хеш-сверка presentation assets прошли.
+
 What works:
 
 - Core–cusp кампания `corecusp` на первых снапшотах отработала (2026-10-01):
