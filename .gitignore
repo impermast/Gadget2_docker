@@ -19,6 +19,8 @@ githooks/
 **/snapshots/*
 **/snapshot*
 *snapshot_*
+# Source module named snapshots.py must not be caught by snapshot patterns
+!nbody/scripts/analysis/loaders/snapshots.py
 
 # GIZMO runtime
 **/.gizmo_run*
@@ -126,11 +128,11 @@ telegram.conf
 # working process is version-controlled. It must NOT be tracked on master.
 # After merging agent/dev into master, untrack it again per the documented
 # merge procedure in llm/rules/02-workflow.md.
-skills/
 
 # Misc
 GEMINI.md
 .clineignore
 .clinerules/
-# Cline project skills are synced copies of tracked skills/ (bash skills/install.sh)
-.cline/
+# Cline workspace state (if any) stays ignored; project skills ARE tracked here
+.cline/*
+!.cline/skills
