@@ -109,9 +109,12 @@ Current decision:
   `git config commit.template`): fields RUN / TEST / RESULT.
 - Cline should start nontrivial tasks in Plan mode.
 - Operational protocols live in repo skills `gizmo-sim`, `make-plots`, and
-  `check-run` (`skills/`, installed into `~/.codex/skills/` and
-  `~/.agents/skills/` via `skills/install.sh` — run that script after any
-  skill edit).
+  Project skills (`check-run`, `gizmo-sim`, `make-plots`) are LOCAL to this repo
+  (`skills/`); global copies removed from `~/.codex/skills/` and `~/.agents/skills/`
+  on 2026-10-09. `skills/install.sh` now only verifies local structure.
+  Global TG MCP server `tg-notify` created: zero-dependency Node stdio server
+  (tool `send_message`), creds global in `~/.cline/tg-notify/telegram.conf`;
+  test message delivered.
 - Cline avoids large simulation outputs and binary data.
 - Controlled simulations go under `nbody/runs/<run_name>/`.
 - Fast tests may be run by the agent freely: `.venv/bin/python -m pytest tests/ -q`.
@@ -172,7 +175,7 @@ Known file paths:
 - Visualization: `nbody/scripts/analysis/` (canonical NbodyPlotter + registry + runners), `nbody/scripts/convert_to_pt3.py`, `nbody/scripts/check_snapshot.py`
 - Run wrappers: `nbody/scripts/run_sim.sh` (GIZMO CDM/SIDM), `nbody/scripts/generate_ics.sh` (GalIC IC generation)
 - IC tools: `nbody/scripts/merge_ics.py` (universal HDF5 PartType converter/merger)
-- Skills (operational protocols): `skills/gizmo-sim/SKILL.md` (run/debug/generate-ic/summarize), `skills/make-plots/SKILL.md` (visualization через analysis registry/runners), `skills/check-run/SKILL.md` (monitor/diagnose/summary existing runs via reusable `nbody/scripts/check_simulations/`, with human/json/tg output); installed into `~/.codex/skills/` and `~/.agents/skills/` via `skills/install.sh`
+- Skills (operational protocols): `skills/gizmo-sim/SKILL.md` (run/debug/generate-ic/summarize), `skills/make-plots/SKILL.md` (visualization через analysis registry/runners), `skills/check-run/SKILL.md` (monitor/diagnose/summary existing runs via reusable `nbody/scripts/check_simulations/`, with human/json/tg output); LOCAL to repo `skills/`, no global install (global copies removed 2026-10-09)
 
 Removed legacy graphics scripts (2026-08-24, заменены analysis package):
 `png_to_gif.py`, `make_run_evolution.py`, `make_3d_animation.py`,

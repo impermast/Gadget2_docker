@@ -438,12 +438,13 @@ previous_runs/кампаний вычеркнуты 2026-10-09 как излиш
 Режим `run` п.8 и раздел «What run_sim.sh does internally»: заменить
 `plot_scripts/run_full_test.py` → `make_run_plots.py`, `plots/` прогона →
 выход `analysis/core/<run>/` (runner сам положит). Остальное без изменений;
-skill-creator не трогаем (мета-скилл, покрыт `skills/install.sh`).
+skill-creator не трогаем (мета-скилл).
 
 ### 8.5 Распространение и приёмка скиллов
 
 - После любой правки `skills/*/SKILL.md` — `bash skills/install.sh`
-  (копии в `~/.codex/skills`, `~/.agents/skills`).
+  (только проверка локальной структуры; глобальная установка отменена
+  2026-10-09, проектные скиллы удалены из `~/.codex/skills`, `~/.agents/skills`).
 - Каждый скилл в шапке ссылается на `llm/rules/08-analysis-workflow.md` как
   на норматив, в теле — только процедуры.
 - Тест «ИИ-путеводителя» (этап 7): агент, видя ТОЛЬКО `REGISTRY.md` + скилл,

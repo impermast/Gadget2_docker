@@ -1,5 +1,20 @@
 # Progress
 
+## 2026-10-09 — локальные skills + глобальный TG MCP
+
+- Проектные скиллы (`check-run`, `gizmo-sim`, `make-plots`) убраны из глобальных
+  `~/.agents/skills/` и `~/.codex/skills/`; источник истины — локальный `skills/`
+  в репо. `skills/install.sh` переделан в локальную проверку структуры
+  (глобальная установка отменена).
+- Создан глобальный MCP-сервер `tg-notify` (zero-dependency Node stdio,
+  `/home/kds/Документы/Cline/MCP/tg-notify/`), инструмент `send_message`;
+  зарегистрирован в глобальном `cline_mcp_settings.json`; креды глобальные:
+  `~/.cline/tg-notify/telegram.conf` (копия `nbody/tg/telegram.conf`, chmod 600).
+- Валидация: `tools/list` ок, тестовое сообщение доставлено (message_id 98),
+  `bash -n`/`bash skills/install.sh` ок, pytest 51 passed, `git diff --check` чист.
+- Документация: `llm/rules/07-mcp-tools.md`, `llm/README.md`, `implementation_plan.md`,
+  `activeContext.md`/`progress.md` обновлены.
+
 ## 2026-10-05 — инфраструктурное упрощение анализа
 
 > Исторический снимок статуса на 2026-10-05; актуальный layout —
@@ -121,7 +136,7 @@ What works:
 - Repository separates stable container software and mounted user workspace.
 - Agent infrastructure is being moved into `llm/`.
 - Cline root entrypoint is kept minimal.
-- Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (source in repo `skills/`, installed into `~/.codex/skills/` and `~/.agents/skills/` via `skills/install.sh`).
+- Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (LOCAL to repo `skills/`; global copies removed 2026-10-09, `skills/install.sh` only verifies local structure).
 - Added reusable `check-run` monitoring/diagnostic workflow: scripts in `nbody/scripts/check_simulations/` provide run/block checks, timestep pathology detection, simple ETA, snapshot/parameter integrity, partial-series diagnostics (`analyze_series.py`), and human/json/tg reports; skill `skills/check-run/SKILL.md` orchestrates these tools.
 
 Known risks:
