@@ -132,3 +132,5 @@ skills/
 GEMINI.md
 .clineignore
 .clinerules/
+# Cline project skills are synced copies of tracked skills/ (bash skills/install.sh)
+.cline/

@@ -111,7 +111,9 @@ Current decision:
 - Operational protocols live in repo skills `gizmo-sim`, `make-plots`, and
   Project skills (`check-run`, `gizmo-sim`, `make-plots`) are LOCAL to this repo
   (`skills/`); global copies removed from `~/.codex/skills/` and `~/.agents/skills/`
-  on 2026-10-09. `skills/install.sh` now only verifies local structure.
+  on 2026-10-09. `skills/install.sh` syncs `skills/` → `.cline/skills/`
+  (Cline scans only `.cline/skills/` & friends; plain `skills/` is invisible
+  to it).
   Global TG MCP server `tg-notify` created: zero-dependency Node stdio server
   (tool `send_message`), creds global in `~/.cline/tg-notify/telegram.conf`;
   test message delivered.

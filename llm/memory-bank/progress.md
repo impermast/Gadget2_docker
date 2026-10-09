@@ -4,8 +4,11 @@
 
 - Проектные скиллы (`check-run`, `gizmo-sim`, `make-plots`) убраны из глобальных
   `~/.agents/skills/` и `~/.codex/skills/`; источник истины — локальный `skills/`
-  в репо. `skills/install.sh` переделан в локальную проверку структуры
-  (глобальная установка отменена).
+  в репо. Cline видит скиллы только в workspace-дирах `.cline/skills`,
+  `.agents/skills`, `.claude/skills`, `.clinerules/skills` (обычный `skills/`
+  в корне он не сканирует) — `skills/install.sh` теперь синхронизирует
+  `skills/` → `.cline/skills/`; глобальная установка отменена, `.cline/`
+  добавлен в `.gitignore` (копии, источник — трекаемый `skills/`).
 - Создан глобальный MCP-сервер `tg-notify` (zero-dependency Node stdio,
   `/home/kds/Документы/Cline/MCP/tg-notify/`), инструмент `send_message`;
   зарегистрирован в глобальном `cline_mcp_settings.json`; креды глобальные:
@@ -136,7 +139,7 @@ What works:
 - Repository separates stable container software and mounted user workspace.
 - Agent infrastructure is being moved into `llm/`.
 - Cline root entrypoint is kept minimal.
-- Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (LOCAL to repo `skills/`; global copies removed 2026-10-09, `skills/install.sh` only verifies local structure).
+- Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (LOCAL to repo `skills/`; global copies removed 2026-10-09, `skills/install.sh` syncs `skills/` → `.cline/skills/`).
 - Added reusable `check-run` monitoring/diagnostic workflow: scripts in `nbody/scripts/check_simulations/` provide run/block checks, timestep pathology detection, simple ETA, snapshot/parameter integrity, partial-series diagnostics (`analyze_series.py`), and human/json/tg reports; skill `skills/check-run/SKILL.md` orchestrates these tools.
 
 Known risks:

@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# Local skill check: repo skills/ is the source of truth.
-# Skills are LOCAL to this repository (skills/<name>/SKILL.md).
-# This script only verifies structure; it does NOT copy anything to global
-# directories. Project skills were removed from ~/.agents/skills and
-# ~/.codex/skills on 2026-10-09 — do not reinstall them there.
+# Local skills sync for Cline: repo skills/ is the source of truth.
+# Cline discovers project skills ONLY in workspace dirs:
+#   .cline/skills/  .agents/skills/  .claude/skills/  .clinerules/skills/
+# Plain top-level skills/ is NOT scanned. This script syncs each skill
+# (skills/<name>/SKILL.md) into .cline/skills/<name>/ as a copy.
+# Global dirs (~/.agents/skills, ~/.codex/skills) are NOT used anymore
+# (project skills removed from them on 2026-10-09 — do not reinstall there).
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SRC="$REPO_DIR/skills"
+DEST="$REPO_DIR/.cline/skills"
 
-fail=0
-for skill_dir in "$REPO_DIR"/*/; do
+mkdir -p "$DEST"
+for skill_dir in "$SRC"/*/; do
   name="$(basename "$skill_dir")"
-  if [ -f "$skill_dir/SKILL.md" ]; then
-    echo "ok: $name ($skill_dir/SKILL.md)"
-  fi
+  [ -f "$skill_dir/SKILL.md" ] || continue
+  /bin/rm -rf "$DEST/$name"
+  cp -rL "$skill_dir" "$DEST/$name"
+  echo "synced: $DEST/$name"
 done
 
-echo "Done. Skills are local to this repo; no global install performed."
+echo "Done. Cline discovers these skills in .cline/skills/ (reload Cline session to pick up changes)."
