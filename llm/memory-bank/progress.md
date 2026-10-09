@@ -14,6 +14,9 @@
   `~/.cline/tg-notify/telegram.conf` (копия `nbody/tg/telegram.conf`, chmod 600).
 - Валидация: `tools/list` ок, тестовое сообщение доставлено (message_id 98),
   `bash -n` ок, pytest 51 passed, `git diff --check` чист.
+- Расширение MCP (2026-10-10): добавлены `send_photo` (≤10 MB, multipart) и
+  `send_document` (≤50 MB); тесты: фото message_id 99, документ message_id 100,
+  несуществующий файл → корректный isError.
 - Документация: `llm/rules/07-mcp-tools.md`, `llm/README.md`, `implementation_plan.md`,
   `activeContext.md`/`progress.md` обновлены.
 

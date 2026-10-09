@@ -13,9 +13,17 @@ registered in global `cline_mcp_settings.json`. Credentials are global:
 
 Tool: `send_message` — params: `text` (required, max 4000), optional
 `parse_mode` (`Markdown`/`HTML`), optional `disable_notification` (silent).
+
+Also available:
+- `send_photo` — `file_path` (required, image ≤10 MB), optional `caption`
+  (≤1024), `parse_mode`, `disable_notification`.
+- `send_document` — `file_path` (required, any file ≤50 MB: csv/txt/log/zip/
+  pdf/...), optional `caption`, `parse_mode`, `disable_notification`.
+
 Use for short status/result notifications at the end of a task — not for
 periodic progress spam, and never as a substitute for the run_sim.sh automatic
-START/FINISH/ERROR flow.
+START/FINISH/ERROR flow. Plots/файлы отправлять как фото/документ по явной
+просьбе пользователя или для отчёта о готовом артефакте.
 
 ## Fetch (global)
 
