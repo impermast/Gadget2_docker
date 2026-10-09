@@ -192,7 +192,7 @@ nbody/analysis/
   `nbody/presentations/**`
 - `tests/conftest.py` — путь импорта `plot_scripts` → `analysis`; новые `tests/test_registry.py`,
   `tests/test_paths.py`, `tests/test_render_smoke.py`; `pytest.ini` — маркер `render`
-- `skills/{make-plots,check-run,gizmo-sim}/SKILL.md`; `llm/rules/{04-gadget,06-simulation-pipeline}.md`;
+- `.cline/skills/{make-plots,check-run,gizmo-sim}/SKILL.md`; `llm/rules/{04-gadget,06-simulation-pipeline}.md`;
   `llm/memory-bank/{techContext,systemPatterns,activeContext,progress}.md`
 - `nbody/scripts/run_*.sh`, `nbody/runs/corecusp/*.sh` — только пути к plot-runner'ам
   (команды прогонов не трогаем); `run_sim.sh` НЕ перемещаем (идёт прогон)
@@ -383,7 +383,7 @@ previous_runs/кампаний вычеркнуты 2026-10-09 как излиш
 
 ### 8.1 `make-plots` v2 — единственный путь к любому графику
 
-Переписать `skills/make-plots/SKILL.md` полностью:
+Переписать `.cline/skills/make-plots/SKILL.md` полностью:
 
 0. Преамбула: `.clinerules/00-entrypoint.md` + `llm/rules/` + memory-bank, русский.
 1. Прочитать `nbody/analysis/REGISTRY.md` (НЕ код plot'ов). Найти plot по задаче
@@ -415,7 +415,7 @@ previous_runs/кампаний вычеркнуты 2026-10-09 как излиш
 
 ### 8.3 `check-run` v2 — процедурные проверки прогонов
 
-Переписать `skills/check-run/SKILL.md`:
+Переписать `.cline/skills/check-run/SKILL.md`:
 
 - Маршрутизация по вопросу: прогресс/здоровье/ETA → `check_run.py --mode auto|monitor`;
   подозрение на патологию → `--mode diagnose`; итог → `--mode summary`;
@@ -442,11 +442,12 @@ skill-creator не трогаем (мета-скилл).
 
 ### 8.5 Распространение и приёмка скиллов
 
-- После любой правки `skills/*/SKILL.md` — `bash skills/install.sh`
-  (синхронизирует `skills/` → `.cline/skills/`; Cline сканирует только
-  `.cline/skills/`, `.agents/skills/`, `.claude/skills/`, `.clinerules/skills/`,
-  обычный `skills/` в корне не видит. Глобальная установка отменена 2026-10-09,
-  проектные скиллы удалены из `~/.codex/skills`, `~/.agents/skills`).
+- Скиллы живут напрямую в tracked `.cline/skills/*/SKILL.md` (миграция из
+  верхнего `skills/` завершена 2026-10-09; `skills/install.sh` удалён — шага
+  синхронизации больше нет). Cline сканирует только workspace-диры
+  `.cline/skills/`, `.agents/skills/`, `.claude/skills/`, `.clinerules/skills/`;
+  глобальная установка отменена, проектные скиллы удалены из
+  `~/.codex/skills`, `~/.agents/skills`.
 - Каждый скилл в шапке ссылается на `llm/rules/08-analysis-workflow.md` как
   на норматив, в теле — только процедуры.
 - Тест «ИИ-путеводителя» (этап 7): агент, видя ТОЛЬКО `REGISTRY.md` + скилл,
@@ -477,7 +478,7 @@ skill-creator не трогаем (мета-скилл).
 6. **Раскладка выходов и кампании:** `mv` по таблице [Migration], `analysis/README.md`,
   `.gitignore` (analyse→analysis, presentations), удаление пустого `nbody/analyse/`.
 7. **Уборка мусора** по списку [Files]; отдельный запрос на `nbody/scratch/*_copy*`.
-8. **Документы и навыки:** `skills/{make-plots,check-run,gizmo-sim}/SKILL.md`,
+8. **Документы и навыки:** `.cline/skills/{make-plots,check-run,gizmo-sim}/SKILL.md`,
    `llm/rules/04-gadget.md`, `06-simulation-pipeline.md`, memory-bank
    (`techContext`, `systemPatterns`, `activeContext`, `progress`), пути plot-runner'ов в
    `nbody/scripts/run_*.sh` и `nbody/runs/corecusp/corecusp_pipeline.sh`; полный `pytest -q`,
@@ -541,7 +542,7 @@ skill-creator не трогаем (мета-скилл).
   `corecusp_resume.log`, оба `*.launcher.log`, `nbody/ics/corecusp_gen.log`;
   `nbody/scratch/*_copy*` отсутствует в дереве; удаление PPTX подтверждено и
   включено в этот же коммит).
-- [x] Завершить актуализацию `skills/{check-run,gizmo-sim}`, `llm/rules/04-gadget.md`,
+- [x] Завершить актуализацию `.cline/skills/{check-run,gizmo-sim}`, `llm/rules/04-gadget.md`,
   `06-simulation-pipeline.md`, `techContext.md`, `systemPatterns.md` и ссылок во всех shell scripts.
   (выполнено 2026-10-09: `06-simulation-pipeline.md` и оба skill указывают на
   canonical `nbody/analysis/`; `run_matrix_dissipation.sh` и `run_series_dwarf.sh`

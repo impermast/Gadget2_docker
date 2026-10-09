@@ -128,7 +128,7 @@ Git policy (2026-08-25):
 
 Operational validation workflow:
 - `nbody/scripts/check_simulations/` — reusable monitoring/diagnostic tools: `check_run.py` for one run, `check_block.py` for groups, and `analyze_series.py` for partial/pathological series diagnostics; parse `run.log`, `run.state`, run params, snapshot inventory/latest metadata, detect timestep pathology, estimate simple ETA, output `human`, `json`, or compact Telegram-safe `tg` reports, and quantify shape/thickness/rotation/core-density/NInteractions evolution over completed snapshots.
-- `skills/check-run/SKILL.md` — thin orchestration skill that invokes these scripts instead of ad-hoc checks; plotting uses the canonical analysis runners when runs are complete enough.
+- `.cline/skills/check-run/SKILL.md` — thin orchestration skill that invokes these scripts instead of ad-hoc checks; plotting uses the canonical analysis runners when runs are complete enough.
 
 High-risk actions:
 

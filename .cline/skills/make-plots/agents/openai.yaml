@@ -1,0 +1,6 @@
+interface:
+  display_name: "Make Plots"
+  short_description: "Plot and analyze finished simulation runs"
+  default_prompt: "Use $make-plots to create plots from an existing simulation run directory."
+policy:
+  allow_implicit_invocation: true

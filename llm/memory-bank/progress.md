@@ -3,18 +3,17 @@
 ## 2026-10-09 — локальные skills + глобальный TG MCP
 
 - Проектные скиллы (`check-run`, `gizmo-sim`, `make-plots`) убраны из глобальных
-  `~/.agents/skills/` и `~/.codex/skills/`; источник истины — локальный `skills/`
-  в репо. Cline видит скиллы только в workspace-дирах `.cline/skills`,
-  `.agents/skills`, `.claude/skills`, `.clinerules/skills` (обычный `skills/`
-  в корне он не сканирует) — `skills/install.sh` теперь синхронизирует
-  `skills/` → `.cline/skills/`; глобальная установка отменена, `.cline/`
-  добавлен в `.gitignore` (копии, источник — трекаемый `skills/`).
+  `~/.agents/skills/` и `~/.codex/skills/` и мигрированы в tracked
+  `.cline/skills/` (Cline сканирует только workspace-диры `.cline/skills`,
+  `.agents/skills`, `.claude/skills`, `.clinerules/skills`). Верхний `skills/`
+  и `install.sh` удалены; `.gitignore` разрешает трекать `.cline/skills` —
+  шага синхронизации больше нет.
 - Создан глобальный MCP-сервер `tg-notify` (zero-dependency Node stdio,
   `/home/kds/Документы/Cline/MCP/tg-notify/`), инструмент `send_message`;
   зарегистрирован в глобальном `cline_mcp_settings.json`; креды глобальные:
   `~/.cline/tg-notify/telegram.conf` (копия `nbody/tg/telegram.conf`, chmod 600).
 - Валидация: `tools/list` ок, тестовое сообщение доставлено (message_id 98),
-  `bash -n`/`bash skills/install.sh` ок, pytest 51 passed, `git diff --check` чист.
+  `bash -n` ок, pytest 51 passed, `git diff --check` чист.
 - Документация: `llm/rules/07-mcp-tools.md`, `llm/README.md`, `implementation_plan.md`,
   `activeContext.md`/`progress.md` обновлены.
 
@@ -44,7 +43,7 @@
 
 ## 2026-10-09 — навигация make-plots и аудит legacy plotting
 
-- `skills/make-plots/SKILL.md` теперь предписывает читать актуальный
+- `.cline/skills/make-plots/SKILL.md` теперь предписывает читать актуальный
   `nbody/analysis/REGISTRY.md` при каждом запросе; `registry_docs.py --print`
   описан как read-only способ вывести каталог, без ручного дублирования plot list.
 - `nbody/scripts/analysis/README.md` документирует тот же контракт и локальный
@@ -139,8 +138,8 @@ What works:
 - Repository separates stable container software and mounted user workspace.
 - Agent infrastructure is being moved into `llm/`.
 - Cline root entrypoint is kept minimal.
-- Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (LOCAL to repo `skills/`; global copies removed 2026-10-09, `skills/install.sh` syncs `skills/` → `.cline/skills/`).
-- Added reusable `check-run` monitoring/diagnostic workflow: scripts in `nbody/scripts/check_simulations/` provide run/block checks, timestep pathology detection, simple ETA, snapshot/parameter integrity, partial-series diagnostics (`analyze_series.py`), and human/json/tg reports; skill `skills/check-run/SKILL.md` orchestrates these tools.
+- Operational protocols migrated from `llm/prompts/` and `llm/workflows/` into agent skills `gizmo-sim` and `make-plots` (tracked in `.cline/skills/` after the 2026-10-09 migration; global copies removed, no install step).
+- Added reusable `check-run` monitoring/diagnostic workflow: scripts in `nbody/scripts/check_simulations/` provide run/block checks, timestep pathology detection, simple ETA, snapshot/parameter integrity, partial-series diagnostics (`analyze_series.py`), and human/json/tg reports; skill `.cline/skills/check-run/SKILL.md` orchestrates these tools.
 
 Known risks:
 

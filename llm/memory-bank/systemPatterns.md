@@ -6,7 +6,7 @@ Repository root:
 - `run_docker_gui_linux.sh`: starts/reuses the Docker container and mounts local `nbody/` to `/nbody`.
 - `README.md`: source of truth for intended workflow.
 - `nbody/`: user-editable simulation workspace.
-- `llm/`: AI-agent rules and persistent memory; operational step-by-step protocols live in repo skills (`skills/gizmo-sim`, `skills/make-plots`, `skills/check-run`). Tracked ONLY on branch `agent/dev`.
+- `llm/`: AI-agent rules and persistent memory; operational step-by-step protocols live in repo skills (`.cline/skills/gizmo-sim`, `.cline/skills/make-plots`, `.cline/skills/check-run`). Tracked ONLY on branch `agent/dev`.
 - `tests/`: fast pytest suite (synthetic HDF5 fixtures + golden answer tests); no simulations inside.
 - `githooks/pre-commit`: auto-runs pytest before each commit (enable via `git config core.hooksPath githooks`).
 - `.github/workflows/tests.yml`: GitHub Actions CI — same suite on every push/PR, with junit statistics table in Step Summary.

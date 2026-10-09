@@ -13,7 +13,7 @@ Main boundary:
 
 - `/opt` inside the container is the stable software layer;
 - `/nbody` is the mounted user workspace from the host repository;
-- `llm/` stores agent rules and memory; operational simulation/plotting protocols are exposed as agent skills (`gizmo-sim`, `make-plots` in `skills/`).
+- `llm/` stores agent rules and memory; operational simulation/plotting protocols are exposed as agent skills (`gizmo-sim`, `make-plots` in `.cline/skills/`).
 
 Agent goal:
 

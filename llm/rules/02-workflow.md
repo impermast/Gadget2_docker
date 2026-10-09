@@ -24,7 +24,7 @@ After meaningful work, update:
 - `llm/memory-bank/experimentLog.md` if a simulation or analysis was run
   (the `gizmo-sim` and `make-plots` skills append their run summaries to it).
 
-Operational step-by-step protocols live in the repo skills `gizmo-sim` and `make-plots` under `skills/`, not in this folder.
+Operational step-by-step protocols live in the repo skills `gizmo-sim` and `make-plots` under `.cline/skills/` (Cline discovery dir), not in this folder.
 
 Do not dump raw logs into memory. Store concise conclusions, paths, parameters, and result status.
 
