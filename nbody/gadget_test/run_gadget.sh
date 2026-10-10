@@ -1,80 +1,67 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# --- Конфигурация по умолчанию ---
-DEFAULT_MAKEFILE="./galaxy.Makefile"
-DEFAULT_PARAMFILE="./galaxy.param"
-GADGET_DIR="/workspace/Gadget-2.0.7/Gadget2"
+# --- Configuration ---
+DEFAULT_MAKEFILE="./Makefile"
+DEFAULT_PARAMFILE="./lcdm_gas.param"
+GADGET_DIR="${GADGET_HOME:-/opt/gadget-2.0.7}"
 EXECUTABLE="Gadget2"
 
-# --- Определяем рабочую директорию вызова скрипта ---
-CALL_DIR="$(pwd)"
+usage() {
+    cat <<'EOF'
+Usage: run_gadget.sh [Makefile path] [parameter file]
 
-# --- Обработка аргументов ---
-if [ "$#" -eq 0 ]; then
-    echo "[INFO] No arguments passed. Using defaults:"
+With no arguments, ./Makefile and ./lcdm_gas.param are used.
+GADGET_HOME may be set to override the in-container source directory.
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
     MAKEFILE_SRC="$DEFAULT_MAKEFILE"
     PARAMFILE="$DEFAULT_PARAMFILE"
-elif [ "$#" -eq 2 ]; then
+elif [[ $# -eq 2 ]]; then
     MAKEFILE_SRC="$1"
     PARAMFILE="$2"
 else
-    echo "[ERROR] Usage: $0 [Makefile path] [Parameter file path]"
-    echo "[ERROR] Or provide no arguments to use defaults in current directory"
-    echo "[FAIL] Script aborted, but shell remains active."
-    return_code=1
+    usage >&2
+    exit 2
 fi
 
-# --- Проверка Makefile ---
-if [ ! -f "$MAKEFILE_SRC" ]; then
-    echo "[ERROR] Makefile not found: $MAKEFILE_SRC"
-    echo "[FAIL] Script aborted."
-    return_code=2
+if [[ ! -f "$MAKEFILE_SRC" ]]; then
+    echo "[ERROR] Makefile not found: $MAKEFILE_SRC" >&2
+    exit 2
 fi
 
-# --- Проверка параметр-файла ---
-if [ ! -f "$PARAMFILE" ]; then
-    echo "[ERROR] Parameter file not found: $PARAMFILE"
-    echo "[FAIL] Script aborted."
-    return_code=3
+if [[ ! -f "$PARAMFILE" ]]; then
+    echo "[ERROR] Parameter file not found: $PARAMFILE" >&2
+    exit 2
 fi
 
-# --- Прерывание при предыдущих ошибках ---
-if [ -n "$return_code" ]; then
-    echo "[INFO] Script finished with error code $return_code (but shell is intact)"
-    return_code=0
-    exit 0
+if [[ ! -d "$GADGET_DIR" || ! -f "$GADGET_DIR/Makefile" ]]; then
+    echo "[ERROR] GADGET-2 source directory is not usable: $GADGET_DIR" >&2
+    echo "        Expected GADGET_HOME/Makefile inside the container." >&2
+    exit 3
 fi
 
-# --- Копируем файлы в директорию GADGET ---
-echo "[INFO] Preparing GADGET-2 build..."
+CALL_DIR="$(pwd -P)"
+PARAM_SOURCE="$(realpath "$PARAMFILE")"
+PARAM_BASENAME="$(basename "$PARAMFILE")"
+
+echo "[INFO] Preparing GADGET-2 build in $GADGET_DIR..."
 cp "$MAKEFILE_SRC" "$GADGET_DIR/Makefile"
-PARAM_BASENAME=$(basename "$PARAMFILE")
 cp "$PARAMFILE" "$GADGET_DIR/$PARAM_BASENAME"
 
-# --- Компиляция ---
-echo "[INFO] Building Gadget2 in $GADGET_DIR..."
-make -C "$GADGET_DIR" clean && make -C "$GADGET_DIR"
-build_status=$?
+echo "[INFO] Building Gadget2..."
+make -C "$GADGET_DIR" clean
+make -C "$GADGET_DIR"
 
-if [ "$build_status" -ne 0 ]; then
-    echo "[ERROR] Compilation failed with status $build_status"
-    echo "[FAIL] Script aborted."
-fi
-
-# --- Копируем исполняемый файл обратно ---
-echo "[INFO] Copying Gadget2 executable to working directory..."
+echo "[INFO] Copying Gadget2 executable to $CALL_DIR..."
 cp "$GADGET_DIR/$EXECUTABLE" "$CALL_DIR/"
-
-# --- Запуск симуляции ---
-echo "[INFO] Running simulation with $PARAM_BASENAME"
-cp "$PARAMFILE" "$CALL_DIR/$PARAM_BASENAME"
-mpirun --allow-run-as-root -n 1 ./"$EXECUTABLE" "$PARAM_BASENAME"
-run_status=$?
-
-if [ "$run_status" -ne 0 ]; then
-    echo "[ERROR] Gadget2 terminated with code $run_status"
-else
-    echo "[INFO] Simulation completed successfully."
+if [[ "$PARAM_SOURCE" != "$CALL_DIR/$PARAM_BASENAME" ]]; then
+    cp "$PARAMFILE" "$CALL_DIR/$PARAM_BASENAME"
 fi
 
-echo "[INFO] Script finished without shell termination."
+echo "[INFO] Running simulation with $PARAM_BASENAME"
+mpirun --allow-run-as-root -np 1 "./$EXECUTABLE" "$PARAM_BASENAME"
+
+echo "[INFO] Simulation completed successfully."

@@ -20,8 +20,8 @@ CSTD      := -std=gnu99
 OPTIONS   := $(OPTIMIZE) $(CSTD) $(OPT)
 
 # ---- Paths (override via env if needed)
-GSL_DIR   ?= /workspace/gsl
-FFTW_DIR  ?= /workspace/fftw
+GSL_DIR   ?= /opt/gsl
+FFTW_DIR  ?= /opt/fftw
 
 GSL_INCL  := -I$(GSL_DIR)/include
 GSL_LIBS  := -L$(GSL_DIR)/lib

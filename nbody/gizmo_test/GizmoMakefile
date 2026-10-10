@@ -257,14 +257,11 @@ HYDRO_OBJS = 	hydro/hydro_toplevel.o \
 
 EOSCOOL_OBJS =  cooling/cooling.o \
 				cooling/grackle.o \
-				cooling/simple_chemistry.o \
 				eos/eos.o \
-				eos/hydrogen_molecule.o \
 				eos/cosmic_ray_fluid/cosmic_ray_alfven.o \
 				eos/cosmic_ray_fluid/cosmic_ray_utilities.o \
 				solids/elastic_physics.o \
 				solids/grain_physics.o \
-				solids/ism_dust_chemistry.o \
 				nuclear/nuclear_network_solver.o \
 				nuclear/nuclear_network.o 
 
@@ -447,5 +444,4 @@ compile_time_info.c: $(CONFIG)
 
 clean:
 	rm -f $(OBJS) $(FOBJS) $(EXEC) *.oo *.c~ compile_time_info.c GIZMO_config.h
-
 

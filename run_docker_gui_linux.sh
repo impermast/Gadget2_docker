@@ -5,6 +5,11 @@ DEFAULT_CONTAINER_NAME="gadget-gizmo"
 CONTAINER_NAME=""
 IMAGE_NAME="${IMAGE_NAME:-gadget-gizmo:ver2}"
 RECREATE=0
+BUILD_IMAGE=0
+INSTALL_GADGET=0
+HEADLESS=0
+DOCKER_CPUS="${DOCKER_CPUS:-10}"
+DOCKER_MEMORY="${DOCKER_MEMORY:-8g}"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -32,9 +37,21 @@ while [[ $# -gt 0 ]]; do
             RECREATE=1
             shift
             ;;
+        --build)
+            BUILD_IMAGE=1
+            shift
+            ;;
+        --with-gadget)
+            INSTALL_GADGET=1
+            shift
+            ;;
+        --headless)
+            HEADLESS=1
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--name CONTAINER_NAME] [--image IMAGE_NAME] [--recreate]"
+            echo "Usage: $0 [--name CONTAINER_NAME] [--image IMAGE_NAME] [--recreate] [--build] [--with-gadget] [--headless]"
             exit 1
             ;;
     esac
@@ -57,7 +74,7 @@ if [[ ! -d "$HOST_PATH" ]]; then
     exit 1
 fi
 
-if [[ -z "${DISPLAY:-}" ]]; then
+if [[ "$HEADLESS" -eq 0 && -z "${DISPLAY:-}" ]]; then
     echo "WARNING: DISPLAY is not set. GUI applications may not work."
 fi
 
@@ -76,14 +93,25 @@ if ! docker info >/dev/null 2>&1; then
     fi
 fi
 
+if [[ "$BUILD_IMAGE" -eq 1 ]]; then
+    echo ">>> Building image '$IMAGE_NAME'..."
+    docker build --build-arg "INSTALL_GADGET=$INSTALL_GADGET" --tag "$IMAGE_NAME" "$SCRIPT_DIR"
+fi
+
+if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+    echo "Error: Docker image '$IMAGE_NAME' was not found."
+    echo "Build it with: $0 --image '$IMAGE_NAME' --build"
+    exit 1
+fi
+
 cleanup_xhost() {
     if command -v xhost >/dev/null 2>&1; then
         xhost -local:root >/dev/null 2>&1 || true
     fi
 }
 
-# Allow X server access for container root
-if command -v xhost >/dev/null 2>&1; then
+# Allow X server access for container root unless running headless.
+if [[ "$HEADLESS" -eq 0 ]] && command -v xhost >/dev/null 2>&1; then
     xhost +local:root >/dev/null 2>&1 || true
     trap cleanup_xhost EXIT
 fi
@@ -103,20 +131,25 @@ fi
 
 if [[ -z "$container_id" ]]; then
     echo ">>> Creating and starting new container '$CONTAINER_NAME'..."
-    docker run -it \
-        --name "$CONTAINER_NAME" \
-        --env DISPLAY="${DISPLAY:-}" \
-        --env QT_X11_NO_MITSHM=1 \
-        --workdir "$CONTAINER_PATH" \
-        --volume "$HOST_PATH":"$CONTAINER_PATH" \
-        --volume /tmp/.X11-unix:/tmp/.X11-unix:rw \
-        --cpus=10 \
-        --memory=8g \
-        "$IMAGE_NAME"
+    docker_run_args=(
+        --name "$CONTAINER_NAME"
+        --workdir "$CONTAINER_PATH"
+        --volume "$HOST_PATH:$CONTAINER_PATH"
+        --cpus="$DOCKER_CPUS"
+        --memory="$DOCKER_MEMORY"
+    )
+    if [[ "$HEADLESS" -eq 0 ]]; then
+        docker_run_args+=(
+            --env "DISPLAY=${DISPLAY:-}"
+            --env QT_X11_NO_MITSHM=1
+            --volume /tmp/.X11-unix:/tmp/.X11-unix:rw
+        )
+    fi
+    docker run -it "${docker_run_args[@]}" "$IMAGE_NAME"
 else
     if docker ps -q -f name=^/${CONTAINER_NAME}$ >/dev/null 2>&1 && [[ -n "$(docker ps -q -f name=^/${CONTAINER_NAME}$)" ]]; then
         echo ">>> Container '$CONTAINER_NAME' is already running. Applying resource limits and opening shell..."
-        docker update --cpus=10 --memory=8g "$CONTAINER_NAME" 2>/dev/null || true
+        docker update --cpus="$DOCKER_CPUS" --memory="$DOCKER_MEMORY" "$CONTAINER_NAME" 2>/dev/null || true
         docker exec -it "$CONTAINER_NAME" bash
     else
         echo ">>> Container '$CONTAINER_NAME' already exists. Starting it..."
