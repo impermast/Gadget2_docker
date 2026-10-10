@@ -1,6 +1,8 @@
 # Dockerized GADGET-2 / GIZMO Environment
 
-This repository provides a Docker-based environment for building and running cosmological N-body/SPH simulations with **GADGET-2**, **GIZMO**, and **GalIC**.
+![tests](https://github.com/impermast/Gadget2_docker/actions/workflows/tests.yml/badge.svg)
+
+This repository provides a Docker-based environment for building and running cosmological N-body/SPH simulations with **GIZMO**, **GalIC**, and optionally **GADGET-2**.
 
 The main goal of this setup is to remove the need for manual system preparation on each machine. After a single Docker build, all required dependencies, compiler toolchains, libraries, helper Python packages, and bundled third-party source trees are installed automatically inside the image.
 
@@ -15,13 +17,19 @@ The project uses the following layout inside the container:
 
 This approach allows you to keep all heavy and rarely changing software inside the image, while editing your own simulation scripts, parameter files, and test setups locally without rebuilding the container.
 
-Once the image has been built, the environment can be deployed on any compatible server with Docker using the same command:
+The default image targets the GIZMO workflow and skips the large GADGET-2 source tree. The GIZMO source is pinned to the legacy C-layout snapshot used by this repository's Makefile, so the image does not silently switch to the incompatible current C++ layout. Once the image has been built, the environment can be deployed on any compatible server with Docker using the same command:
 
 ```bash
 docker build -t gadget-gizmo:ver2 .
 ```
 
-After that, the container already contains the required scientific software stack and is ready for runtime compilation and execution of your local GADGET-2 / GIZMO workflows.
+To include GADGET-2, build the larger variant explicitly:
+
+```bash
+docker build --build-arg INSTALL_GADGET=1 -t gadget-gizmo:full .
+```
+
+After that, the container already contains the required scientific software stack and is ready for runtime compilation and execution of your local GIZMO workflow.
 ---
 
 ## Features
@@ -34,10 +42,10 @@ After that, the container already contains the required scientific software stac
   - HDF5
   - Python 3 with helper libraries
 - Included third-party source trees inside the image:
-  - **GADGET-2**
   - **GIZMO**
   - **GalIC**
   - **glio**
+- Optional **GADGET-2** source tree, enabled with `INSTALL_GADGET=1`.
 - **Runtime compilation workflow**:
   build and run simulation codes from wrapper scripts in your mounted workspace.
 - **Clean separation of concerns**:
@@ -83,9 +91,10 @@ Inside the container, the structure is:
 ├── gsl
 ├── fftw
 ├── glio
-├── gadget-2.0.7
 ├── gizmo-public
 └── GalIC
+
+# The full variant additionally contains /opt/gadget-2.0.7.
 
 /nbody
 └── ...   ← mounted from host ./nbody
@@ -99,7 +108,13 @@ From the root of the repository, run:
 docker build -t gadget-gizmo:ver2 .
 ```
 
-This builds the full environment and stores all dependencies and third-party source trees inside the image.
+This builds the default GIZMO environment and stores its dependencies and third-party source trees inside the image. The build context is restricted by `.dockerignore`, so generated simulation outputs are not sent to Docker.
+
+For the optional GADGET-2 variant:
+
+```bash
+docker build --build-arg INSTALL_GADGET=1 -t gadget-gizmo:full .
+```
 
 ---
 
@@ -117,6 +132,8 @@ The script will:
 * enable X11 forwarding for GUI tools,
 * mount local `./nbody` into container `/nbody`,
 * start or recreate the container if needed.
+
+For a headless server, use `--headless`. To build the image from the launcher, use `--build`; add `--with-gadget` for the full GADGET-2 variant.
 
 By default, the script uses the image:
 
@@ -141,7 +158,7 @@ The intended workflow is:
 
 ## Running GADGET-2
 
-Inside the container:
+Use an image built with `INSTALL_GADGET=1` (or build it from the launcher with `--build --with-gadget`):
 
 ```bash
 cd /nbody/gadget_test
@@ -266,4 +283,3 @@ Please check the original licenses and usage restrictions of:
 * glio
 
 These third-party packages remain subject to their own licensing terms.
-

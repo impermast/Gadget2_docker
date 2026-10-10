@@ -1,0 +1,10 @@
+# The image only needs the two GIZMO build files copied below.
+# Keep generated simulations, repository metadata, and local environments out
+# of the Docker build context.
+**
+
+!Dockerfile
+!nbody/
+!nbody/gizmo_test/
+!nbody/gizmo_test/GizmoMakefile
+!nbody/gizmo_test/Makefile.systype
