@@ -17,7 +17,7 @@ Orchestration policy (current user override):
   bounded correction; no parallel delegation is allowed.
 
 Branch / HEAD / initial dirty paths / owned changes:
-- Branch: `agent/dev`; HEAD: `0c4b6075be0f1de29c4cc8c4f04edeaacf3e42cb`.
+- Branch: `agent/dev`; last accepted checkpoint HEAD: `d161e84`.
 - Initial dirty paths: `llm/CODEX_AUTONOMOUS_PROMPT.md`,
   `llm/CONFERENCE_TWO_WEEK_PLAN.md`, `llm/implementation_plan.md` — user-owned
   untracked plan files intentionally edited in the previous user request as
@@ -37,8 +37,9 @@ Permissions: action, scope, source of approval, remaining budget
 - Allowed now: local text/code edits, synthetic and targeted tests, bounded
   inspection/post-processing of existing data, and M4 implementation/review.
 - Without a fresh explicit approval: no new simulations, no GIZMO solver
-  validation, no sigma/m=5 runs, no Telegram/external messages, no commit and
-  no push. The canonical manifest is regenerated only after M4 integration.
+  validation, no sigma/m=5 runs, no Telegram/external messages, and no push.
+  Local stage-checkpoint commits are explicitly approved for this campaign;
+  the canonical manifest is regenerated only after M4 integration.
 - Remaining budget: no heavy-run budget approved; no simulation was launched.
 
 Capabilities: container, tools, communication, rendering/export
@@ -74,19 +75,25 @@ Capabilities: container, tools, communication, rendering/export
   a shell background/wait smoke check passed in 0.103 s.
 
 Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
-- M0 `done` — preflight, baseline, permissions, and initial state recorded.
+- M0 `done` — preflight, baseline, permissions, and initial state recorded;
+  checkpoint `5503e8e`.
 - M1 `done` — manifest code/tests verified; 11 old runs inventoried (10
   completed, 1 incomplete; 9 healthy, 2 pathological; metrics 6 complete,
-  1 partial, 4 missing). Canonical artifact awaits final post-M4 regeneration.
+  1 partial, 4 missing); checkpoint `10b554c`.
 - M2 `done` — Jz/mass/frame implementation and 28 targeted tests verified;
-  intentional rotation-frame migration is documented by the delegated branch.
+  intentional rotation-frame migration is documented by the delegated branch;
+  combined implementation checkpoint `49cbb17`.
 - M3 `done` — 20 tests and deterministic 15-row validation CSV verified;
-  source audit hashes recorded; solver experiment remains not validated.
+  source audit hashes recorded; solver experiment remains not validated;
+  checkpoint `d8934a3`.
 - M4 `in_progress` — bounded-memory sync scan/metadata and explicit late-time
   summarizer branches are integrated and tested. A pilot plus eight safe
   existing series produced 313 metric rows in `m4_pilot/` and `m4_series/`;
-  two large/pathological logs remain explicitly deferred by the resource gate.
-- M5 `pending`; M6 `pending`; M7 `pending`; M8 `pending`.
+  two large/pathological logs remain explicitly deferred by the resource gate;
+  accepted data checkpoint `d161e84`. Explicit campaign index/summary remain
+  uncommitted until identity integration passes.
+- M5 `pending`; M6 `pending`; M7 `in_progress` — draft talk package committed
+  at `b76500e`, final figures/export/rehearsal still pending; M8 `pending`.
 
 Current task / acceptance check:
 - M0–M3 acceptance evidence is recorded above. M4 code and scoped/full tests
@@ -106,9 +113,10 @@ Artifacts: path, inputs, analysis version, last successful validation
   or analysis artifact was generated.
 - `nbody/analysis/presentations/conference_2026/m4_pilot/`: one accepted
   healthy T=2 pilot with `series-jz-v2` metrics and metadata.
-- `nbody/analysis/presentations/conference_2026/m4_series/`: explicit
-  `series_index.csv`, eight accepted safe series, and `processing_report.md`;
-  two large/pathological series are deferred and were not launched.
+- `nbody/analysis/presentations/conference_2026/m4_series/`: eight accepted
+  safe series and `processing_report.md`; explicit `series_index.csv` and
+  campaign summary are pending identity-correct M6 integration. Two
+  large/pathological series are deferred and were not launched.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
   above; final package regeneration is pending M4.
@@ -123,6 +131,9 @@ Decisions: choice, reason, evidence
 - Enforce sequential low-reasoning delegation: one `gpt-5.6-luna` subagent,
   root acceptance, then the next bounded task. This is a current user override
   of any earlier parallel/max-reasoning delegation wording.
+- Use one local stage-checkpoint commit after each accepted M-stage; stage only
+  explicit paths, record SHA/scope/tests here, and never infer push permission
+  from commit permission.
 - Do not start any simulation or solver validation: explicitly outside current
   permissions; no matching process was running.
 - Keep pathological runs in the manifest with independent status/health and
@@ -148,6 +159,14 @@ Next actions: 1..3 concrete steps
    final series mapping is integrated.
 3. Prepare figures/claims and export checks; treat the deferred logs as a
    separate approval/resource decision, not an automatic launch.
+
+Checkpoint commits (local only; no push):
+- `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
+- `10b554c` — M1 manifest module/tests; full pytest passed.
+- `49cbb17` — M2–M4 Jz/streaming/summary code/tests; full pytest passed.
+- `d8934a3` — M3 dissipation audit/validation/tests; full pytest passed.
+- `d161e84` — accepted M4 pilot/safe-series artifacts; full pytest passed.
+- `b76500e` — M7 talk outline/notes/Q&A drafts; full pytest passed.
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
