@@ -319,6 +319,8 @@ Checkpoint commits (push status must be recorded separately):
 - `8479b5a` — preserved `mpirun`/`tee` exit status and made watcher state
   writes non-fatal under `set -euo pipefail`; shell regressions and full pytest
   passed; pushed successfully to `origin/agent/dev`.
+- `42e58d1` — recorded the robust-watcher checkpoint and its clean repository
+  state; full pytest passed; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -369,6 +371,8 @@ Push records:
   output `0551700..ce42478 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `8479b5a` was pushed with success, exit code 0;
   output `f962f74..8479b5a agent/dev -> agent/dev`
+- `push_record_checkpoint`: `42e58d1` was pushed with success, exit code 0;
+  output `8479b5a..42e58d1 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
