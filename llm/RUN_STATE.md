@@ -4,9 +4,9 @@ Updated UTC: 2026-10-11
 
 Campaign ID / spec revision:
 - `conference_2026_dsidm`
-- `llm/CODEX_AUTONOMOUS_PROMPT.md` sha256 `100e8f687243c674cd29f3c2b7ab0fcf638d7360a52d9b9e64c8607b591e5ce0`
-- `llm/CONFERENCE_TWO_WEEK_PLAN.md` sha256 `cdb2e21cf2dc2fe9614cbee57bc85fcb82577dcd31b0247f3b1f8f6b04252e8b`
-- `llm/implementation_plan.md` sha256 `39d9b83a50786ae220354b844461a43ef39a6b42092153942019a1dc9a06882c`
+- `llm/CODEX_AUTONOMOUS_PROMPT.md` sha256 `95cd163518404fc0d7b155e070c57f7688985bcb3d4427324809b78bc7d0d80a`
+- `llm/CONFERENCE_TWO_WEEK_PLAN.md` sha256 `702be7783a6dd1037f64c1b71bff555b7da004a5faab6bd12c402da5ac883593`
+- `llm/implementation_plan.md` sha256 `7184ac67e4cdeee772b87167b5abb67c39429f9fde35a83871577b47c785ac82`
 
 Orchestration policy (current user override):
 - At most one live subagent at a time.
