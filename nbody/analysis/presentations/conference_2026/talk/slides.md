@@ -1,7 +1,7 @@
 # dSIDM и вращающаяся структура
 
 **M7 editable slide source · `science_partial`**
-`visual_review_pending` · `rehearsal_pending` · первый CDM M5 принят, остальные matched runs pending
+`visual_review_pending` · `rehearsal_pending` · три matched M5 rows приняты, один incomplete
 
 11 основных слайдов + backup. Числа и статусы ниже имеют explicit relative locator;
 старые PNG не считаются новым evidence. Заметки и timing: [speaker_notes.md](speaker_notes.md).
@@ -43,9 +43,9 @@ CDM/SIDM/dSIDM, изолированное NFW-гало, вращающиеся 
 
 ## S06 — Controls и provenance (1:00)
 
-В пакете **10 mapped + 2 deferred** серии. `status`, `health`, `metrics_status`
-независимы; missing/pathological не становятся нулями или `failed`. Первый CDM
-k08 T5 run завершён и интегрирован; остальные matched k08 M5 runs pending, и
+В пакете **12 mapped rows**; два legacy rows остаются deferred/missing. `status`, `health`, `metrics_status`
+независимы; missing/pathological не становятся нулями или `failed`. Три matched
+k08 T5 rows CDM, SIDM и dSIDM D0.25 приняты; dSIDM D0.50 incomplete (30 snapshots, no metrics path), и
 claims ещё не frozen. **M7-C06 · provisional.** Источник:
 `run_manifest.csv`; `campaign_metrics.csv` (`series_mapping_status`).
 
@@ -60,9 +60,9 @@ candidate** (C1), без claims о convergence. **M7-C07 · supported в scope C
 
 ## S08 — T5 и deferred (1:00)
 
-T5 `[2.5,5]` показывает фактическое coverage. **2 deferred runs — missing evidence,
-не отрицательный результат (C2).** Первый CDM k08 T5 run уже интегрирован, но
-остальные matched k08 M5 runs pending, поэтому пакет остаётся `science_partial`;
+T5 `[2.5,5]` показывает фактическое coverage. **2 legacy deferred runs — missing evidence,
+не отрицательный результат (C2).** Три matched k08 T5 M5 rows уже приняты, но
+incomplete/deferred evidence сохраняет пакет в статусе `science_partial`;
 `science_complete` не объявляется. **M7-C08 · supported/method.** Источник:
 `run_manifest.csv`; `campaign_metrics.csv`.
 

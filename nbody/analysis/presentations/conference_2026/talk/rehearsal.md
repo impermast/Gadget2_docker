@@ -1,12 +1,12 @@
 # M8 rehearsal and handoff
 
 Статус handoff: `science_partial` · `visual_review_pending` ·
-`rehearsal_pending`; PDF export verified.
+`rehearsal_pending`; предыдущий PDF export verified, свежий export patched exporter pending.
 
 Этот документ описывает передачу и пользовательскую репетицию текущего
 evidence-aware каркаса. Он не меняет статусы runs и не объявляет научный вывод
-завершённым. Первый CDM k08 T=5 run прошёл terminal/post-run gate и интегрирован;
-matched k08 T=5 блок M5 ещё не завершён и не frozen для claims;
+завершённым. Три matched k08 T=5 M5 rows приняты; D0.50 incomplete (30 snapshots,
+no metrics path) и не frozen для claims;
 deferred runs не следует молча включать в controls. Числа для доклада берутся только после
 evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
@@ -53,8 +53,9 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 ## Export and visual review gate
 
-Текущий export status: PDF export verified (16-page PDF; `pdfinfo` и
-`pdftoppm` first/last checks passed). Полный deck visual freeze и пользовательская
+Текущий export status: старый PDF export verified (16-page PDF; `pdfinfo` и
+`pdftoppm` first/last checks passed), но свежий PDF для patched exporter ещё pending.
+Полный deck visual freeze и пользовательская
 репетиция ещё не проведены: badges остаются `visual_review_pending` и
 `rehearsal_pending`; `science_partial` сохраняется.
 

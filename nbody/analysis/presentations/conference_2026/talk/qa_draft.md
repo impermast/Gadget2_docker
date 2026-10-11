@@ -1,13 +1,13 @@
 # Черновик Q&A M7
 
 > **Lifecycle note (2026-10-11):** это pre-M5 Q&A draft, сохранённый как
-> методический источник. Первый CDM k08 T=5 run принят и интегрирован; остальные
-> matched k08 M5 runs pending, claims не frozen. Для текущего handoff сверяйтесь с
+> методический источник. Три matched k08 T=5 M5 rows приняты; D0.50 incomplete,
+> claims не frozen. Для текущего handoff сверяйтесь с
 > [qa.md](qa.md).
 
 Все ответы ниже — методические заготовки. Числа, run IDs и эмпирические выводы
 добавляются только через M6 `claims.csv` и явные locators. Текущий статус: `pending`;
-этот draft не отражает завершённый первый CDM run; пакет всё ещё `science_partial`.
+этот draft не является evidence ledger; пакет всё ещё `science_partial`.
 
 ## Вопросы и ответы
 
@@ -34,8 +34,8 @@
 
 5. **Какие controls действительно matched?**
    Существующие k08 T=2 и legacy k05 T=5 — разные контексты. Legacy k05 не
-   заменяет matched k08 T=5. Первый CDM k08 T=5 M5 run принят, остальные
-   matched M5 runs pending; честный статус всё ещё `science_partial`.
+   заменяет matched k08 T=5. Три matched M5 rows приняты, D0.50 incomplete;
+   честный статус всё ещё `science_partial`.
 
 6. **Достаточны ли N и softening?**
    Это ограниченная серия `N=10^5`; фактически применённые softening и timestep

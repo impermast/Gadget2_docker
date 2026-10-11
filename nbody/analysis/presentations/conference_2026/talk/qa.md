@@ -1,8 +1,8 @@
 # Q&A M7 — evidence-aware handoff
 
 Статус пакета: `science_partial` · `visual_review_pending` ·
-`rehearsal_pending`; PDF export verified. Первый CDM k08 T5 run прошёл
-terminal/post-run gate и интегрирован; остальные M5 runs pending, claims ещё не
+`rehearsal_pending`; PDF export verified, но свежий PDF для patched exporter ещё pending. Три matched k08 T5 M5 rows прошли
+terminal/post-run gate и приняты; D0.50 incomplete, claims ещё не
 frozen. Deferred runs — missing evidence, не отрицательный результат. Ответы ниже не объявляют
 `science_complete`.
 
@@ -29,8 +29,8 @@ frozen. Deferred runs — missing evidence, не отрицательный ре
 
 5. **Какие controls matched?**
    k08 T=2 и legacy k05 T=5 — разные контексты; legacy k05 не заменяет matched
-   k08 T=5. Первый CDM run прошёл terminal/post-run gate и интегрирован; остальные
-   M5 runs pending, поэтому статус `science_partial` сохраняется.
+   k08 T=5. Три matched M5 rows прошли terminal/post-run gate и приняты; D0.50
+   incomplete и два legacy rows deferred/missing, поэтому статус `science_partial` сохраняется.
 
 6. **Достаточны ли N и softening?**
    Это ограниченная серия; фактически применённые softening и timestep берутся
@@ -85,4 +85,4 @@ revision и locator». При отсутствии такой записи от�
 
 Actual user rehearsal и visual review ещё не проведены; до их фактической
 фиксации статусы `rehearsal_pending` и `visual_review_pending` сохраняются;
-PDF export уже проверен.
+Старый PDF export уже проверен; свежий PDF для patched exporter ещё pending.

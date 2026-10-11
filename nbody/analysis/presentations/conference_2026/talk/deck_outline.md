@@ -4,8 +4,8 @@
 Это исходник структуры, а не готовые слайды и не утверждённый научный вывод.
 
 > **Lifecycle note (2026-10-11):** каркас сохраняет pre-M4/M6 placeholders и не
-> является текущим handoff. Первый CDM k08 T=5 run принят и интегрирован;
-> остальные matched k08 M5 runs pending, claims не frozen, пакет остаётся
+> является текущим handoff. Три matched k08 T=5 M5 rows приняты; D0.50
+> incomplete, claims не frozen, пакет остаётся
 > `science_partial`. Актуальные формулировки находятся в
 > [slides.md](slides.md), [speaker_notes.md](speaker_notes.md) и [qa.md](qa.md).
 
@@ -113,8 +113,8 @@ screening использует `c/a<0.45`, `z_rms/R_rms<0.35`, `|Vrot|/sigma>0.6
 
 Предусмотрены шесть существующих k08 T=2 запусков и пять прежних k05 T=5 запусков;
 это разные контексты, а не взаимозаменяемые matched controls. Новый matched T=5
-k08 блок из четырёх запусков относится к M5; первый CDM run принят, остальные
-matched runs pending.
+k08 блок из четырёх запусков относится к M5; три rows (CDM, SIDM, dSIDM D0.25)
+приняты, dSIDM D0.50 incomplete.
 В финальном manifest `status`, `health` и `metrics_status` независимы: incomplete,
 pathological, missing и conflict нельзя сворачивать в один `failed` или в нули.
 Старый `run_commit` без evidence остаётся `unknown`; ревизия анализа указывается
@@ -138,14 +138,14 @@ pathological, missing и conflict нельзя сворачивать в оди�
 ### S08 — Прежние T=5 и текущий статус matched M5
 
 - `claim_id: M7-C08`
-- `thesis: T=5 расширяет проверяемое время, но доступность старых k05 данных и оставшиеся pending matched k08 M5 не дают права объявлять science_complete.`
+- `thesis: T=5 расширяет проверяемое время, но два legacy deferred rows и incomplete D0.50 не дают права объявлять science_complete.`
 - `evidence_locator: [placeholder: M1 manifest + M4 coverage for five k05 T=5; M5 approval/queue record; M6 science status]`
 - `status: pending`
 - `visual_intent: две явно раздельные колонки `legacy k05 T=5` и `matched k08 T=5 M5`; pending/absent badges, без пустых нулей`
 - `time_estimate_min: 1.0`
 
 Показывать T=5 только с фактическим `t_reached`, coverage и pathology flags.
-Пока часть matched M5 остаётся pending, подпись пакета — `science_partial`, а
+Пока D0.50 incomplete и два legacy rows deferred, подпись пакета — `science_partial`, а
 не `science_complete`. Не переносить вывод прежней k05 серии на high-spin k08.
 
 ### S09 — Численные патологии и границы интерпретации
@@ -260,7 +260,7 @@ solver experiment пока `not_validated_in_solver`.
 ### B04 — Что означает `science_partial`
 
 - `claim_id: M7-B04`
-- `thesis: Оставшиеся pending matched M5 оставляют доклад допустимым только с явно суженным выводом и статусом `science_partial`.`
+- `thesis: Incomplete D0.50 и legacy deferred rows оставляют доклад допустимым только с явно суженным выводом и статусом `science_partial`.`
 - `evidence_locator: [placeholder: M5 integration status; M6 readiness table]`
 - `status: provisional`
 - `visual_intent: readiness badge, not a result plot`
