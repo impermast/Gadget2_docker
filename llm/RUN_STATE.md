@@ -18,8 +18,8 @@ Orchestration policy (current user override):
 
 Branch / HEAD / initial dirty paths / owned changes:
 - Branch: `agent/dev`; M7 evidence commit `5924b52`, editable slide source
-  `1b8fc5f`, M8 rehearsal/handoff `130df5d`, current state checkpoint
-  `e07cd13`, policy/state checkpoints, and
+  `1b8fc5f`, M8 rehearsal/handoff `130df5d`, current M8 notes checkpoint
+  `867f3e9`, policy/state checkpoints, and
   push records are published; last accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
@@ -102,7 +102,7 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
   package at `5924b52` and editable slide source at `1b8fc5f`; export and final
   visual freeze remain pending. M8 handoff/rehearsal checklist is accepted at
-  `130df5d`; user rehearsal remains `rehearsal_pending`.
+  `78a3295`/`867f3e9`; user rehearsal remains `rehearsal_pending`.
 
 Current task / acceptance check:
 - M0–M6 acceptance evidence is recorded above. M4 code/data and scoped/full
@@ -158,6 +158,11 @@ Artifacts: path, inputs, analysis version, last successful validation
   evidence-freeze, export/visual-review, and user-rehearsal handoff; statuses
   remain `science_partial`, `visual_review_pending`, `export_blocked`, and
   `rehearsal_pending`.
+- `nbody/analysis/presentations/conference_2026/conference_summary.md`: M8
+  evidence-aware summary with claims, provenance, limitations and locators.
+- `nbody/analysis/presentations/conference_2026/talk/speaker_notes.md`: final
+  evidence-aware notes derived from the draft; actual user rehearsal remains
+  pending.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
   above; final package regeneration is pending M4.
@@ -231,6 +236,10 @@ Checkpoint commits (push status must be recorded separately):
   pushed successfully to `origin/agent/dev`.
 - `e07cd13` — current RUN_STATE with M8 handoff and active M5 run; full pytest
   passed; pushed successfully to `origin/agent/dev`.
+- `78a3295` — accepted M8 evidence-aware conference summary; full pytest
+  passed; pushed successfully to `origin/agent/dev`.
+- `867f3e9` — accepted M8 final speaker notes; full pytest passed; pushed
+  successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -251,6 +260,10 @@ Push records:
   output `0ebcd6d..130df5d agent/dev -> agent/dev`
 - `push_record_checkpoint`: `e07cd13` was pushed with success, exit code 0;
   output `130df5d..e07cd13 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `78a3295` was pushed with success, exit code 0;
+  output `8d5ba79..78a3295 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `867f3e9` was pushed with success, exit code 0;
+  output `78a3295..867f3e9 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
