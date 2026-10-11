@@ -17,7 +17,7 @@ Orchestration policy (current user override):
   bounded correction; no parallel delegation is allowed.
 
 Branch / HEAD / initial dirty paths / owned changes:
-- Branch: `agent/dev`; last accepted checkpoint HEAD: `d161e84`.
+- Branch: `agent/dev`; last accepted data checkpoint HEAD: `be092e3`.
 - Initial dirty paths: `llm/CODEX_AUTONOMOUS_PROMPT.md`,
   `llm/CONFERENCE_TWO_WEEK_PLAN.md`, `llm/implementation_plan.md` — user-owned
   untracked plan files intentionally edited in the previous user request as
@@ -86,14 +86,15 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M3 `done` — 20 tests and deterministic 15-row validation CSV verified;
   source audit hashes recorded; solver experiment remains not validated;
   checkpoint `d8934a3`.
-- M4 `in_progress` — bounded-memory sync scan/metadata and explicit late-time
-  summarizer branches are integrated and tested. A pilot plus eight safe
-  existing series produced 313 metric rows in `m4_pilot/` and `m4_series/`;
-  two large/pathological logs remain explicitly deferred by the resource gate;
-  accepted data checkpoint `d161e84`. Explicit campaign index/summary remain
-  uncommitted until identity integration passes.
+- M4 `done (partial/deferred)` — bounded-memory sync/metadata and explicit
+  late-time summaries are integrated and tested. A pilot plus eight safe
+  existing series produced 313 metric rows; two large/pathological logs remain
+  explicitly deferred by the resource gate. Data checkpoint `d161e84`.
 - M5 `pending`; M6 `pending`; M7 `in_progress` — draft talk package committed
   at `b76500e`, final figures/export/rehearsal still pending; M8 `pending`.
+- M6 `done (partial/deferred)` — canonical 11-row manifest, explicit 9-row
+  series index, 11-row campaign summary and metadata accepted at `be092e3`;
+  two deferred series are visible as missing coverage.
 
 Current task / acceptance check:
 - M0–M3 acceptance evidence is recorded above. M4 code and scoped/full tests
@@ -114,9 +115,14 @@ Artifacts: path, inputs, analysis version, last successful validation
 - `nbody/analysis/presentations/conference_2026/m4_pilot/`: one accepted
   healthy T=2 pilot with `series-jz-v2` metrics and metadata.
 - `nbody/analysis/presentations/conference_2026/m4_series/`: eight accepted
-  safe series and `processing_report.md`; explicit `series_index.csv` and
-  campaign summary are pending identity-correct M6 integration. Two
-  large/pathological series are deferred and were not launched.
+  safe series, corrected explicit `series_index.csv`, and `processing_report.md`;
+  two large/pathological series are deferred and were not launched.
+- `nbody/analysis/presentations/conference_2026/run_manifest.csv` and
+  `run_manifest_metadata.json`: 11 manifest rows, 9 safe scans and 2 explicit
+  deferred rows; no large deferred log was scanned.
+- `nbody/analysis/presentations/conference_2026/campaign_metrics.csv` and
+  `campaign_metrics_metadata.json`: 11 summary rows, 9 `ok` and 2 `missing`,
+  fixed T2/T5 windows, no interpolation or implicit fallback.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
   above; final package regeneration is pending M4.
@@ -153,12 +159,13 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Build `campaign_metrics.csv`/metadata from the explicit `m4_series` index;
-   keep partial/deferred status visible and avoid implicit globbing.
-2. Regenerate and independently verify the canonical manifest only after the
-   final series mapping is integrated.
-3. Prepare figures/claims and export checks; treat the deferred logs as a
-   separate approval/resource decision, not an automatic launch.
+1. Build 3–4 figures from the accepted campaign CSVs, with explicit source
+   locators, units, legends, and visual review evidence.
+2. Populate claims/evidence and reproducibility handoff from the accepted
+   manifest/summary; keep partial/deferred status visible.
+3. Complete slide data insertion, export checks, Q&A and rehearsal checklist;
+   treat the deferred logs as a separate approval/resource decision, not an
+   automatic launch.
 
 Checkpoint commits (local only; no push):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
@@ -166,6 +173,7 @@ Checkpoint commits (local only; no push):
 - `49cbb17` — M2–M4 Jz/streaming/summary code/tests; full pytest passed.
 - `d8934a3` — M3 dissipation audit/validation/tests; full pytest passed.
 - `d161e84` — accepted M4 pilot/safe-series artifacts; full pytest passed.
+- `be092e3` — accepted M6 manifest/index/campaign summary; full pytest passed.
 - `b76500e` — M7 talk outline/notes/Q&A drafts; full pytest passed.
 
 Resume: what to inspect before any new launch
