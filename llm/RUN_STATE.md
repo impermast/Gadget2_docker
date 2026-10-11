@@ -136,7 +136,9 @@ Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
   --dissipation 0 --ic-file /nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08
   --time-max 5 --time-bet 0.1 --first-snapshot 0 --mpi-procs 8
   --max-step 0.005 --kick 0 --time-limit 14400 --skip-viz --no-tg`.
-  Container `mpirun` PID 795, eight GIZMO children; watcher PID 794; started
+  Latest read-only `docker top` lifecycle check: `mpirun` PID 75150, `tee`
+  PID 75152, eight GIZMO children (75168, 75169, 75170, 75171, 75173, 75176,
+  75180, 75184), and watcher `sleep` PID 113791; started
   `2026-10-11T08:34:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
   sidm_s2p5_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root. The
   process and parameter preflight passed. A read-only check found the
