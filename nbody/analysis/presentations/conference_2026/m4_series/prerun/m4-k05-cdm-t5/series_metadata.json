@@ -1,0 +1,51 @@
+{
+  "analysis_schema_version": "series-jz-v2",
+  "aperture": {
+    "kind": "spherical",
+    "radius": 5.0,
+    "radius_unit": "snapshot coordinate units"
+  },
+  "aperture_r": 5.0,
+  "artifact_identity": "m4-k05-cdm-t5",
+  "fixed_axis": "z",
+  "full_log_min_positive_systemstep": 0.000610352,
+  "malformed_sync_count": 0,
+  "mass_source_policy": {
+    "fallback": "Header/MassTable[ptype] when finite and positive",
+    "geometry_fallback": "unit weights are legacy geometry-only; never physical Jz",
+    "missing_or_invalid": "physical Jz fields are nan",
+    "preferred": "PartType<ptype>/Masses"
+  },
+  "parsed_sync_count": 2468,
+  "parsed_sync_status": "ok",
+  "provenance": {
+    "command": "/home/kds/sci/gadget2_docker/.venv/bin/python nbody/scripts/analysis/runners/make_prerun_plots.py --run-root nbody/runs/dissipation/test_dissipation_focused_T5/cdm_N1e5_T5 --ptype 3 --artifact-name m4-k05-cdm-t5 --plots=,",
+    "hashes_note": "large HDF5/log files were not hashed by this runner",
+    "hdf5_hash": null,
+    "log_hash": null,
+    "log_path": "nbody/runs/dissipation/test_dissipation_focused_T5/cdm_N1e5_T5/run.log"
+  },
+  "ptype": 3,
+  "run_id": "cdm_N1e5_T5",
+  "run_root": "nbody/runs/dissipation/test_dissipation_focused_T5/cdm_N1e5_T5",
+  "scanned_log_lines": 36952,
+  "schema": "series-metadata-v1",
+  "schema_version": "series-metadata-v1",
+  "shrink_center": {
+    "iterations": 6,
+    "method": "shrink_center"
+  },
+  "snapshot_count": 52,
+  "snapshot_time_max": 5.0,
+  "snapshot_time_min": 0.0,
+  "snapshot_time_range": [
+    0.0,
+    5.0
+  ],
+  "unmatched_snapshot_count": 0,
+  "velocity_frame": {
+    "axis": "fixed original z; no per-snapshot rotation",
+    "method": "mass_weighted_bulk_velocity",
+    "scope": "all particles of selected PartType"
+  }
+}

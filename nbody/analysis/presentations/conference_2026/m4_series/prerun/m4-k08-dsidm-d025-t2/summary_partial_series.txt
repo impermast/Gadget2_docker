@@ -1,0 +1,18 @@
+PARTIAL SERIES DIAGNOSTIC SUMMARY
+Verdict: no-disk-before-pathology
+
+Key notes:
+- Series covers 21 snapshots t=0.000..2.000.
+- c/a(r<5): start=0.989 min=0.816 final=0.953.
+- z/R(r<5): start=0.711 min=0.591 final=0.685.
+- |vrot|/sigma(r<5): start=0.536 max=0.536 final=0.180.
+- rho_core(r<2): start=0.002218 final=0.0005797 (x0.26).
+- nearest systemstep: min=0 final=0.00195.
+- c/a trend d(c/a)/dt=0.03708 per code time unit.
+- Interpretation: numerical pathology appears before clear disk-like flattening.
+
+Generated files:
+- metrics_series.csv (9659 bytes)
+- series_metadata.json (1804 bytes)
+
+Agent note: GIF/animation viewing is not used for verdict; conclusions are based on CSV/TXT metrics and static PNG outputs.
