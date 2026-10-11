@@ -8,7 +8,10 @@ Inputs are package-relative `campaign_metrics.csv`, `m4_series/series_index.csv`
 
 Schema/method versions are taken from the committed CSVs (`series-jz-v2` and campaign metadata fields). The package contains 12 mapped rows: three matched k08 T=5 M5 rows are accepted, while `dsidm_s2p5_D0p50_N1e5_T5_k08` is incomplete (30 snapshots, no metrics path). Two legacy rows remain deferred/missing evidence and are not negative evidence. The package remains `science_partial` while claims freeze is pending. T2/T5 late windows and Jz normalization are method claims only.
 
-Visual review checklist: inspect every PNG for non-empty readable axes, labels, legends, units, clipping, consistent series identity/order, and correspondence to its manifest source locator. `visual_review_pending=true` until independently reviewed.
+Visual review record: all four PNG assets were inspected in the final 16-page PDF
+for readable axes, labels, legends, units, clipping, series identity/order, and
+manifest correspondence; `visual_review_pending=false` is recorded in the
+figure manifest. User rehearsal remains a separate pending gate.
 
 ## Editable slide export
 
@@ -25,11 +28,11 @@ the four explicit figure assets, and retains the current status badges. A
 structural smoke check passed with 16 slides, four embedded images, valid PPTX
 ZIP contents, and no out-of-bounds shapes. This does not replace visual review.
 
-PDF conversion is still blocked in the current headless environment: LibreOffice
-24.2.7.2 exits non-zero before writing a PDF even for a minimal valid PPTX, with
-the observed `javaldx`/read-only dconf runtime failure. Do not change
-`export_blocked` or `visual_review_pending` until a writable user LibreOffice
-runtime produces a PDF that can be checked with `pdfinfo` and `pdftoppm`.
+Fresh PDF conversion succeeded with LibreOffice 24.2.7.2 using an isolated
+writable profile; `pdfinfo` reports 16 pages and `pdftoppm` rendered all pages.
+The final PDF was checked with a full-deck contact sheet and targeted full-size
+views of S05, S07, S08 and S11. `export_blocked` is not set; user rehearsal is
+still pending.
 
 ## M5 post-run lifecycle gate
 

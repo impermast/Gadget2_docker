@@ -1,7 +1,7 @@
 # M8 rehearsal and handoff
 
-Статус handoff: `science_partial` · `visual_review_pending` ·
-`rehearsal_pending`; предыдущий PDF export verified, свежий export patched exporter pending.
+Статус handoff: `science_partial` · `visual_review_complete` ·
+`rehearsal_pending`; свежий PDF export patched exporter verified.
 
 Этот документ описывает передачу и пользовательскую репетицию текущего
 evidence-aware каркаса. Он не меняет статусы runs и не объявляет научный вывод
@@ -14,7 +14,7 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 - [slides.md](slides.md) — editable slide source, 11 основных слайдов + backup.
 - [slides.pdf](slides.pdf) — сохранённый 16-страничный экспорт для проверки;
-  SHA-256 `22fbec44e277d8c1ffd0c1360e3963809c262e822eba5bea82a3a976b7f4e239`.
+  SHA-256 `44c1bc5b6eb4147b95ca15c03e475bcc9fa21773f609ee691fff740096256c04`.
 - [export_slides.py](export_slides.py) — воспроизводимый системный PPTX-exporter;
   структурная проверка даёт 11 основных + 5 backup и 4 embedded PNG.
 - Для M5 lifecycle перед post-run анализом используется
@@ -53,10 +53,9 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 ## Export and visual review gate
 
-Текущий export status: старый PDF export verified (16-page PDF; `pdfinfo` и
-`pdftoppm` first/last checks passed), но свежий PDF для patched exporter ещё pending.
-Полный deck visual freeze и пользовательская
-репетиция ещё не проведены: badges остаются `visual_review_pending` и
+Текущий export status: свежий PDF patched exporter verified (16-page PDF;
+`pdfinfo`, `pdftoppm`, full-deck contact sheet и targeted page review passed).
+Пользовательская репетиция ещё не проведена: badge остаётся
 `rehearsal_pending`; `science_partial` сохраняется.
 
 Для структурного smoke test из корня:
@@ -73,11 +72,11 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 После freeze пользователь должен проверить в экспортированном PDF/слайдах:
 
-- [ ] все 11 слайдов открываются и имеют правильный порядок;
-- [ ] `pending`, `science_partial`, pathology и deferred badges читаемы;
-- [ ] ось времени, единицы, legend и locator footers не обрезаны;
-- [ ] ни один старый/candidate-only asset не выглядит как frozen evidence;
-- [ ] backup/Q&A доступны, но не считаются основными слайдами.
+- [x] все 11 слайдов открываются и имеют правильный порядок;
+- [x] `pending`, `science_partial`, pathology и deferred badges читаемы;
+- [x] ось времени, единицы, legend и locator footers не обрезаны;
+- [x] ни один старый/candidate-only asset не выглядит как frozen evidence;
+- [x] backup/Q&A доступны, но не считаются основными слайдами.
 
 ## Пользовательский rehearsal checklist
 

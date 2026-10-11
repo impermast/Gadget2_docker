@@ -1,7 +1,7 @@
 # Q&A M7 — evidence-aware handoff
 
-Статус пакета: `science_partial` · `visual_review_pending` ·
-`rehearsal_pending`; PDF export verified, но свежий PDF для patched exporter ещё pending. Три matched k08 T5 M5 rows прошли
+Статус пакета: `science_partial` · `visual_review_complete` ·
+`rehearsal_pending`; свежий PDF patched exporter verified. Три matched k08 T5 M5 rows прошли
 terminal/post-run gate и приняты; D0.50 incomplete, claims ещё не
 frozen. Deferred runs — missing evidence, не отрицательный результат. Ответы ниже не объявляют
 `science_complete`.
@@ -84,5 +84,5 @@ revision и locator». При отсутствии такой записи от�
 - Processing caveats: [processing_report.md](../m4_series/processing_report.md)
 
 Actual user rehearsal и visual review ещё не проведены; до их фактической
-фиксации статусы `rehearsal_pending` и `visual_review_pending` сохраняются;
-Старый PDF export уже проверен; свежий PDF для patched exporter ещё pending.
+фиксации статус `rehearsal_pending` сохраняется; свежий PDF patched exporter и
+полный visual review проверены.

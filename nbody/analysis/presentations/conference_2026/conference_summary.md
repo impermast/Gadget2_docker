@@ -45,12 +45,11 @@ Editable talk source и Q&A находятся в [talk/slides.md](talk/slides.m
 [talk/rehearsal.md](talk/rehearsal.md); исходные draft-файлы сохранены рядом.
 Структурный PPTX-exporter сохранён в
 [talk/export_slides.py](talk/export_slides.py); 16-страничный PDF экспортирован
-и проверен через `pdfinfo` и `pdftoppm` (первый/последний слайды). До evidence
-freeze сохраняются `visual_review_pending` и `rehearsal_pending`; полный deck
-visual freeze и пользовательская репетиция ещё pending. Следующий
-безопасный шаг — сверить claims/figures/manifest одной analysis revision,
-провести visual review и пользовательскую репетицию; запусков и RUN_STATE этот
-summary не изменяет.
+и проверен через `pdfinfo` и `pdftoppm`; полный deck visual review пройден по
+contact sheet и targeted page checks. До пользовательской репетиции сохраняются
+`science_partial` и `rehearsal_pending`; claims freeze остаётся отдельным
+evidence gate. Следующий безопасный шаг — пользовательская репетиция; запусков
+и RUN_STATE этот summary не изменяет.
 
 ## Source and reproducibility locators
 

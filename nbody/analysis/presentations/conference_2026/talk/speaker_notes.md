@@ -1,7 +1,7 @@
 # Заметки докладчика M7 — evidence-aware handoff
 
-Статус: `science_partial` · `visual_review_pending` · `rehearsal_pending`; предыдущий
-PDF export verified, но свежий PDF для patched exporter ещё pending. Ниже — русская
+Статус: `science_partial` · `visual_review_complete` · `rehearsal_pending`; свежий
+PDF export patched exporter verified. Ниже — русская
 структура примерно на 15 минут; actual user rehearsal ещё не проведена. Три matched
 k08 T=5 M5 rows прошли terminal/post-run gate и приняты; D0.50 incomplete, поэтому
 claims ещё не frozen. Deferred runs — missing evidence, не отрицательный результат.
@@ -60,7 +60,7 @@ coverage или revision отсутствует, устный ответ ост�
   `rehearsal_pending`.
 - [ ] Ни один `pending`/`provisional` claim не превращён в result.
 - [ ] `science_partial`, deferred/M5 limitation и scope произнесены явно.
-- [ ] PDF export verified; свежий PDF patched exporter ещё pending; полный visual freeze выполнен отдельно, а не по
+- [x] Свежий PDF patched exporter verified; полный visual review выполнен отдельно, а не по
   одному наличию файла.
 - [ ] После freeze визуально проверены слайды и locator footers; это отдельная
   проверка, не часть этого документа.
