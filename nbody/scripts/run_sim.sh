@@ -447,7 +447,9 @@ start_watcher() {
         local time_val=""
         local sync_point=""
         local last_line
-        last_line=$(grep "Sync-Point" "$log_file" 2>/dev/null | tail -1)
+        # With ``set -o pipefail`` an empty early log must not terminate the
+        # watcher before its first lifecycle snapshot is written.
+        last_line=$(grep "Sync-Point" "$log_file" 2>/dev/null | tail -1 || true)
         if [[ -n "$last_line" ]]; then
             sync_point=$(echo "$last_line" | awk -F', ' '{print $1}' | awk '{print $3}')
             time_val=$(echo "$last_line" | awk -F', ' '{print $2}' | awk '{print $2}')
@@ -455,7 +457,7 @@ start_watcher() {
 
         # Количество снапшотов
         local snaps=0
-        snaps=$(ls "${run_dir}/output"/snapshot_*.hdf5 2>/dev/null | wc -l)
+        snaps=$(ls "${run_dir}/output"/snapshot_*.hdf5 2>/dev/null | wc -l || true)
 
         # Прогресс
         local progress="N/A"
@@ -466,7 +468,7 @@ start_watcher() {
         # Потребление памяти (RSS первого MPI процесса)
         local mem_mb="N/A"
         local gismo_pid
-        gismo_pid=$(pgrep -f "^$GIZMO_BIN" 2>/dev/null | head -1)
+        gismo_pid=$(pgrep -f "^$GIZMO_BIN" 2>/dev/null | head -1 || true)
         if [[ -n "$gismo_pid" ]]; then
             mem_mb=$(ps -o rss= -p "$gismo_pid" 2>/dev/null | awk '{printf "%.0f", $1/1024}' || echo "N/A")
         fi
