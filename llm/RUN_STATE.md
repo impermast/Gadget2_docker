@@ -126,8 +126,9 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   only as `incomplete/missing`. No physical interpretation was performed.
   M7
   `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
-  package at `5924b52` and editable slide source at `1b8fc5f`; PDF export is
-  verified, while full visual freeze remains pending. M8 handoff/rehearsal checklist is accepted at
+  package at `5924b52` and editable slide source at `1b8fc5f`; the previous PDF
+  export is verified, while a fresh export after the exporter repair and full
+  visual freeze remain pending. M8 handoff/rehearsal checklist is accepted at
   `78a3295`/`867f3e9`/`d35647f`; user rehearsal remains
   `rehearsal_pending`.
 
@@ -141,6 +142,11 @@ Current task / acceptance check:
   the incomplete run has no metrics path; the raw runner diagnostic
   `ambiguous-partial-series` remains a diagnostic label, not a physical
   claim.
+- M6/M7 status text is synchronized with the 15-row ledgers: three matched
+  k08 T=5 M5 rows are accepted, D0.50 is incomplete, and two legacy rows are
+  deferred/missing. The patched exporter is structurally checked, but its
+  fresh PDF has not been produced in the current runtime; keep the visual gate
+  pending.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
 - COMPLETED QUEUE: host session `49144`, launched `2026-10-11T09:23:17Z`
@@ -214,7 +220,8 @@ Artifacts: path, inputs, analysis version, last successful validation
   pytest passed.
 - `nbody/analysis/presentations/conference_2026/talk/slides.md`: evidence-linked
   editable source with 11 main + 5 backup slides, four PNG locators, C1–C4,
-  9 mapped + 2 deferred coverage, and explicit pending badges.
+  12 mapped rows, three accepted matched M5 rows, one incomplete M5 row, two
+  legacy deferred rows, and explicit pending badges.
 - `nbody/analysis/presentations/conference_2026/talk/export_slides.py`:
   deterministic system-`python-pptx` exporter with a 16-slide/4-asset
   structural smoke check; the markdown sanitation/layout patch is accepted,
@@ -223,9 +230,9 @@ Artifacts: path, inputs, analysis version, last successful validation
   `tests/test_post_run_gate.py`: current M5 lifecycle gate; targeted project
   tests pass (`5 passed`), and it must be invoked only after terminal status.
 - `nbody/analysis/presentations/conference_2026/talk/rehearsal.md`: M8
-  evidence-freeze, verified PDF export, visual-review, and user-rehearsal
-  handoff; statuses remain `science_partial`, `visual_review_pending`, and
-  `rehearsal_pending`.
+  evidence-freeze, previous PDF export verification, visual-review, and
+  user-rehearsal handoff; statuses remain `science_partial`,
+  `visual_review_pending`, and `rehearsal_pending`.
 - `nbody/analysis/presentations/conference_2026/conference_summary.md`: M8
   evidence-aware summary with claims, provenance, limitations and locators.
 - `nbody/analysis/presentations/conference_2026/talk/speaker_notes.md`: final
@@ -294,10 +301,9 @@ Pending questions: ID, requested choice, channel, dependent tasks
 Next actions: 1..3 concrete steps
 1. Keep M5 closed as partial/deferred; do not restart D0p50 without a new
    bounded approval and resource gate.
-2. Commit and push the independently accepted M5 integration, recording the
-   queue's intentional non-zero exit and both gate verdicts.
-3. Complete the M7 full-deck visual checklist and retain M8
-   `rehearsal_pending` until the user performs a real rehearsal.
+2. Produce and inspect a fresh PDF from the repaired M7 exporter, then update
+   only the visual gate if all 16 pages pass readability/clipping checks.
+3. Retain M8 `rehearsal_pending` until the user performs a real rehearsal.
 
 Checkpoint commits (push status must be recorded separately):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
@@ -390,6 +396,12 @@ Checkpoint commits (push status must be recorded separately):
   enlarged single-figure panels; parser/PPTX structural checks and
   `git diff --check` passed; fresh PDF conversion remains pending; pushed
   successfully to `origin/agent/dev`.
+- `ace178b` — synchronized M6 claims/reproduce/summary text with the accepted
+  M5 outcomes and explicit incomplete/deferred scope; evidence checks passed;
+  pushed successfully to `origin/agent/dev`.
+- `1224c56` — synchronized M7 slides, notes, QA, outline and rehearsal handoff
+  with the same M5 lifecycle facts; stale-status checks passed; pushed
+  successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -462,6 +474,10 @@ Push records:
   output `5d17fa9..0f30af8 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `18f690f` was pushed with success, exit code 0;
   output `2e4824f..18f690f agent/dev -> agent/dev`
+- `push_record_checkpoint`: `ace178b` was pushed with success, exit code 0;
+  output `769a9f0..ace178b agent/dev -> agent/dev`
+- `push_record_checkpoint`: `1224c56` was pushed with success, exit code 0;
+  output `ace178b..1224c56 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
