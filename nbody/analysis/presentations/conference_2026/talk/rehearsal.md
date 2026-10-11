@@ -15,6 +15,9 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 - [slides.md](slides.md) — editable slide source, 11 основных слайдов + backup.
 - [export_slides.py](export_slides.py) — воспроизводимый системный PPTX-exporter;
   структурная проверка даёт 11 основных + 5 backup и 4 embedded PNG.
+- Для M5 lifecycle перед post-run анализом используется
+  `nbody/scripts/conference/post_run_gate.py`; он читает только bounded tail
+  лога и имена snapshot-файлов и не заменяет научную проверку.
 - [speaker_notes.md](speaker_notes.md) — финальные evidence-aware notes и
   переходы; [speaker_notes_draft.md](speaker_notes_draft.md) сохранён как
   исходный черновик.

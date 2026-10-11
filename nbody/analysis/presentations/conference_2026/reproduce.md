@@ -30,3 +30,18 @@ PDF conversion is still blocked in the current headless environment: LibreOffice
 the observed `javaldx`/read-only dconf runtime failure. Do not change
 `export_blocked` or `visual_review_pending` until a writable user LibreOffice
 runtime produces a PDF that can be checked with `pdfinfo` and `pdftoppm`.
+
+## M5 post-run lifecycle gate
+
+After (and only after) a run has reached a terminal state, use the bounded
+lifecycle gate before generating canonical metrics:
+
+    .venv/bin/python nbody/scripts/conference/post_run_gate.py \
+      --run-root nbody/runs/<group>/<run_id> \
+      --expected-time 5 \
+      --min-snapshots 1
+
+The gate reads only the last 64 KiB of `run.log` and snapshot filenames. Its JSON
+fields keep terminal marker, final time, error markers, snapshot count and
+used-values provenance independent; `active_or_unknown` is never promoted to a
+scientific verdict. It does not read HDF5 datasets or modify a run/package.

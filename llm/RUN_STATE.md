@@ -203,6 +203,9 @@ Artifacts: path, inputs, analysis version, last successful validation
   deterministic system-`python-pptx` exporter with a 16-slide/4-asset
   structural smoke check; PDF conversion remains blocked by the headless
   runtime and no visual freeze is claimed.
+- `nbody/scripts/conference/post_run_gate.py` plus
+  `tests/test_post_run_gate.py`: current M5 lifecycle gate; targeted project
+  tests pass (`5 passed`), and it must be invoked only after terminal status.
 - `nbody/analysis/presentations/conference_2026/talk/rehearsal.md`: M8
   evidence-freeze, export/visual-review, and user-rehearsal handoff; statuses
   remain `science_partial`, `visual_review_pending`, `export_blocked`, and
