@@ -1,0 +1,20 @@
+PARTIAL SERIES DIAGNOSTIC SUMMARY
+Verdict: ambiguous-partial-series
+
+Key notes:
+- Series covers 52 snapshots t=0.000..5.000.
+- c/a(r<5): start=0.989 min=0.814 final=0.932.
+- z/R(r<5): start=0.711 min=0.590 final=0.663.
+- |vrot|/sigma(r<5): start=0.536 max=0.536 final=0.180.
+- rho_core(r<2): start=0.002218 final=0.0005325 (x0.24).
+- nearest systemstep: min=0.00122 final=0.00244.
+- c/a trend d(c/a)/dt=0.00893 per code time unit.
+- Interpretation: partial data are ambiguous; inspect static contact sheets and metrics before choosing next parameters.
+
+Generated files:
+- metrics_series.csv (22515 bytes)
+- series_metadata.json (1779 bytes)
+- shape_evolution.png (127465 bytes)
+- summary_partial_series.txt (757 bytes)
+
+Agent note: GIF/animation viewing is not used for verdict; conclusions are based on CSV/TXT metrics and static PNG outputs.
