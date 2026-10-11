@@ -99,7 +99,8 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M6 `done (partial/deferred)` — canonical 11-row manifest, explicit 9-row
   series index, 11-row campaign summary and metadata accepted at `be092e3`;
   two deferred series are visible as missing coverage.
-- M5 `in_progress` (first approved run active; post-run gate pending); M7
+- M5 `in_progress` (first approved run completed; three sequential runs remain);
+  M7
   `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
   package at `5924b52` and editable slide source at `1b8fc5f`; export and final
   visual freeze remain pending. M8 handoff/rehearsal checklist is accepted at
@@ -109,13 +110,14 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 Current task / acceptance check:
 - M0–M6 acceptance evidence is recorded above. M4 code/data and scoped/full
   tests passed; the pilot and eight safe real-series runs were independently
-  checked by the root agent. The approved M5 first run is active; separately,
-  continue M7 export/visual work and retain the M8 handoff until a user
-  rehearsal is recorded. No unapproved simulation or solver validation is
-  implied.
+  checked by the root agent. The approved M5 first run completed its terminal
+  and post-run gate; separately,
+  continue M7 export/visual work, retain the M8 handoff until a user rehearsal
+  is recorded, and integrate the first M5 staging outputs before the next
+  launch. No unapproved simulation or solver validation is implied.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
-- ACTIVE: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
+- COMPLETED: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/cdm_N1e5_T5_k08 --type cdm --ic-file
   /nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08 --time-max 5 --time-bet 0.1
@@ -123,10 +125,16 @@ Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
   --time-limit 14400 --skip-viz --no-tg`.
   Container `mpirun` PID 82, eight GIZMO children; started
   `2026-10-11T07:45:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
-  cdm_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root, status=running.
-  Observation at `2026-10-11T07:46:14Z`: one snapshot, `t≈0.056`; no failure
-  signal. Do not start the next run until this process reaches a terminal status
-  and its outputs pass the post-run gate.
+  cdm_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root, status=completed.
+  Final log marker: `Final time=5 reached`; 52 snapshots (`snapshot_000` through
+  `snapshot_051`), no `FATAL`/`MPI_ABORT`/segmentation marker, final positive
+  `nearest_systemstep=0.00244141`, and no pathology flag after ignoring the
+  zero initial placeholder. The pre-fix watcher did not leave `run.state`; the
+  log and used-values file are retained as lifecycle evidence. Canonical
+  post-run outputs were generated in `/tmp/conference_2026_m5_cdm_staging/
+  prerun/m5-cdm-N1e5-T5-k08` with `series-jz-v2`; raw runner verdict is
+  `ambiguous-partial-series`, not a physical claim. Do not start the next run
+  until these outputs are integrated/accepted.
 
 Artifacts: path, inputs, analysis version, last successful validation
 - `llm/RUN_STATE.md`: inputs are the three plan files, repository state, and
@@ -167,6 +175,10 @@ Artifacts: path, inputs, analysis version, last successful validation
   pending.
 - `nbody/analysis/presentations/conference_2026/talk/qa.md`: final
   evidence-aware Q&A with explicit pending answers and locators.
+- `/tmp/conference_2026_m5_cdm_staging/prerun/m5-cdm-N1e5-T5-k08/`: accepted
+  staging output for the completed first M5 run (`metrics_series.csv`,
+  `series_metadata.json`, `summary_partial_series.txt`, and static PNG);
+  package integration is the next bounded step.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
   above; final package regeneration is pending M4.
@@ -206,15 +218,15 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Let the active approved k08 T=5 run reach a terminal status; then apply the
-   canonical post-run gate before deciding whether to start the next sequential
-   run. Preserve partial outcomes and never treat timeout or pathology as a
-   negative physical result.
-2. Analyze completed/partial M5 runs with canonical checks and update manifest,
-   claims, figures, and `science_partial`/coverage status.
+1. Integrate and independently accept the first M5 staging artifacts, update
+  its manifest/series index without overwriting legacy outputs, and record the
+  fixed analysis revision.
+2. Only after that gate, launch the next approved sequential k08 T=5 run; keep
+  partial/pathological outcomes visible and never treat them as a negative
+  physical result.
 3. Finish the M7 export/visual gate (or retain `export_blocked`) and conduct a
-   user rehearsal from the M8 handoff; keep future pushes gated by the confirmed
-   `origin/agent/dev` ref and factual command output.
+  user rehearsal from the M8 handoff; keep future pushes gated by the confirmed
+  `origin/agent/dev` ref and factual command output.
 
 Checkpoint commits (push status must be recorded separately):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
@@ -254,6 +266,8 @@ Checkpoint commits (push status must be recorded separately):
   rehearsal handoff; full pytest passed; pushed successfully to `origin/agent/dev`.
 - `c9174af` — recorded the aligned M8 artifact push and clean handoff state;
   full pytest passed; pushed successfully to `origin/agent/dev`.
+- `4e03416` — fixed zero initial timestep placeholder handling and added
+  regression tests; full pytest passed; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -288,6 +302,8 @@ Push records:
   output `01ce7ee..7ba3b2d agent/dev -> agent/dev`
 - `push_record_checkpoint`: `c9174af` was pushed with success, exit code 0;
   output `7ba3b2d..c9174af agent/dev -> agent/dev`
+- `push_record_checkpoint`: `4e03416` was pushed with success, exit code 0;
+  output `f961802..4e03416 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
