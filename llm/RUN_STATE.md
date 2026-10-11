@@ -84,19 +84,20 @@ Capabilities: container, tools, communication, rendering/export
   on an existing figure. Dedicated `feh`/`eog`/ImageMagick, `pandoc`, `marp`,
   `quarto`, browser exporters, `pypdf`, and `python-pptx` were not found;
   dedicated binaries are not needed for PNG review. The four new M7 PNGs were
-  rendered and independently inspected with `view_image`; PDF export is now
-  independently verified, while full deck visual freeze remains open. Background
+  rendered and independently inspected with `view_image`; the fresh patched
+  PDF export and full-deck visual review are now independently verified. Background
   execution/waiting primitives `nohup`, `setsid`, and `timeout` are present;
   a shell background/wait smoke check passed in 0.103 s.
 - Current M7 export check: `/usr/bin/python3` imports `python-pptx`; exporter
   patch `18f690f` structurally emits 16 slides (`S01`–`S11` plus `B01`–`B05`),
   removes markdown image/backup artefacts from bullets, and enlarges
   single-figure panels without crossing slide bounds. The regenerated PPTX
-  passed these structural checks. LibreOffice 24.2.7.2 currently returns
-  without creating a PDF in this runtime even with isolated profiles; the
-  previously verified PDF hash is therefore historical evidence, not
-  validation of the patched exporter. Full deck visual freeze and user
-  rehearsal remain pending until a fresh PDF export succeeds.
+  passed these structural checks. LibreOffice 24.2.7.2 produced the fresh PDF
+  with an isolated writable profile; `pdfinfo` reports 16 pages and `pdftoppm`
+  rendered all pages. Full-deck contact-sheet and targeted-page review passed;
+  user rehearsal remains pending. Current artifact hashes are PDF
+  `44c1bc5b6eb4147b95ca15c03e475bcc9fa21773f609ee691fff740096256c04` and
+  PPTX `9af22bf30b0326127bcefe08103c070b4e6d85a4dc3cb5c3a10bc8690df7576f`.
 
 Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M0 `done` — preflight, baseline, permissions, and initial state recorded;
@@ -124,13 +125,11 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   four-file canonical package; `D0p50` stopped at the bounded gate as
   `partial` (30 snapshots, no final-time/terminal marker) and is integrated
   only as `incomplete/missing`. No physical interpretation was performed.
-  M7
-  `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
-  package at `5924b52` and editable slide source at `1b8fc5f`; the previous PDF
-  export is verified, while a fresh export after the exporter repair and full
-  visual freeze remain pending. M8 handoff/rehearsal checklist is accepted at
-  `78a3295`/`867f3e9`/`d35647f`; user rehearsal remains
-  `rehearsal_pending`.
+- M7 `done (science_partial)` — talk source, notes, Q&A, repaired exporter and
+  fresh 16-page PDF are synchronized with the M5 ledgers. Full-deck visual
+  review passed; claims remain deliberately scoped and not science-complete.
+- M8 `in_progress (rehearsal_pending)` — handoff package is accepted at
+  `78a3295`/`867f3e9`/`d35647f`; the user must still perform the real rehearsal.
 
 Current task / acceptance check:
 - M0–M6 acceptance evidence is recorded above. The two latest M5 gates were
@@ -144,9 +143,12 @@ Current task / acceptance check:
   claim.
 - M6/M7 status text is synchronized with the 15-row ledgers: three matched
   k08 T=5 M5 rows are accepted, D0.50 is incomplete, and two legacy rows are
-  deferred/missing. The patched exporter is structurally checked, but its
-  fresh PDF has not been produced in the current runtime; keep the visual gate
-  pending.
+  deferred/missing. The patched exporter is structurally checked and the fresh
+  PDF has passed the visual gate.
+- The accepted PDF has 16 pages and SHA-256
+  `44c1bc5b6eb4147b95ca15c03e475bcc9fa21773f609ee691fff740096256c04`;
+  all pages rendered, contact-sheet review plus targeted S05/S07/S08/S11
+  checks passed, and all four figure-manifest visual flags are `false`.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
 - COMPLETED QUEUE: host session `49144`, launched `2026-10-11T09:23:17Z`
@@ -213,8 +215,8 @@ Artifacts: path, inputs, analysis version, last successful validation
   four conservative claims, explicit source locators, and a reproducible figure
   command; the two deferred runs remain missing evidence.
 - `nbody/analysis/presentations/conference_2026/figs/`: four rendered PNGs and
-  `figure_manifest.csv`; all four were inspected for readability/clipping, while
-  the manifest remains `visual_review_pending=true` until final deck integration.
+  `figure_manifest.csv`; all four were inspected in the final PDF for
+  readability/clipping, with `visual_review_pending=false` recorded.
 - `nbody/scripts/analysis/runners/make_conference_figures.py`: explicit-CSV
   runner, no glob/fallback/HDF5/log reads; py_compile, --help, runner, and full
   pytest passed.
@@ -224,15 +226,15 @@ Artifacts: path, inputs, analysis version, last successful validation
   legacy deferred rows, and explicit pending badges.
 - `nbody/analysis/presentations/conference_2026/talk/export_slides.py`:
   deterministic system-`python-pptx` exporter with a 16-slide/4-asset
-  structural smoke check; the markdown sanitation/layout patch is accepted,
-  while fresh PDF conversion and full visual freeze remain pending.
+  structural smoke check; the markdown sanitation/layout patch, fresh PDF
+  conversion and full-deck visual review are accepted.
 - `nbody/scripts/conference/post_run_gate.py` plus
   `tests/test_post_run_gate.py`: current M5 lifecycle gate; targeted project
   tests pass (`5 passed`), and it must be invoked only after terminal status.
 - `nbody/analysis/presentations/conference_2026/talk/rehearsal.md`: M8
-  evidence-freeze, previous PDF export verification, visual-review, and
-  user-rehearsal handoff; statuses remain `science_partial`,
-  `visual_review_pending`, and `rehearsal_pending`.
+  evidence-freeze, fresh PDF export and visual-review, and user-rehearsal
+  handoff; statuses remain `science_partial`, `visual_review_complete`, and
+  `rehearsal_pending`.
 - `nbody/analysis/presentations/conference_2026/conference_summary.md`: M8
   evidence-aware summary with claims, provenance, limitations and locators.
 - `nbody/analysis/presentations/conference_2026/talk/speaker_notes.md`: final
@@ -286,9 +288,10 @@ Decisions: choice, reason, evidence
 - Conference package permissions were corrected with `g+rwX`; the canonical
   manifest was regenerated after M4 integration and accepted in M6.
 - PNG visual review is available through built-in `view_image`; all four new
-  M7 figures were inspected, but final deck-level visual freeze remains open.
-- PPTX structure and PDF export are independently checked; the deck-level
-  visual gate remains open until full visual freeze is completed.
+  M7 figures and all 16 final PDF pages were inspected, including a contact
+  sheet and targeted full-size pages.
+- PPTX structure, PDF export and deck-level visual review are independently
+  checked; only user rehearsal and final evidence/claims freeze remain open.
 - Treat disk space as a pre-run gate: 37 GiB free / 84% used at preflight.
 - Do not launch `dsidm_s2p5_D0p75_N1e5_T2` or
   `dsidm10_f01_k0_N1e5_T5` without a fresh resource/pathology check and an
@@ -301,8 +304,8 @@ Pending questions: ID, requested choice, channel, dependent tasks
 Next actions: 1..3 concrete steps
 1. Keep M5 closed as partial/deferred; do not restart D0p50 without a new
    bounded approval and resource gate.
-2. Produce and inspect a fresh PDF from the repaired M7 exporter, then update
-   only the visual gate if all 16 pages pass readability/clipping checks.
+2. Preserve the accepted 16-page PDF/visual review; change it only if a factual
+   source or evidence revision requires a new export.
 3. Retain M8 `rehearsal_pending` until the user performs a real rehearsal.
 
 Checkpoint commits (push status must be recorded separately):
@@ -394,14 +397,17 @@ Checkpoint commits (push status must be recorded separately):
   `origin/agent/dev`.
 - `18f690f` — sanitized markdown image/backup text in the M7 exporter and
   enlarged single-figure panels; parser/PPTX structural checks and
-  `git diff --check` passed; fresh PDF conversion remains pending; pushed
-  successfully to `origin/agent/dev`.
+  `git diff --check` passed; fresh PDF conversion was completed later in
+  `2198707`; pushed successfully to `origin/agent/dev`.
 - `ace178b` — synchronized M6 claims/reproduce/summary text with the accepted
   M5 outcomes and explicit incomplete/deferred scope; evidence checks passed;
   pushed successfully to `origin/agent/dev`.
 - `1224c56` — synchronized M7 slides, notes, QA, outline and rehearsal handoff
   with the same M5 lifecycle facts; stale-status checks passed; pushed
   successfully to `origin/agent/dev`.
+- `2198707` — committed the fresh patched PDF, four visual-review flags and
+  completed deck visual-review handoff; 16-page PDF/contact-sheet/targeted-page
+  checks passed; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -478,6 +484,8 @@ Push records:
   output `769a9f0..ace178b agent/dev -> agent/dev`
 - `push_record_checkpoint`: `1224c56` was pushed with success, exit code 0;
   output `ace178b..1224c56 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `2198707` was pushed with success, exit code 0;
+  output `c549e82..2198707 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
