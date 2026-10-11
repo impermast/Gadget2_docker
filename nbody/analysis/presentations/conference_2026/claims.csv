@@ -1,5 +1,5 @@
 claim_id,claim,scope,status,evidence_locator,figure_id,window,method,limitation
 C1,"The safe mapped set has no simultaneous three-point screen candidate.","9 mapped M4 series excluding first M5 row",supported,campaign_metrics.csv;run_manifest.csv;m4_series/series_index.csv,criteria_time_panel;runaway_timestep_panel,T2_late/T5_late,explicit series index screening,no universal disk absence or convergence claim
-C2,"Deferred runs represent missing evidence, not a negative result.","2 deferred runs",method,run_manifest.csv;m4_series/series_index.csv,,T2_late/T5_late,missing-evidence classification,deferred rows are not interpreted as failures
+C2,"Deferred runs represent missing evidence, not a negative result.","2 legacy deferred runs",method,run_manifest.csv;m4_series/series_index.csv,,T2_late/T5_late,missing-evidence classification,deferred rows are not interpreted as failures
 C3,"T2/T5 windows and Jz normalization are method definitions for this package.","conference package",method,campaign_metrics.csv;m4_series/series_index.csv,,T2_late/T5_late,series-jz-v2 explicit windows,does not establish physical convergence
 C4,"Analytic dissipation checks pass with stated limitations for the committed validation cases.","validation CSV",supported,validation/dissipation_check.csv,diag_eloss_vs_f,,analytic validation contract,no solver execution claim

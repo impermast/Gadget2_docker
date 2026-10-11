@@ -1,9 +1,9 @@
 # Conference 2026 evidence-aware summary
 
 Статус пакета: `science_partial`. Это краткий handoff M6/M7, а не заявление
-`science_complete` и не новый analysis result. Первый CDM k08 T=5 run прошёл
-terminal/post-run gate и интегрирован; matched k08 T=5 блок M5 ещё не завершён
-и не frozen для claims; deferred runs остаются missing evidence и не
+`science_complete` и не новый analysis result. Три matched k08 T=5 M5 rows
+приняты; `dsidm_s2p5_D0p50_N1e5_T5_k08` incomplete (30 snapshots, no metrics
+path), claims ещё не frozen; два legacy rows остаются missing evidence и не
 трактуются как отрицательный физический результат.
 
 ## Область и текущая evidence base
@@ -12,8 +12,9 @@ terminal/post-run gate и интегрирован; matched k08 T=5 блок M5 
 сравнением CDM/SIDM/dSIDM. Определения, окна и ограничения берутся из
 [claims.csv](claims.csv), [run_manifest.csv](run_manifest.csv),
 [campaign_metrics.csv](campaign_metrics.csv) и
-[reproduce.md](reproduce.md). В текущем manifest указаны 10 mapped series и 2
-deferred rows; deferred классифицируются как отсутствие evidence, а не как
+[reproduce.md](reproduce.md). В текущем manifest указаны 12 mapped rows: три
+matched rows приняты, D0.50 incomplete; два legacy rows deferred. Deferred
+классифицируются как отсутствие evidence, а не как
 failures. Их `status`, `health` и `metrics_status` нельзя сворачивать в один
 вердикт.
 
