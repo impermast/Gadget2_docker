@@ -17,8 +17,8 @@ Orchestration policy (current user override):
   bounded correction; no parallel delegation is allowed.
 
 Branch / HEAD / initial dirty paths / owned changes:
-- Branch: `agent/dev`; current local and remote HEAD: `354f2e9`; accepted M7
-  evidence commit `5924b52` and policy/state checkpoint are published; last
+- Branch: `agent/dev`; M7 evidence commit `5924b52`, policy/state checkpoint
+  `354f2e9`, and its push-record checkpoint `73f8abe` are published; last
   accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
@@ -195,6 +195,8 @@ Push records:
 - `push_ref`: `agent/dev`
 - `push_command`: `git push origin agent/dev`
 - `push_result`: success, exit code 0; output `f7e5150..354f2e9 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `73f8abe` was pushed with success, exit code 0;
+  output `354f2e9..73f8abe agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
