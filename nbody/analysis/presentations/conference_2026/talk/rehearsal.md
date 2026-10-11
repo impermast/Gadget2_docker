@@ -5,7 +5,8 @@
 
 Этот документ описывает передачу и пользовательскую репетицию текущего
 evidence-aware каркаса. Он не меняет статусы runs и не объявляет научный вывод
-завершённым. Matched k08 T=5 блок M5 ещё не завершён и не frozen для claims;
+завершённым. Первый CDM k08 T=5 run прошёл terminal/post-run gate и интегрирован;
+matched k08 T=5 блок M5 ещё не завершён и не frozen для claims;
 deferred runs не следует молча включать в controls. Числа для доклада берутся только после
 evidence freeze из versioned CSV/manifest и explicit locator'ов.
 

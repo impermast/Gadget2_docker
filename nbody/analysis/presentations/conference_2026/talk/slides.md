@@ -43,9 +43,10 @@ CDM/SIDM/dSIDM, изолированное NFW-гало, вращающиеся 
 
 ## S06 — Controls и provenance (1:00)
 
-В пакете **9 mapped + 2 deferred** серии. `status`, `health`, `metrics_status`
-независимы; missing/pathological не становятся нулями или `failed`. Legacy k05 T5
-не matched k08 T5; M5 ещё не завершён/frozen для claims. **M7-C06 · provisional.** Источник:
+В пакете **10 mapped + 2 deferred** серии. `status`, `health`, `metrics_status`
+независимы; missing/pathological не становятся нулями или `failed`. Первый CDM
+k08 T5 run завершён и интегрирован; остальные matched k08 M5 runs pending, и
+claims ещё не frozen. **M7-C06 · provisional.** Источник:
 `run_manifest.csv`; `campaign_metrics.csv` (`series_mapping_status`).
 
 ## S07 — T2 evidence (1:20)
@@ -60,7 +61,8 @@ candidate** (C1), без claims о convergence. **M7-C07 · supported в scope C
 ## S08 — T5 и deferred (1:00)
 
 T5 `[2.5,5]` показывает фактическое coverage. **2 deferred runs — missing evidence,
-не отрицательный результат (C2).** Без matched k08 M5 пакет остаётся `science_partial`;
+не отрицательный результат (C2).** Первый CDM k08 T5 run уже интегрирован, но
+остальные matched k08 M5 runs pending, поэтому пакет остаётся `science_partial`;
 `science_complete` не объявляется. **M7-C08 · supported/method.** Источник:
 `run_manifest.csv`; `campaign_metrics.csv`.
 

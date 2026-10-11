@@ -2,8 +2,9 @@
 
 Статус: `science_partial` · `visual_review_pending` · `rehearsal_pending` ·
 `export_blocked`. Ниже — русская структура примерно на 15 минут; actual user
-rehearsal ещё не проведена. M5 ещё не завершён и не frozen для claims, а
-deferred runs — missing evidence, не отрицательный результат.
+rehearsal ещё не проведена. Первый CDM k08 T5 run прошёл terminal/post-run gate
+и интегрирован; остальные matched k08 M5 runs pending, поэтому claims ещё не
+frozen. Deferred runs — missing evidence, не отрицательный результат.
 
 ## Сценарий и переходы
 
@@ -16,7 +17,7 @@ deferred runs — missing evidence, не отрицательный резуль
 | S05 | 1:10 | Окна и эвристики — method, не observation; отсутствующий late-time участок не интерполируем. |
 | S06 | 1:00 | k08 T=2, legacy k05 T=5 и будущий matched k08 T=5 — разные контексты. Lifecycle, health и metrics_status независимы. |
 | S07 | 1:20 | Для T=2 показывать только значения, проверенные по `campaign_metrics.csv`/series metadata и связанному `run_id`; до freeze произнести `pending`, не подставлять число и не использовать старый PNG как evidence. |
-| S08 | 1:00 | Legacy k05 T=5 не заменяет matched k08 controls. M5 ещё не завершён/frozen; явно сказать `science_partial`. Deferred rows назвать missing evidence. |
+| S08 | 1:00 | Legacy k05 T=5 не заменяет matched k08 controls. Первый CDM k08 T=5 run принят, остальные M5 runs pending; явно сказать `science_partial` и что claims не frozen. Deferred rows назвать missing evidence. |
 | S09 | 1:20 | Патология, aperture transfer и отсутствие convergence/seed ограничивают интерпретацию. `Systemstep<1e-6` — диагностический флаг; reference-check не равен solver validation. |
 | S10 | 0:55 | Формулировать только claim, поддержанный coverage и controls из `claims.csv`; не произносить «dSIDM не образует диск» без такой поддержки. |
 | S11 | 0:40 | M4 → M5 post-run gate → M6 → M7 → visual review → user rehearsal. Сохранить `rehearsal_pending`; дату не объявлять. |
