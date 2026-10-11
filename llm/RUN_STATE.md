@@ -107,11 +107,12 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   existing series produced 313 metric rows; two large/pathological logs remain
   explicitly deferred by the resource gate. Data checkpoint `d161e84`.
 - M6 `done (partial/deferred)` — canonical manifest/index/campaign package
-  now contains 12 manifest rows, 10 explicit series mappings, and 12 campaign
-  rows; two deferred series remain visible as missing coverage. The first M5
-  integration is accepted at `99852da`.
-- M5 `in_progress` (first approved run completed and integrated; three
-  sequential runs remain);
+  now contains 13 manifest rows, 11 explicit series mappings, and 13 campaign
+  rows; two deferred series remain visible as missing coverage. The first two
+  M5 integrations are accepted at `99852da` and the current uncommitted
+  staging is independently checked below.
+- M5 `in_progress` (two approved runs completed and integrated; two sequential
+  runs remain);
   M7
   `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
   package at `5924b52` and editable slide source at `1b8fc5f`; export and final
@@ -120,33 +121,28 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   `rehearsal_pending`.
 
 Current task / acceptance check:
-- M0–M6 acceptance evidence is recorded above. M4 code/data and scoped/full
-  tests passed; the pilot and eight safe real-series runs were independently
-  checked by the root agent. The approved M5 first run completed its terminal
-  and post-run gate, and its canonical staging outputs are integrated at
-  `99852da`. Continue M7 export/visual work, retain the M8 handoff until a
-  user rehearsal is recorded, and launch only the next approved M5 run after a
-  fresh resource gate. No intermediate physical interpretation is required;
-  inspect each run after its terminal state.
+- M0–M6 acceptance evidence is recorded above. The current SIDM M5 run passed
+  the bounded post-run gate (`completed`, final time 5, 52 snapshots, no
+  bounded-tail errors); its four canonical staging files match the package
+  copy, and manifest/index/campaign integration preserves independent
+  lifecycle fields. The runner diagnostic remains
+  `ambiguous-partial-series`, not a physical claim. Continue only with the
+  next approved M5 run after a fresh resource gate; no intermediate physical
+  interpretation is required.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
-- ACTIVE: `dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08`; command inside
+- COMPLETED: `dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08 --type sidm --sigma 2.5
   --dissipation 0 --ic-file /nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08
   --time-max 5 --time-bet 0.1 --first-snapshot 0 --mpi-procs 8
   --max-step 0.005 --kick 0 --time-limit 14400 --skip-viz --no-tg`.
-  Latest read-only `docker top` lifecycle check: `mpirun` PID 75150, `tee`
-  PID 75152, eight GIZMO children (75168, 75169, 75170, 75171, 75173, 75176,
-  75180, 75184), and watcher `sleep` PID 113791; started
-  `2026-10-11T08:34:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
+  started `2026-10-11T08:34:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
   sidm_s2p5_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root. The
-  process and parameter preflight passed. A read-only check found the
-  pre-fix watcher no longer present and no `run.state`; this is a lifecycle
-  issue from the empty early log, not a solver verdict. The active run is not
-  being altered or interpreted; `run.log` and the process tree remain the
-  lifecycle evidence. Fixes `8b1a988` and `8479b5a` apply to future runs; the
-  active process was not restarted or modified.
+  bounded post-run gate returned `completed`: final time reached 5, 52
+  snapshots, used-values present, and no error markers. Canonical runner output
+  is `nbody/analysis/prerun/m5-sidm-s2p5-N1e5-T5-k08/`; its raw diagnostic is
+  `ambiguous-partial-series`, retained in the summary and series index.
 - COMPLETED: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/cdm_N1e5_T5_k08 --type cdm --ic-file
@@ -180,13 +176,13 @@ Artifacts: path, inputs, analysis version, last successful validation
   `series_index.csv`, and `processing_report.md`; two large/pathological series
   are deferred and were not launched.
 - `nbody/analysis/presentations/conference_2026/run_manifest.csv` and
-  `run_manifest_metadata.json`: 12 manifest rows, 10 completed/healthy rows
-  including the accepted M5 CDM T5 run, and 2 explicit deferred rows; no
+  `run_manifest_metadata.json`: 13 manifest rows, 11 completed/healthy rows
+  including the two integrated M5 T5 runs, and 2 explicit deferred rows; no
   large deferred log was scanned.
 - `nbody/analysis/presentations/conference_2026/campaign_metrics.csv` and
-  `campaign_metrics_metadata.json`: 12 summary rows, the new M5 row mapped
-  with 52 points and a T5-late window, 2 deferred rows still `missing`, fixed
-  T2/T5 windows, no interpolation or implicit fallback.
+  `campaign_metrics_metadata.json`: 13 summary rows, the current M5 SIDM row
+  mapped with 52 points and a T5-late window, 2 deferred rows still `missing`,
+  fixed T2/T5 windows, no interpolation or implicit fallback.
 - `nbody/analysis/presentations/conference_2026/claims.csv` and `reproduce.md`:
   four conservative claims, explicit source locators, and a reproducible figure
   command; the two deferred runs remain missing evidence.
@@ -225,6 +221,10 @@ Artifacts: path, inputs, analysis version, last successful validation
   m5-cdm-N1e5-T5-k08/`: accepted package copy with `series-jz-v2` metrics,
   metadata, raw partial-series summary, and static PNG. The raw
   `ambiguous-partial-series` label remains diagnostic only.
+- `nbody/analysis/presentations/conference_2026/m5_series/prerun/
+  m5-sidm-s2p5-N1e5-T5-k08/`: current accepted staging copy with four files;
+  canonical/package hashes match, and `series_index.csv` retains the raw
+  `ambiguous-partial-series` diagnostic.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and the accepted package regeneration used for
   the 12-row manifest; the two deferred rows remain explicit and unscanned.
@@ -267,14 +267,12 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Leave the active SIDM run untouched; drain only bounded process output as
-  needed to prevent session blockage, without analyzing intermediate physics.
-2. After that run terminates, run the canonical post-run gate, integrate its
-  staging outputs without overwriting legacy artifacts, and checkpoint/push
-  the stage before launching the next run.
-3. Finish the M7 export/visual gate (or retain `export_blocked`) and conduct a
-  user rehearsal from the M8 handoff; keep future pushes gated by the confirmed
-  `origin/agent/dev` ref and factual command output.
+1. Commit/push the accepted current SIDM staging and state checkpoint, with
+   only its package/ledger paths.
+2. Run a fresh resource/pathology gate, then launch the next already-approved
+   sequential M5 target; while active, do lifecycle checks only.
+3. After terminal status, apply the post-run gate and integrate the next
+   artifact; keep M7 `export_blocked` and M8 `rehearsal_pending` visible.
 
 Checkpoint commits (push status must be recorded separately):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
