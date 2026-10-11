@@ -1,7 +1,7 @@
 # dSIDM и вращающаяся структура
 
 **M7 editable slide source · `science_partial`**
-`visual_review_pending` · `rehearsal_pending` · M5 не одобрен/не завершён
+`visual_review_pending` · `rehearsal_pending` · первый CDM M5 принят, остальные matched runs pending
 
 11 основных слайдов + backup. Числа и статусы ниже имеют explicit relative locator;
 старые PNG не считаются новым evidence. Заметки и timing: [speaker_notes.md](speaker_notes.md).
@@ -85,7 +85,7 @@ validation. **M7-C09 · provisional.** Источник: `run_manifest.csv`; `ca
 
 ## S11 — Следующие шаги (0:40)
 
-`M4 → (M5 при одобрении) → M6 → M7`: freeze claims/figures, visual review, затем
+`M4 → M5 post-run gate → M6 → M7`: freeze claims/figures, visual review, затем
 пользовательская репетиция. Сейчас `science_partial`, `visual_review_pending`,
 `rehearsal_pending`. **M7-C11 · provisional.** Источник: `claims.csv`;
 `speaker_notes.md`.

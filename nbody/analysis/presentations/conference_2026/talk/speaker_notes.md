@@ -15,7 +15,7 @@ frozen. Deferred runs — missing evidence, не отрицательный ре
 | S03 | 1:10 | Изолированное NFW-гало, вращающиеся IC, CDM/SIDM/dSIDM. `spin_k` — параметр IC, не измеренный момент; `kick_velocity` — `DM_KickPerCollision`, не spin. |
 | S04 | 1:20 | В `r<5 kpc` после единого центра и bulk-frame: `Jz=Σm(x vy-y vx)`, `jz=Jz/M`; ось z фиксирована. Aperture transfer может менять апертурный момент. |
 | S05 | 1:10 | Окна и эвристики — method, не observation; отсутствующий late-time участок не интерполируем. |
-| S06 | 1:00 | k08 T=2, legacy k05 T=5 и будущий matched k08 T=5 — разные контексты. Lifecycle, health и metrics_status независимы. |
+| S06 | 1:00 | k08 T=2, legacy k05 T=5 и matched k08 T=5 M5 (первый CDM принят, остальные pending) — разные контексты. Lifecycle, health и metrics_status независимы. |
 | S07 | 1:20 | Для T=2 показывать только значения, проверенные по `campaign_metrics.csv`/series metadata и связанному `run_id`; до freeze произнести `pending`, не подставлять число и не использовать старый PNG как evidence. |
 | S08 | 1:00 | Legacy k05 T=5 не заменяет matched k08 controls. Первый CDM k08 T=5 run принят, остальные M5 runs pending; явно сказать `science_partial` и что claims не frozen. Deferred rows назвать missing evidence. |
 | S09 | 1:20 | Патология, aperture transfer и отсутствие convergence/seed ограничивают интерпретацию. `Systemstep<1e-6` — диагностический флаг; reference-check не равен solver validation. |
