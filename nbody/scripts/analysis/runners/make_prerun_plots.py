@@ -4,8 +4,9 @@
 Режимы (математика гейтов дословно, рисования в гейтах нет):
   --ic/--snap            ранний гейт IC->snapshot (run_early_gate +
                          early_cusp_compare);
-  --run-root             диагностика серии (metrics_series.csv + summary +
-                         series_evolution + contact_sheet faceon/edgeon);
+  --run-root             диагностика серии (metrics_series.csv +
+                         series_metadata.json + summary + series_evolution +
+                         contact_sheet faceon/edgeon);
   --group-root/--runs    сравнение shape-серий группы (shape_summary.csv/txt +
                          shape_panel ×5).
 
@@ -15,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -31,17 +34,20 @@ if str(_CHECK_SCRIPTS) not in sys.path:
 
 from analysis.loaders import (  # noqa: E402
     classify_series,
+    build_series_metadata,
     discover_shape_runs,
     find_galic_dir,
     list_series_snapshots,
     prepare_early_figure_data,
     prepare_series_frames,
     prepare_shape_figure_data,
-    read_all_sync_points,
+    read_snapshot_time,
     read_series_metric,
     run_early_gate,
+    scan_sync_points,
     summarize_shape_run,
     write_metrics_csv,
+    write_series_metadata,
     write_series_summary,
     write_shape_summary_csv,
     write_shape_text_report,
@@ -83,12 +89,65 @@ def _plotter(outdir: Path) -> NbodyPlotter:
     return plotter
 
 
-def _verify(outdir: Path, created: list) -> None:
+def _series_output_dir(run_root: Path, artifact_name: str | None = None) -> Path:
+    """Resolve the canonical series artifact through ``AnalysisPaths``.
+
+    The default remains ``run_root.name`` for compatibility.  A caller with
+    duplicate basenames in different groups can provide a validated one-
+    segment ``--artifact-name`` without introducing a free-form output path.
+    """
+    identity = artifact_name or Path(run_root).name
+    return AnalysisPaths().prerun_dir(identity)
+
+
+def _check_artifact_collision(outdir: Path, run_root: Path) -> None:
+    """Reject an existing metadata identity belonging to another run."""
+    metadata_path = outdir / "series_metadata.json"
+    if not metadata_path.exists():
+        return
+    try:
+        with metadata_path.open(encoding="utf-8") as fh:
+            metadata = json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(
+            f"[FAIL] refusing to overwrite unreadable artifact metadata: "
+            f"{metadata_path} ({exc})") from exc
+    existing_root = metadata.get("run_root")
+    if not existing_root or Path(existing_root).resolve() != Path(run_root).resolve():
+        raise SystemExit(
+            f"[FAIL] artifact collision: {outdir} belongs to "
+            f"{existing_root!r}, requested {run_root}")
+
+
+def _verify(outdir: Path, created: list, metadata_path: Path | None = None) -> None:
     check(len(created) > 0, f"files were created ({len(created)})")
     for p in sorted(set(created)):
         check(p.exists() and p.stat().st_size > 0,
               f"{p.name}: exists, size={p.stat().st_size:,} bytes")
         check(p.parent == outdir, f"{p.name}: located directly in {outdir}")
+    if metadata_path is not None:
+        check(metadata_path.exists() and metadata_path.stat().st_size > 0,
+              f"{metadata_path.name}: metadata exists")
+        try:
+            with metadata_path.open(encoding="utf-8") as fh:
+                metadata = json.load(fh)
+        except (OSError, ValueError) as exc:
+            raise SystemExit(f"[FAIL] invalid series metadata: {exc}") from exc
+        check(metadata.get("schema") == "series-metadata-v1",
+              "series metadata schema is supported")
+        check(bool(metadata.get("analysis_schema_version")),
+              "series metadata has analysis schema version")
+        check(bool(metadata.get("run_id")),
+              "series metadata has run identity")
+        check(bool(metadata.get("artifact_identity")),
+              "series metadata has artifact identity")
+        # ``_verify`` is also used by callers validating an artifact copied
+        # out of its canonical AnalysisPaths directory.  Identity collision
+        # protection belongs to ``_check_artifact_collision`` (before writes);
+        # requiring the directory basename here would reject such valid
+        # relocated/copy-only validation while adding no safety.
+        check(metadata_path.parent == outdir,
+              f"{metadata_path.name}: located directly in {outdir}")
 
 def do_gate(args, names: list) -> int:
     t0 = time.time()
@@ -96,7 +155,8 @@ def do_gate(args, names: list) -> int:
     t_snap = float(read_state(args.snap)["header"].get("Time", float("nan")))
     run_name = Path(args.run_name).name if args.run_name \
         else Path(args.snap).parent.parent.name
-    outdir = AnalysisPaths().prerun_dir(run_name)
+    outdir = _series_output_dir(Path(args.snap).parent.parent,
+                                args.artifact_name or run_name)
     print(f"[INFO] IC -> {args.snap} (t={t_snap:.4g}) -> {outdir}")
     galic_dir = args.galic_dir or find_galic_dir(args.ic)
     res = run_early_gate(args.ic, args.snap, galic_dir=galic_dir,
@@ -121,14 +181,33 @@ def do_gate(args, names: list) -> int:
 def do_series(args, names: list) -> int:
     t0 = time.time()
     run_root = Path(args.run_root)
-    outdir = AnalysisPaths().prerun_dir(run_root.name)
+    outdir = _series_output_dir(run_root, args.artifact_name)
+    _check_artifact_collision(outdir, run_root)
     print(f"[INFO] series {run_root} -> {outdir}")
     snaps = list_series_snapshots(run_root)
-    log_points = read_all_sync_points(run_root / "run.log")
-    metrics = [read_series_metric(s, args.ptype, log_points) for s in snaps]
+    # Read only Header/Time first.  This gives one target per snapshot for the
+    # single bounded log scan; particle arrays are opened only afterwards.
+    snapshot_times = [read_snapshot_time(snap) for snap in snaps]
+    sync_scan = scan_sync_points(run_root / "run.log", snapshot_times)
+    metrics = [
+        read_series_metric(snap, args.ptype,
+                           [nearest] if nearest is not None else [])
+        for snap, nearest in zip(snaps, sync_scan.nearest_points)
+    ]
     csv_path = outdir / "metrics_series.csv"
     write_metrics_csv(metrics, csv_path)
-    created: list = [csv_path]
+    metadata_path = outdir / "series_metadata.json"
+    metadata = build_series_metadata(
+        run_root=run_root,
+        artifact_identity=outdir.name,
+        ptype=args.ptype,
+        snapshot_times=snapshot_times,
+        scan=sync_scan,
+        command=" ".join(shlex.quote(value)
+                       for value in [sys.executable, *sys.argv]),
+    )
+    write_series_metadata(metadata, metadata_path)
+    created: list = [csv_path, metadata_path]
     verdict, notes = classify_series(metrics)
     print(f"[INFO] verdict: {verdict}")
     for n in notes:
@@ -158,7 +237,7 @@ def do_series(args, names: list) -> int:
     write_series_summary(metrics, verdict, notes, summary_path,
                          created + [summary_path])
     created.append(summary_path)
-    _verify(outdir, created)
+    _verify(outdir, created, metadata_path=metadata_path)
     print(f"ALL CHECKS PASSED in {time.time() - t0:.1f}s -> {outdir}")
     return 0
 
@@ -195,6 +274,8 @@ def main() -> int:
     ap.add_argument("--run-name", default=None)
     ap.add_argument("--galic-dir", default=None)
     ap.add_argument("--run-root", "--run", dest="run_root", default=None)
+    ap.add_argument("--artifact-name", default=None,
+                    help="unique one-segment AnalysisPaths artifact identity")
     ap.add_argument("--ptype", type=int, default=3)
     ap.add_argument("--max-frames", type=int, default=None)
     ap.add_argument("--group-root", "--group", dest="group_root", default=None)

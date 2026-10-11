@@ -10,7 +10,7 @@
       timestep_stats_from_log / potential_energy_snap(ic, snap) /
       run_early_gate(ic, snap, galic_dir, outdir, run_log, ...) — метрики +
       report.txt/gate.json/profiles.csv, БЕЗ блока рисования;
-  analyze_series.py : SeriesMetric / list_snapshots / read_all_sync_points /
+  analyze_series.py : SeriesMetric / list_snapshots / bounded sync scan /
       weighted_center (shrink_center из loaders.snapshots) / shape_ratios /
       thickness_stats / rotation_stats / core_density /
       ninteractions_info / find_nearest_sync / read_metric /
@@ -34,6 +34,8 @@ import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from bisect import bisect_left, bisect_right
+from collections.abc import Iterator, Sequence
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import h5py
@@ -70,7 +72,14 @@ def read_state(path, want_potential=True):
         g = f[key]
         pos = g["Coordinates"][:]
         vel = g["Velocities"][:]
-        mass = g["Masses"][:] if "Masses" in g else np.full(len(pos), 1.0)
+        from analysis.loaders.snapshots import resolve_particle_masses
+        ptype = int(key.removeprefix("PartType"))
+        resolved_mass = resolve_particle_masses(g, f["Header"].attrs, ptype)
+        # The early gate predates the physical Jz contract and still supports
+        # particle-count geometry when no mass information exists.  Series Jz
+        # below never uses this unit fallback: it marks physical moments nan.
+        mass = (resolved_mass if resolved_mass is not None
+                else np.full(len(pos), 1.0))
         pot = g["Potential"][:] if (want_potential and "Potential" in g) else None
         soft = g["Softening_KernelRadius"][:] if "Softening_KernelRadius" in g else None
         nint = g["NInteractions"][:] if "NInteractions" in g else None
@@ -161,17 +170,9 @@ def timestep_stats_from_log(run_log):
     if not run_log or not os.path.isfile(run_log):
         return {"has_log": False}
     times, dts = [], []
-    with open(run_log, "r", errors="ignore") as fh:
-        for line in fh:
-            m = re.search(
-                r"Sync-Point\s+(?P<sync>\d+).*?Time\s*[:=]\s*(?P<time>[0-9.eE+-]+)"
-                r".*?system step\s*[:=]\s*(?P<dt>[0-9.eE+-]+)", line)
-            if m:
-                try:
-                    times.append(float(m.group("time")))
-                    dts.append(float(m.group("dt")))
-                except ValueError:
-                    continue
+    for point in iter_sync_points(Path(run_log)):
+        times.append(point.time)
+        dts.append(point.step)
     if not dts:
         return {"has_log": True, "n_sync": 0}
     dts = np.array(dts)
@@ -219,14 +220,9 @@ def parse_log_steps(log_path):
     """
     times, dts = [], []
     if log_path and os.path.isfile(log_path):
-        pat = re.compile(r"Sync-Point\s+(\d+),\s*Time:\s*([0-9.eE+-]+),"
-                         r"\s*Systemstep:\s*([0-9.eE+-]+)")
-        with open(log_path, "r", errors="ignore") as fh:
-            for line in fh:
-                m = pat.search(line)
-                if m:
-                    times.append(float(m.group(2)))
-                    dts.append(float(m.group(3)))
+        for point in iter_sync_points(Path(log_path)):
+            times.append(point.time)
+            dts.append(point.step)
     return np.array(times), np.array(dts)
 
 
@@ -484,6 +480,11 @@ class SeriesMetric:
     ninteractions_max: int
     nearest_sync_point: int
     nearest_systemstep: float
+    # Keep new fields at the end so legacy positional constructors remain
+    # valid.  These are physical quantities in the fixed original z frame.
+    jz_total_r5: float = math.nan
+    jz_mass_r5: float = math.nan
+    jz_per_mass_r5: float = math.nan
 
 
 @dataclass
@@ -493,9 +494,76 @@ class SyncPoint:
     step: float
 
 
+@dataclass(frozen=True)
+class SyncScanResult:
+    """Bounded-memory result of one complete ``run.log`` scan.
+
+    ``nearest_points`` is aligned with ``target_times`` and is the only set of
+    sync points retained.  In particular, this object never stores all parsed
+    log rows.  The two candidate extrema (the closest point below/above each
+    target) are enough to recover the nearest point even when the log contains
+    repeated or non-monotonic times.
+
+    ``status`` is deliberately explicit.  It is one of ``ok``, ``empty``,
+    ``missing``, ``unreadable``, ``malformed``, ``no-match`` or a ``+`` joined
+    combination such as ``malformed+no-match``.  Malformed marker lines and
+    targets without a finite nearest point are also exposed as counters, so a
+    caller does not need to infer them from the status string.
+    """
+
+    target_times: Tuple[float, ...]
+    nearest_points: Tuple[Optional[SyncPoint], ...]
+    full_log_min_positive_systemstep: float
+    parsed_sync_count: int
+    malformed_count: int
+    lines_scanned: int
+    status: str
+
+    @property
+    def nearest(self) -> Tuple[Optional[SyncPoint], ...]:
+        """Short alias for consumers that use the result as a scan record."""
+        return self.nearest_points
+
+    @property
+    def global_min_positive_systemstep(self) -> float:
+        """Compatibility alias for the canonical min-step field."""
+        return self.full_log_min_positive_systemstep
+
+    @property
+    def min_positive_systemstep(self) -> float:
+        return self.full_log_min_positive_systemstep
+
+    @property
+    def parsed_count(self) -> int:
+        """Compatibility alias for the number of recognized sync rows."""
+        return self.parsed_sync_count
+
+    @property
+    def n_sync(self) -> int:
+        return self.parsed_sync_count
+
+    @property
+    def no_match_count(self) -> int:
+        return sum(point is None for point in self.nearest_points)
+
+    @property
+    def unmatched_count(self) -> int:
+        return self.no_match_count
+
+
+_FLOAT_TOKEN = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
+
+# GIZMO's production spelling is ``Systemstep``.  Older logs and synthetic
+# fixtures also use ``System step`` or ``System-step``; all are accepted.
+# ``re.IGNORECASE`` handles ``Time``/``time`` and the corresponding variants.
 SYNC_RE = re.compile(
-    r"Sync-Point\s+(?P<sync>\d+).*?Time\s*[:=]\s*(?P<time>[0-9.eE+-]+)"
-    r".*?system step\s*[:=]\s*(?P<dt>[0-9.eE+-]+)")
+    rf"\bSync\s*[-_ ]?\s*Point\b\s*[,;:#]?\s*"
+    rf"(?P<sync>\d+)\b.*?\bTime\b\s*[:=]\s*(?P<time>{_FLOAT_TOKEN})"
+    rf".*?\bSystem\s*[-_ ]?\s*step\b\s*[:=]\s*(?P<dt>{_FLOAT_TOKEN})",
+    re.IGNORECASE,
+)
+_SYNC_MARKER_RE = re.compile(r"\bSync\s*[-_ ]?\s*Point\b", re.IGNORECASE)
+_DEFAULT_LOG_CHUNK_SIZE = 1024 * 1024
 
 
 def list_series_snapshots(run_root: Path) -> List[Path]:
@@ -507,26 +575,371 @@ def list_series_snapshots(run_root: Path) -> List[Path]:
     return files
 
 
-def read_all_sync_points(log_path: Path) -> List[SyncPoint]:
-    """Все Sync-Point записи лога без загрузки его целиком в память."""
-    points: List[SyncPoint] = []
-    if not log_path.exists():
-        return points
-    with log_path.open("r", errors="replace") as f:
-        for line in f:
-            m = SYNC_RE.search(line)
-            if not m:
+def _iter_log_lines(log_path: Path,
+                    chunk_size: int = _DEFAULT_LOG_CHUNK_SIZE) -> Iterator[str]:
+    """Yield log lines using bounded binary chunks.
+
+    ``TextIO`` iteration is already streaming, but an explicit binary chunk
+    reader gives deterministic behaviour for a test where a Sync-Point line is
+    split exactly at a chunk boundary.  The only retained bytes are the
+    current chunk and the unfinished line.  GIZMO logs are ASCII-compatible;
+    malformed byte sequences are replaced rather than aborting a scan.
+    """
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    with Path(log_path).open("rb") as fh:
+        pending = b""
+        while True:
+            chunk = fh.read(chunk_size)
+            if not chunk:
+                break
+            pending += chunk
+            lines = pending.split(b"\n")
+            pending = lines.pop()
+            for raw in lines:
+                yield raw.decode("utf-8", errors="replace").rstrip("\r")
+        if pending:
+            yield pending.decode("utf-8", errors="replace").rstrip("\r")
+
+
+def _parse_sync_line(line: str) -> Optional[SyncPoint]:
+    """Parse one Sync-Point line, returning ``None`` for malformed rows."""
+    match = SYNC_RE.search(line)
+    if match is None:
+        return None
+    try:
+        sync = int(match.group("sync"))
+        point_time = float(match.group("time"))
+        step = float(match.group("dt"))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not (math.isfinite(point_time) and math.isfinite(step)):
+        return None
+    return SyncPoint(sync=sync, time=point_time, step=step)
+
+
+def iter_sync_points(log_path: Path,
+                     *,
+                     chunk_size: int = _DEFAULT_LOG_CHUNK_SIZE
+                     ) -> Iterator[SyncPoint]:
+    """Lazily yield recognized Sync-Point rows from ``log_path``.
+
+    This is the migration path for callers that only need to iterate legacy
+    rows.  It is reusable (a new iterator is created per call) and does not
+    retain the log.  For nearest-point and min-step work use
+    :func:`scan_sync_points`, which scans once instead of rescanning per
+    snapshot.
+    """
+    path = Path(log_path)
+    if not path.exists():
+        return
+    for line in _iter_log_lines(path, chunk_size=chunk_size):
+        point = _parse_sync_line(line)
+        if point is not None:
+            yield point
+
+
+class SyncPointStream:
+    """Re-iterable lazy compatibility view of recognized sync rows.
+
+    Historically ``read_all_sync_points`` returned a list.  A list is unsafe
+    for multi-gigabyte logs, so this small view keeps the common iterable API
+    while reopening the bounded parser for each iteration.  The canonical
+    runner does not iterate it repeatedly; it uses ``scan_sync_points`` once.
+    """
+
+    def __init__(self, log_path: Path,
+                 chunk_size: int = _DEFAULT_LOG_CHUNK_SIZE):
+        self.log_path = Path(log_path)
+        self.chunk_size = int(chunk_size)
+
+    def __iter__(self) -> Iterator[SyncPoint]:
+        return iter_sync_points(self.log_path, chunk_size=self.chunk_size)
+
+    def __bool__(self) -> bool:
+        try:
+            next(iter(self))
+        except StopIteration:
+            return False
+        return True
+
+    def __len__(self) -> int:
+        # Counting is still a full scan, but retains no rows.  It is provided
+        # only for old callers that used len(points), not by the series runner.
+        return sum(1 for _ in self)
+
+
+def _prefer_extreme(old: Optional[SyncPoint], new: SyncPoint,
+                    *, maximum: bool) -> SyncPoint:
+    """Choose a deterministic predecessor/successor candidate."""
+    if old is None:
+        return new
+    old_key = (old.time, -old.sync, -old.step)
+    new_key = (new.time, -new.sync, -new.step)
+    if maximum:
+        return new if new_key > old_key else old
+    old_key = (-old.time, -old.sync, -old.step)
+    new_key = (-new.time, -new.sync, -new.step)
+    return new if new_key > old_key else old
+
+
+class _RangeExtremeTags:
+    """Range-extreme tags with point queries and bounded storage.
+
+    A parsed sync time updates a suffix (predecessors) or prefix
+    (successors) of sorted targets.  Storing an extreme tag on the canonical
+    segment-tree cover makes each update O(log N_target), while no parsed log
+    row is retained.  Tags are resolved only once at the end of the scan.
+    """
+
+    def __init__(self, size: int, *, maximum: bool):
+        self.maximum = maximum
+        tree_size = 1
+        while tree_size < size:
+            tree_size <<= 1
+        self._size = tree_size
+        self._tags: List[Optional[SyncPoint]] = [None] * (2 * tree_size)
+
+    def update(self, left: int, right: int, point: SyncPoint) -> None:
+        if left >= right:
+            return
+        left += self._size
+        right += self._size
+        while left < right:
+            if left & 1:
+                self._tags[left] = _prefer_extreme(
+                    self._tags[left], point, maximum=self.maximum)
+                left += 1
+            if right & 1:
+                right -= 1
+                self._tags[right] = _prefer_extreme(
+                    self._tags[right], point, maximum=self.maximum)
+            left >>= 1
+            right >>= 1
+
+    def query(self, index: int) -> Optional[SyncPoint]:
+        index += self._size
+        result: Optional[SyncPoint] = None
+        while index:
+            result = (_prefer_extreme(result, self._tags[index],
+                                      maximum=self.maximum)
+                      if self._tags[index] is not None else result)
+            index >>= 1
+        return result
+
+
+def _nearest_from_candidates(target: float,
+                            *candidates: Optional[SyncPoint]
+                            ) -> Optional[SyncPoint]:
+    finite = [p for p in candidates
+              if p is not None and math.isfinite(p.time)]
+    if not math.isfinite(target) or not finite:
+        return None
+    # Tie policy: smallest distance, then earlier sync time, then lower sync
+    # number, then lower step.  It is independent of log order and therefore
+    # deterministic for repeated/non-monotonic sync times.
+    return min(finite, key=lambda p: (abs(p.time - target), p.time,
+                                      p.sync, p.step))
+
+
+def scan_sync_points(log_path: Path,
+                     target_times: Sequence[float],
+                     *,
+                     chunk_size: int = _DEFAULT_LOG_CHUNK_SIZE
+                     ) -> SyncScanResult:
+    """Scan a log once and retain nearest points for explicit target times.
+
+    The scan is complete even when target times are unsorted or repeated.  It
+    also computes the minimum positive ``Systemstep`` over every recognized
+    row.  Memory is O(number of targets + chunk size), not O(number of log
+    rows).  A missing/unreadable log is represented in the result rather than
+    raising, because physical snapshot metrics remain meaningful without
+    timestep provenance.
+    """
+    targets = tuple(float(value) for value in target_times)
+    path = Path(log_path)
+    if not path.exists():
+        return SyncScanResult(
+            target_times=targets,
+            nearest_points=(None,) * len(targets),
+            full_log_min_positive_systemstep=math.nan,
+            parsed_sync_count=0, malformed_count=0, lines_scanned=0,
+            status="missing")
+    try:
+        # Keep duplicate target entries: each output position corresponds to
+        # exactly one requested snapshot, while sorting is only internal.
+        # Non-finite targets can never have a nearest point and are excluded
+        # from bisect operations explicitly.
+        ordered_pairs = sorted((value, index)
+                               for index, value in enumerate(targets)
+                               if math.isfinite(value))
+        ordered_targets = [value for value, _ in ordered_pairs]
+        predecessor = _RangeExtremeTags(len(ordered_targets), maximum=True)
+        successor = _RangeExtremeTags(len(ordered_targets), maximum=False)
+        min_positive = math.inf
+        parsed = malformed = lines_scanned = 0
+        for line in _iter_log_lines(path, chunk_size=chunk_size):
+            lines_scanned += 1
+            if _SYNC_MARKER_RE.search(line) is None:
                 continue
-            points.append(SyncPoint(
-                int(m.group("sync")),
-                float(m.group("time")),
-                float(m.group("dt")),
-            ))
-    return points
+            point = _parse_sync_line(line)
+            if point is None:
+                malformed += 1
+                continue
+            parsed += 1
+            if point.step > 0.0 and point.step < min_positive:
+                min_positive = point.step
+            if ordered_targets:
+                # A point is a predecessor for targets >= time and a
+                # successor for targets <= time.  bisect_left/right preserve
+                # exact matches on both sides, which is harmless and makes
+                # the deterministic tie policy explicit.
+                left = bisect_left(ordered_targets, point.time)
+                right = bisect_right(ordered_targets, point.time)
+                predecessor.update(left, len(ordered_targets), point)
+                successor.update(0, right, point)
+        if ordered_targets:
+            nearest_sorted = tuple(
+                _nearest_from_candidates(value, predecessor.query(index),
+                                         successor.query(index))
+                for index, value in enumerate(ordered_targets))
+            # sorted() is stable, so this mapping handles duplicate and
+            # non-monotonic target inputs without collapsing equal times.
+            positions = [original for _, original in ordered_pairs]
+            by_original = [None] * len(targets)
+            for original, candidate in zip(positions, nearest_sorted):
+                by_original[original] = candidate
+            nearest = tuple(by_original)
+        else:
+            nearest = ()
+    except OSError:
+        return SyncScanResult(
+            target_times=targets,
+            nearest_points=(None,) * len(targets),
+            full_log_min_positive_systemstep=math.nan,
+            parsed_sync_count=0, malformed_count=0,
+            lines_scanned=0, status="unreadable")
+
+    no_match = any(point is None for point in nearest)
+    if parsed == 0:
+        status = "malformed" if malformed else ("no-match" if targets else "empty")
+    else:
+        flags = []
+        if malformed:
+            flags.append("malformed")
+        if no_match:
+            flags.append("no-match")
+        status = "+".join(flags) if flags else "ok"
+    return SyncScanResult(
+        target_times=targets,
+        nearest_points=nearest,
+        full_log_min_positive_systemstep=(
+            float(min_positive) if math.isfinite(min_positive) else math.nan),
+        parsed_sync_count=parsed, malformed_count=malformed,
+        lines_scanned=lines_scanned, status=status)
+
+
+def read_all_sync_points(log_path: Path) -> SyncPointStream:
+    """Compatibility wrapper with a lazy, bounded-memory result.
+
+    Code that truly requires a concrete list can use ``list(...)`` explicitly
+    at its own boundary.  New series code should migrate to
+    :func:`scan_sync_points`, which avoids rescanning the log for each
+    snapshot and also exposes global min-step/status metadata.
+    """
+    return SyncPointStream(log_path)
+
+
+def read_snapshot_time(snap: Path) -> float:
+    """Read only ``Header/Time`` before any particle datasets are loaded."""
+    with h5py.File(snap, "r") as f:
+        return float(f["Header"].attrs.get("Time", math.nan))
+
+
+SERIES_METADATA_SCHEMA = "series-metadata-v1"
+SERIES_ANALYSIS_SCHEMA = "series-jz-v2"
+
+
+def _metadata_float(value: float) -> Optional[float]:
+    value = float(value)
+    return value if math.isfinite(value) else None
+
+
+def build_series_metadata(*,
+                          run_root: Path,
+                          artifact_identity: str,
+                          ptype: int,
+                          snapshot_times: Sequence[float],
+                          scan: SyncScanResult,
+                          command: Optional[str] = None) -> Dict:
+    """Build deterministic provenance for a canonical metrics series.
+
+    No file hashes or wall-clock timestamps are invented here.  The metadata
+    records only facts available to the runner invocation and explicitly
+    states the mass/frame policy used by ``read_series_metric``.
+    """
+    finite_times = [float(value) for value in snapshot_times
+                    if math.isfinite(float(value))]
+    metadata = {
+        "schema": SERIES_METADATA_SCHEMA,
+        "schema_version": SERIES_METADATA_SCHEMA,
+        "analysis_schema_version": SERIES_ANALYSIS_SCHEMA,
+        "run_root": str(run_root),
+        "run_id": Path(run_root).name,
+        "artifact_identity": str(artifact_identity),
+        "ptype": int(ptype),
+        "aperture": {"kind": "spherical", "radius": 5.0,
+                      "radius_unit": "snapshot coordinate units"},
+        "aperture_r": 5.0,
+        "fixed_axis": "z",
+        "mass_source_policy": {
+            "preferred": "PartType<ptype>/Masses",
+            "fallback": "Header/MassTable[ptype] when finite and positive",
+            "missing_or_invalid": "physical Jz fields are nan",
+            "geometry_fallback": "unit weights are legacy geometry-only; never physical Jz",
+        },
+        "shrink_center": {"method": "shrink_center", "iterations": 6},
+        "velocity_frame": {
+            "method": "mass_weighted_bulk_velocity",
+            "scope": "all particles of selected PartType",
+            "axis": "fixed original z; no per-snapshot rotation",
+        },
+        "snapshot_count": len(snapshot_times),
+        "snapshot_time_min": min(finite_times) if finite_times else None,
+        "snapshot_time_max": max(finite_times) if finite_times else None,
+        "snapshot_time_range": ([min(finite_times), max(finite_times)]
+                                if finite_times else None),
+        "full_log_min_positive_systemstep": _metadata_float(
+            scan.full_log_min_positive_systemstep),
+        "parsed_sync_count": int(scan.parsed_sync_count),
+        "parsed_sync_status": scan.status,
+        "malformed_sync_count": int(scan.malformed_count),
+        "unmatched_snapshot_count": int(scan.no_match_count),
+        "scanned_log_lines": int(scan.lines_scanned),
+        "provenance": {
+            "command": command,
+            "log_path": str(Path(run_root) / "run.log"),
+            "hdf5_hash": None,
+            "log_hash": None,
+            "hashes_note": "large HDF5/log files were not hashed by this runner",
+        },
+    }
+    return metadata
+
+
+def write_series_metadata(metadata: Dict, path: Path) -> None:
+    """Write stable, sorted JSON metadata next to ``metrics_series.csv``."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        json.dump(metadata, fh, indent=2, sort_keys=True, ensure_ascii=False)
+        fh.write("\n")
 
 
 def weighted_center(pos: np.ndarray, mass: np.ndarray) -> np.ndarray:
     from analysis.loaders.snapshots import shrink_center
+    if len(pos) == 0:
+        return np.full(3, np.nan, dtype=float)
     return shrink_center(pos, mass, niter=6)
 
 
@@ -578,6 +991,54 @@ def rotation_stats(pos: np.ndarray, vel: np.ndarray, radius: float) -> Tuple[flo
     return mean_v, med_v, sig_v, (abs(mean_v) / sig_v if sig_v > 0 else math.nan)
 
 
+def angular_momentum_stats(pos_centered: np.ndarray,
+                           vel_centered: np.ndarray,
+                           mass: Optional[np.ndarray],
+                           radius: float) -> Tuple[float, float, float]:
+    """Return ``(Jz, M, Jz/M)`` inside a spherical aperture.
+
+    ``pos_centered`` and ``vel_centered`` must already use the series frame:
+    the shrinkage center and the mass-weighted bulk velocity of the selected
+    particle type.  The z axis is deliberately not fitted or rotated.  The
+    helper only computes the raw observable; Jz/Jz0 normalisation belongs to a
+    series/summarisation layer.
+
+    A missing or malformed mass array makes the physical result invalid and
+    returns three ``nan`` values.  For a valid mass array with no particles in
+    the aperture, the enclosed mass and total Jz are zero while the specific
+    value is undefined (``nan``).
+    """
+    pos = np.asarray(pos_centered, dtype=float)
+    vel = np.asarray(vel_centered, dtype=float)
+    if mass is None:
+        return math.nan, math.nan, math.nan
+    try:
+        m_all = np.asarray(mass, dtype=float)
+    except (TypeError, ValueError):
+        return math.nan, math.nan, math.nan
+    if (pos.ndim != 2 or pos.shape[1] < 2 or vel.shape != pos.shape
+            or m_all.ndim != 1 or len(m_all) != len(pos)
+            or np.any(~np.isfinite(m_all)) or np.any(m_all < 0)):
+        return math.nan, math.nan, math.nan
+    if pos.shape[0] == 0:
+        return 0.0, 0.0, math.nan
+    r = np.linalg.norm(pos, axis=1)
+    selected = np.isfinite(r) & (r < float(radius))
+    if not np.any(selected):
+        return 0.0, 0.0, math.nan
+    m = m_all[selected]
+    if np.any(~np.isfinite(pos[selected])) or np.any(~np.isfinite(vel[selected])):
+        return math.nan, math.nan, math.nan
+    enclosed_mass = float(np.sum(m))
+    if not np.isfinite(enclosed_mass) or enclosed_mass < 0.0:
+        return math.nan, math.nan, math.nan
+    cross_z = (pos[selected, 0] * vel[selected, 1]
+               - pos[selected, 1] * vel[selected, 0])
+    total_jz = float(np.sum(m * cross_z))
+    specific = total_jz / enclosed_mass if enclosed_mass > 0.0 else math.nan
+    return total_jz, enclosed_mass, specific
+
+
 def core_density(pos: np.ndarray, mass: np.ndarray, radius: float) -> float:
     r = np.linalg.norm(pos, axis=1)
     m = r < radius
@@ -604,38 +1065,72 @@ def ninteractions_info(snap_path: Path, ptype: int) -> Tuple[int, float, float, 
     return total, frac, mean_nz, p90_nz, mx
 
 
-def find_nearest_sync(time: float, points: List[SyncPoint]) -> Tuple[int, float]:
-    if not points:
+def find_nearest_sync(time: float,
+                      points: Iterable[SyncPoint]) -> Tuple[int, float]:
+    if points is None or not math.isfinite(float(time)):
         return -1, math.nan
-    best = min(points, key=lambda p: abs(p.time - time))
+    iterator = iter(points)
+    try:
+        best = next(iterator)
+    except StopIteration:
+        return -1, math.nan
+    for point in iterator:
+        if (abs(point.time - time), point.time, point.sync, point.step) < \
+                (abs(best.time - time), best.time, best.sync, best.step):
+            best = point
     return best.sync, best.step
 
 def read_series_metric(snap: Path, ptype: int,
-                      log_points: List[SyncPoint]) -> SeriesMetric:
+                      log_points: Sequence[SyncPoint]) -> SeriesMetric:
     """Метрики одного снапшота серии (read_metric из analyze_series.py)."""
-    from analysis.loaders.snapshots import _snapshot_number as _sn
+    from analysis.loaders.snapshots import (_snapshot_number as _sn,
+                                            resolve_particle_masses)
     with h5py.File(snap, "r") as f:
         g = f[f"PartType{ptype}"]
         pos = np.asarray(g["Coordinates"][:], dtype=float)
         vel = np.asarray(g["Velocities"][:], dtype=float)
-        mass = np.asarray(g["Masses"][:], dtype=float) \
-            if "Masses" in g else np.ones(len(pos))
+        mass = resolve_particle_masses(g, f["Header"].attrs, ptype)
+        if mass is not None:
+            mass = np.asarray(mass, dtype=float)
         t = float(f["Header"].attrs.get("Time", math.nan))
-    center = weighted_center(pos, mass)
+    # Geometry can retain the historical particle-weighted fallback when a
+    # snapshot has no mass information, but no physical Jz/M is reported in
+    # that case.  Known masses are used for the same shrinkage center as shape
+    # metrics and for the bulk-velocity frame below.
+    mass_valid = (mass is not None and mass.ndim == 1 and len(mass) == len(pos)
+                  and np.all(np.isfinite(mass)) and np.all(mass >= 0.0)
+                  and (len(mass) == 0 or float(np.sum(mass)) > 0.0))
+    geometry_mass = (mass if mass_valid
+                     else np.ones(len(pos), dtype=float))
+    center = weighted_center(pos, geometry_mass)
     pos_c = pos - center
-    ba2, ca2 = shape_ratios(pos_c, mass, 2.0)
-    ba5, ca5 = shape_ratios(pos_c, mass, 5.0)
-    ba10, ca10 = shape_ratios(pos_c, mass, 10.0)
+    ba2, ca2 = shape_ratios(pos_c, geometry_mass, 2.0)
+    ba5, ca5 = shape_ratios(pos_c, geometry_mass, 5.0)
+    ba10, ca10 = shape_ratios(pos_c, geometry_mass, 10.0)
     zr_rms, zr_p68 = thickness_stats(pos_c, 5.0)
-    mv, medv, sigv, vsup = rotation_stats(pos_c, vel, 5.0)
+    if mass_valid and len(pos):
+        bulk = np.average(vel, axis=0, weights=mass)
+        vel_c = vel - bulk
+    elif len(pos):
+        # This is only for legacy geometric/rotation diagnostics.  The
+        # physical moment below remains invalid when masses are unavailable.
+        vel_c = vel - np.mean(vel, axis=0)
+    else:
+        vel_c = vel
+    mv, medv, sigv, vsup = rotation_stats(pos_c, vel_c, 5.0)
+    jz, jz_mass, jz_specific = angular_momentum_stats(
+        pos_c, vel_c, mass if mass_valid else None, 5.0)
     ni_tot, ni_frac, ni_mean, ni_p90, ni_max = ninteractions_info(snap, ptype)
     sync, step = find_nearest_sync(t, log_points)
     return SeriesMetric(
         snapshot=_sn(str(snap)), file=snap.name, time=t,
         particles=int(len(pos)),
-        rho_core_r1=core_density(pos_c, mass, 1.0),
-        rho_core_r2=core_density(pos_c, mass, 2.0),
-        rho_core_r5=core_density(pos_c, mass, 5.0),
+        rho_core_r1=(core_density(pos_c, mass, 1.0)
+                     if mass_valid else math.nan),
+        rho_core_r2=(core_density(pos_c, mass, 2.0)
+                     if mass_valid else math.nan),
+        rho_core_r5=(core_density(pos_c, mass, 5.0)
+                     if mass_valid else math.nan),
         ba_r2=ba2, ca_r2=ca2, ba_r5=ba5, ca_r5=ca5, ba_r10=ba10, ca_r10=ca10,
         z_rms_over_R_rms_r5=zr_rms, z_p68_over_R_p68_r5=zr_p68,
         mean_vphi_r5=mv, median_vphi_r5=medv, sigma_vphi_r5=sigv,
@@ -643,12 +1138,20 @@ def read_series_metric(snap: Path, ptype: int,
         ninteractions_total=ni_tot, interacted_fraction=ni_frac,
         ninteractions_mean_nonzero=ni_mean, ninteractions_p90_nonzero=ni_p90,
         ninteractions_max=ni_max,
-        nearest_sync_point=sync, nearest_systemstep=step)
+        nearest_sync_point=sync, nearest_systemstep=step,
+        jz_total_r5=jz, jz_mass_r5=jz_mass,
+        jz_per_mass_r5=jz_specific)
 
 
 def write_metrics_csv(metrics: List[SeriesMetric], path: Path) -> None:
+    """Write a stable metrics schema, including a header for empty series."""
+    from dataclasses import fields
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [field.name for field in fields(SeriesMetric)]
     with path.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(asdict(metrics[0]).keys()))
+        w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         for m in metrics:
             w.writerow(asdict(m))
