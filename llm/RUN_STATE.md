@@ -380,6 +380,13 @@ Checkpoint commits (push status must be recorded separately):
 - `b6c5e95` — added the reproducible system-`python-pptx` M7 exporter and
   documented the verified PPTX structure plus the still-blocked LibreOffice
   PDF gate; full pytest passed, and no status badge was advanced.
+- `5d17fa9` — bounded sequential M5 queue output and recorded solver logs
+  outside the interactive session; shell syntax/dry-run passed; pushed
+  successfully to `origin/agent/dev`.
+- `0f30af8` — integrated the accepted D0p25 canonical package and the explicit
+  D0p50 incomplete outcome, refreshed M5/M6 ledgers and RUN_STATE; targeted
+  ledger/package checks and `git diff --check` passed; pushed successfully to
+  `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -446,6 +453,10 @@ Push records:
   output `ba75a5c..70b8e7a agent/dev -> agent/dev`
 - `push_record_checkpoint`: `e2249bb` was pushed with success, exit code 0;
   output `70b8e7a..e2249bb agent/dev -> agent/dev`
+- `push_record_checkpoint`: `5d17fa9` was pushed with success, exit code 0;
+  output `e2249bb..5d17fa9 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `0f30af8` was pushed with success, exit code 0;
+  output `5d17fa9..0f30af8 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
