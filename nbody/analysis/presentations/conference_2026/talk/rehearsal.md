@@ -1,7 +1,7 @@
 # M8 rehearsal and handoff
 
 Статус handoff: `science_partial` · `visual_review_pending` ·
-`rehearsal_pending` · `export_blocked`.
+`rehearsal_pending`; PDF export verified.
 
 Этот документ описывает передачу и пользовательскую репетицию текущего
 evidence-aware каркаса. Он не меняет статусы runs и не объявляет научный вывод
@@ -51,11 +51,10 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 ## Export and visual review gate
 
-Текущий export status: **`export_blocked`**. PPTX уже строится воспроизводимо,
-но PDF-конверсия в текущем headless runtime LibreOffice не создаётся, поэтому
-экспорт нельзя считать проверенным по наличию исходника, PPTX или PNG. Сначала
-закрыть checklist выше, затем выполнить визуальную проверку читаемости. До этого badges остаются
-`visual_review_pending` и `rehearsal_pending`; `science_partial` сохраняется.
+Текущий export status: PDF export verified (16-page PDF; `pdfinfo` и
+`pdftoppm` first/last checks passed). Полный deck visual freeze и пользовательская
+репетиция ещё не проведены: badges остаются `visual_review_pending` и
+`rehearsal_pending`; `science_partial` сохраняется.
 
 Для структурного smoke test из корня:
 
@@ -66,9 +65,8 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
   --asset-root nbody/analysis/presentations/conference_2026/talk
 ```
 
-После появления writable LibreOffice runtime экспортировать этот PPTX в PDF,
-проверить `pdfinfo` и отрендерить первый/последний слайд через `pdftoppm`; до
-этого `export_blocked` не снимать.
+Экспортированный PDF уже проверен через `pdfinfo`; первый и последний слайды
+отрендерированы через `pdftoppm`. Это не заменяет полный visual freeze.
 
 После freeze пользователь должен проверить в экспортированном PDF/слайдах:
 

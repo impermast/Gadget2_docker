@@ -1,7 +1,7 @@
 # Q&A M7 — evidence-aware handoff
 
 Статус пакета: `science_partial` · `visual_review_pending` ·
-`rehearsal_pending` · `export_blocked`. Первый CDM k08 T5 run прошёл
+`rehearsal_pending`; PDF export verified. Первый CDM k08 T5 run прошёл
 terminal/post-run gate и интегрирован; остальные M5 runs pending, claims ещё не
 frozen. Deferred runs — missing evidence, не отрицательный результат. Ответы ниже не объявляют
 `science_complete`.
@@ -84,5 +84,5 @@ revision и locator». При отсутствии такой записи от�
 - Processing caveats: [processing_report.md](../m4_series/processing_report.md)
 
 Actual user rehearsal и visual review ещё не проведены; до их фактической
-фиксации статусы `rehearsal_pending`, `visual_review_pending` и
-`export_blocked` сохраняются.
+фиксации статусы `rehearsal_pending` и `visual_review_pending` сохраняются;
+PDF export уже проверен.

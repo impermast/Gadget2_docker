@@ -48,8 +48,8 @@ Permissions: action, scope, source of approval, remaining budget
   approved run reached its terminal state, passed the post-run gate, and its
   staging artifacts were integrated at `99852da`. Before the next sequential
   run, repeat the resource/process gate; do not perform detailed physical
-  interpretation while a run is still active. The next approved run is now
-  active below.
+  interpretation while a run is still active. The approved sequential M5
+  queue is now active below.
 
 Capabilities: container, tools, communication, rendering/export
 - Host `.venv/bin/python` is executable, Python 3.12.3. Container
@@ -79,16 +79,20 @@ Capabilities: container, tools, communication, rendering/export
   on an existing figure. Dedicated `feh`/`eog`/ImageMagick, `pandoc`, `marp`,
   `quarto`, browser exporters, `pypdf`, and `python-pptx` were not found;
   dedicated binaries are not needed for PNG review. The four new M7 PNGs were
-  rendered and independently inspected with `view_image`; PDF/slide export
-  remains a later check. Background
+  rendered and independently inspected with `view_image`; PDF export is now
+  independently verified, while full deck visual freeze remains open. Background
   execution/waiting primitives `nohup`, `setsid`, and `timeout` are present;
   a shell background/wait smoke check passed in 0.103 s.
 - Current M7 export check: `/usr/bin/python3` imports `python-pptx`; the new
   `talk/export_slides.py` structurally exports 16 slides (`S01`–`S11` plus
   `B01`–`B05`) with four embedded figures and preserved pending badges. A
-  LibreOffice 24.2.7.2 conversion attempt failed before creating PDF, including
-  for a minimal PPTX, because the headless runtime cannot write its dconf/
-  `javaldx` state; `export_blocked` remains factual.
+  LibreOffice 24.2.7.2 now converts the 16-slide PPTX to a 16-page PDF using an
+  isolated writable profile; `pdfinfo` and `pdftoppm` first/last checks passed.
+  Stable ignored artifacts are now `talk/slides.pptx` (sha256
+  `ec6e80da230611b3972825e60316b24e3ded82ca8745ca275cb6fa6f986807a3`) and
+  `talk/slides.pdf` (sha256
+  `22fbec44e277d8c1ffd0c1360e3963809c262e822eba5bea82a3a976b7f4e239`).
+  Full deck visual freeze and user rehearsal remain pending.
 
 Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M0 `done` — preflight, baseline, permissions, and initial state recorded;
@@ -111,12 +115,12 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   rows; two deferred series remain visible as missing coverage. The first two
   M5 integrations are accepted at `99852da` and the current uncommitted
   staging is independently checked below.
-- M5 `in_progress` (two approved runs completed and integrated; two sequential
-  runs remain);
+- M5 `in_progress` (two approved runs completed and integrated; the two
+  remaining runs are owned by the active sequential queue);
   M7
   `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
-  package at `5924b52` and editable slide source at `1b8fc5f`; export and final
-  visual freeze remain pending. M8 handoff/rehearsal checklist is accepted at
+  package at `5924b52` and editable slide source at `1b8fc5f`; PDF export is
+  verified, while full visual freeze remains pending. M8 handoff/rehearsal checklist is accepted at
   `78a3295`/`867f3e9`/`d35647f`; user rehearsal remains
   `rehearsal_pending`.
 
@@ -131,6 +135,15 @@ Current task / acceptance check:
   interpretation is required.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
+- ACTIVE QUEUE: host session `49144`, launched `2026-10-11T09:23:17Z` with
+  `nbody/scripts/conference/queue_T5.sh`. It runs the remaining approved M5
+  targets serially and invokes `post_run_gate.py` after each one; no second
+  target starts unless the preceding solver exits 0 and the gate returns
+  `completed`. Current target:
+  `dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T5_k08`; log
+  `/nbody/runs/dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T5_k08/run.log`;
+  `TimeLimitCPU=14400`, 8 MPI processes, owner=root. The queued next target is
+  `dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T5_k08`.
 - COMPLETED: `dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08 --type sidm --sigma 2.5
@@ -197,14 +210,14 @@ Artifacts: path, inputs, analysis version, last successful validation
   9 mapped + 2 deferred coverage, and explicit pending badges.
 - `nbody/analysis/presentations/conference_2026/talk/export_slides.py`:
   deterministic system-`python-pptx` exporter with a 16-slide/4-asset
-  structural smoke check; PDF conversion remains blocked by the headless
-  runtime and no visual freeze is claimed.
+  structural smoke check; PDF conversion is verified, while no full visual
+  freeze is claimed.
 - `nbody/scripts/conference/post_run_gate.py` plus
   `tests/test_post_run_gate.py`: current M5 lifecycle gate; targeted project
   tests pass (`5 passed`), and it must be invoked only after terminal status.
 - `nbody/analysis/presentations/conference_2026/talk/rehearsal.md`: M8
-  evidence-freeze, export/visual-review, and user-rehearsal handoff; statuses
-  remain `science_partial`, `visual_review_pending`, `export_blocked`, and
+  evidence-freeze, verified PDF export, visual-review, and user-rehearsal
+  handoff; statuses remain `science_partial`, `visual_review_pending`, and
   `rehearsal_pending`.
 - `nbody/analysis/presentations/conference_2026/conference_summary.md`: M8
   evidence-aware summary with claims, provenance, limitations and locators.
@@ -254,9 +267,8 @@ Decisions: choice, reason, evidence
   manifest was regenerated after M4 integration and accepted in M6.
 - PNG visual review is available through built-in `view_image`; all four new
   M7 figures were inspected, but final deck-level visual freeze remains open.
-- PPTX structure is now independently checked, but the deck-level visual gate
-  remains open until a PDF can be generated and inspected in a writable
-  LibreOffice runtime.
+- PPTX structure and PDF export are independently checked; the deck-level
+  visual gate remains open until full visual freeze is completed.
 - Treat disk space as a pre-run gate: 37 GiB free / 84% used at preflight.
 - Do not launch `dsidm_s2p5_D0p75_N1e5_T2` or
   `dsidm10_f01_k0_N1e5_T5` without a fresh resource/pathology check and an
@@ -267,12 +279,12 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Commit/push the accepted current SIDM staging and state checkpoint, with
-   only its package/ledger paths.
-2. Run a fresh resource/pathology gate, then launch the next already-approved
-   sequential M5 target; while active, do lifecycle checks only.
-3. After terminal status, apply the post-run gate and integrate the next
-   artifact; keep M7 `export_blocked` and M8 `rehearsal_pending` visible.
+1. Keep the approved sequential M5 queue under lifecycle observation only; do
+   not interpret intermediate solver output.
+2. After the queue reaches a terminal state, apply the post-run gate and
+   integrate each accepted artifact with an independent package check.
+3. Complete the M7 full-deck visual checklist and retain M8
+   `rehearsal_pending` until the user performs a real rehearsal.
 
 Checkpoint commits (push status must be recorded separately):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.

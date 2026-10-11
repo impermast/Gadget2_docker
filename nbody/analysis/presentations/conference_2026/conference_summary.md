@@ -43,9 +43,10 @@ Editable talk source и Q&A находятся в [talk/slides.md](talk/slides.m
 [talk/speaker_notes.md](talk/speaker_notes.md), [talk/qa.md](talk/qa.md) и
 [talk/rehearsal.md](talk/rehearsal.md); исходные draft-файлы сохранены рядом.
 Структурный PPTX-exporter сохранён в
-[talk/export_slides.py](talk/export_slides.py), но PDF-конверсия в текущем
-headless runtime не подтверждена. До evidence freeze сохраняются
-`visual_review_pending`, `rehearsal_pending` и `export_blocked`. Следующий
+[talk/export_slides.py](talk/export_slides.py); 16-страничный PDF экспортирован
+и проверен через `pdfinfo` и `pdftoppm` (первый/последний слайды). До evidence
+freeze сохраняются `visual_review_pending` и `rehearsal_pending`; полный deck
+visual freeze и пользовательская репетиция ещё pending. Следующий
 безопасный шаг — сверить claims/figures/manifest одной analysis revision,
 провести visual review и пользовательскую репетицию; запусков и RUN_STATE этот
 summary не изменяет.
