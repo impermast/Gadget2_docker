@@ -137,7 +137,8 @@ Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
   pre-fix watcher no longer present and no `run.state`; this is a lifecycle
   issue from the empty early log, not a solver verdict. The active run is not
   being altered or interpreted; `run.log` and the process tree remain the
-  lifecycle evidence. Fix `8b1a988` applies to future runs.
+  lifecycle evidence. Fixes `8b1a988` and `8479b5a` apply to future runs; the
+  active process was not restarted or modified.
 - COMPLETED: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/cdm_N1e5_T5_k08 --type cdm --ic-file
@@ -315,6 +316,9 @@ Checkpoint commits (push status must be recorded separately):
 - `ce42478` — recorded the active-run analysis deferral policy in all three
   plans and refreshed their hashes; full pytest passed; pushed successfully
   to `origin/agent/dev`.
+- `8479b5a` — preserved `mpirun`/`tee` exit status and made watcher state
+  writes non-fatal under `set -euo pipefail`; shell regressions and full pytest
+  passed; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -363,6 +367,8 @@ Push records:
   output `038acfa..8b1a988 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `ce42478` was pushed with success, exit code 0;
   output `0551700..ce42478 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `8479b5a` was pushed with success, exit code 0;
+  output `f962f74..8479b5a agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
