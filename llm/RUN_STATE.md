@@ -64,6 +64,11 @@ Capabilities: container, tools, communication, rendering/export
 - Baseline command: `.venv/bin/python -m pytest tests/ -q`; result: exit 0,
   51 passed, 1 warning about an empty `presentations` registry block, elapsed
   9.846 s. This was run before any M0 file edits.
+- Current CI-marker check: `.venv/bin/python -m pytest tests/ -m math -q`
+  passed (72 tests, one existing empty-`presentations` warning), and
+  `.venv/bin/python -m pytest tests/ -m golden -q` passed (2 tests). The earlier
+  GitHub failure is not reproducible on the current branch; no test-code change
+  was needed.
 - No host or container `mpirun`, `mpiexec`, `GIZMO`/`gizmo`, or `run_sim.sh`
   process was found at the preflight check.
 - Communication: current session is available; Telegram is not permitted and
