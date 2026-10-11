@@ -6,6 +6,7 @@ CONTAINER=gadget-gizmo
 TIME_LIMIT=14400
 PYTHON=python3
 DRY_RUN=0
+LOG_DIR=${M5_QUEUE_LOG_DIR:-/tmp/gadget2-m5-queue}
 RUN_ROOT=/nbody/runs
 GROUP=dsidm_spin_k08_transition
 GATE=/nbody/scripts/conference/post_run_gate.py
@@ -17,7 +18,7 @@ RUNS=(
 DISS=(0.25 0.50)
 
 usage() {
-  echo "Usage: $0 [--dry-run] [--container NAME] [--time-limit SECONDS] [--python PATH]"
+  echo "Usage: $0 [--dry-run] [--container NAME] [--time-limit SECONDS] [--python PATH] [--log-dir DIR]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -26,6 +27,7 @@ while [[ $# -gt 0 ]]; do
     --container) CONTAINER=$2; shift 2 ;;
     --time-limit) TIME_LIMIT=$2; shift 2 ;;
     --python) PYTHON=$2; shift 2 ;;
+    --log-dir) LOG_DIR=$2; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -48,6 +50,7 @@ preflight() {
 
 if [[ "$DRY_RUN" -eq 0 ]]; then
   preflight
+  mkdir -p "$LOG_DIR"
 else
   echo "[DRY-RUN] container preflight skipped; no simulation will be started"
 fi
@@ -75,11 +78,17 @@ for i in "${!RUNS[@]}"; do
     exit 1
   fi
 
+  solver_log="$LOG_DIR/${run_id}.solver.log"
+  echo "SOLVER_LOG $solver_log"
   set +e
-  "${docker_cmd[@]}" "${cmd[@]}"
+  "${docker_cmd[@]}" "${cmd[@]}" >"$solver_log" 2>&1
   solver_rc=$?
   set -e
   echo "RUN $run_id exit_code=$solver_rc"
+  if [[ "$solver_rc" -ne 0 ]]; then
+    echo "SOLVER_LOG_TAIL $run_id" >&2
+    tail -n 40 "$solver_log" >&2 || true
+  fi
 
   set +e
   gate_json=$("${docker_cmd[@]}" "$PYTHON" "$GATE" --run-root "$run_root" --expected-time 5 --min-snapshots 1 2>&1)
