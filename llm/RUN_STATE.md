@@ -300,6 +300,12 @@ Checkpoint commits (push status must be recorded separately):
 - `90f1bf0` — recorded the accepted M5 integration and the gate for the
   active sequential SIDM run; full pytest passed; pushed successfully to
   `origin/agent/dev`.
+- `79232ae` — aligned final M7/M8 handoff wording with the accepted first M5
+  run while preserving `science_partial` and pending statuses; full pytest
+  passed; pushed successfully to `origin/agent/dev`.
+- `14f87f6` — exposed `--dissipation` and `--kick` in `run_sim.sh` help and
+  preflight; shell syntax/dry-run and full pytest passed; pushed successfully
+  to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -340,6 +346,10 @@ Push records:
   output `44fe5af..99852da agent/dev -> agent/dev`
 - `push_record_checkpoint`: `90f1bf0` was pushed with success, exit code 0;
   output `99852da..90f1bf0 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `79232ae` was pushed with success, exit code 0;
+  output `9a8fe18..79232ae agent/dev -> agent/dev`
+- `push_record_checkpoint`: `14f87f6` was pushed with success, exit code 0;
+  output `79232ae..14f87f6 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
