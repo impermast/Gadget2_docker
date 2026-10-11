@@ -67,12 +67,12 @@
   ],
   "hash_ics": false,
   "health_counts": {
-    "ok": 11,
+    "ok": 13,
     "pathological": 2
   },
   "metrics_status_counts": {
-    "complete": 7,
-    "missing": 5
+    "complete": 8,
+    "missing": 6
   },
   "roots": [
     "dissipation/test_dissipation_focused_T5/cdm_N1e5_T5",
@@ -85,9 +85,11 @@
     "dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T2",
     "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T2",
     "dsidm_spin_k08_transition/cdm_N1e5_T5_k08",
-    "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08"
+    "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T5_k08",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T5_k08"
   ],
-  "row_count": 13,
+  "row_count": 15,
   "safe_scan_roots": [
     "dissipation/test_dissipation_focused_T5/cdm_N1e5_T5",
     "dissipation/test_dissipation_focused_T5/dsidm10_f005_k0_N1e5_T5",
@@ -99,11 +101,13 @@
     "dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T2",
     "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T2",
     "dsidm_spin_k08_transition/cdm_N1e5_T5_k08",
-    "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08"
+    "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T5_k08",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T5_k08"
   ],
   "schema_version": "conference-manifest-v1",
   "status_counts": {
-    "completed": 11,
+    "completed": 12,
     "unknown": 2
   }
 }
