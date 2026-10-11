@@ -18,7 +18,7 @@ Orchestration policy (current user override):
 
 Branch / HEAD / initial dirty paths / owned changes:
 - Branch: `agent/dev`; M7 evidence commit `5924b52`, editable slide source
-  `1b8fc5f`, M8 handoff package through final Q&A `d35647f`, policy/state
+  `1b8fc5f`, M8 handoff package through locator alignment `7ba3b2d`, policy/state
   checkpoints, and
   push records are published; last accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
@@ -247,6 +247,10 @@ Checkpoint commits (push status must be recorded separately):
   passed; pushed successfully to `origin/agent/dev`.
 - `d35647f` — accepted M8 final Q&A; full pytest passed; pushed successfully to
   `origin/agent/dev`.
+- `01ce7ee` — RUN_STATE recording the complete M8 handoff package; full pytest
+  passed; pushed successfully to `origin/agent/dev`.
+- `7ba3b2d` — aligned final notes/Q&A locators across slides, summary and
+  rehearsal handoff; full pytest passed; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -275,6 +279,10 @@ Push records:
   output `867f3e9..6b69082 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `d35647f` was pushed with success, exit code 0;
   output `6b69082..d35647f agent/dev -> agent/dev`
+- `push_record_checkpoint`: `01ce7ee` was pushed with success, exit code 0;
+  output `d35647f..01ce7ee agent/dev -> agent/dev`
+- `push_record_checkpoint`: `7ba3b2d` was pushed with success, exit code 0;
+  output `01ce7ee..7ba3b2d agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
