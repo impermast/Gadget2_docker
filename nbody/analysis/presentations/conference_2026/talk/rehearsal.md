@@ -13,6 +13,8 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 ## Что передаётся
 
 - [slides.md](slides.md) — editable slide source, 11 основных слайдов + backup.
+- [export_slides.py](export_slides.py) — воспроизводимый системный PPTX-exporter;
+  структурная проверка даёт 11 основных + 5 backup и 4 embedded PNG.
 - [speaker_notes.md](speaker_notes.md) — финальные evidence-aware notes и
   переходы; [speaker_notes_draft.md](speaker_notes_draft.md) сохранён как
   исходный черновик.
@@ -46,10 +48,24 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 ## Export and visual review gate
 
-Текущий export status: **`export_blocked`**. Экспорт не считать выполненным по
-наличию исходника или PNG: сначала закрыть checklist выше, затем выполнить
-визуальную проверку читаемости. До этого badges остаются
+Текущий export status: **`export_blocked`**. PPTX уже строится воспроизводимо,
+но PDF-конверсия в текущем headless runtime LibreOffice не создаётся, поэтому
+экспорт нельзя считать проверенным по наличию исходника, PPTX или PNG. Сначала
+закрыть checklist выше, затем выполнить визуальную проверку читаемости. До этого badges остаются
 `visual_review_pending` и `rehearsal_pending`; `science_partial` сохраняется.
+
+Для структурного smoke test из корня:
+
+```sh
+/usr/bin/python3 nbody/analysis/presentations/conference_2026/talk/export_slides.py \
+  --slides nbody/analysis/presentations/conference_2026/talk/slides.md \
+  --output /tmp/conference-2026-slides.pptx \
+  --asset-root nbody/analysis/presentations/conference_2026/talk
+```
+
+После появления writable LibreOffice runtime экспортировать этот PPTX в PDF,
+проверить `pdfinfo` и отрендерить первый/последний слайд через `pdftoppm`; до
+этого `export_blocked` не снимать.
 
 После freeze пользователь должен проверить в экспортированном PDF/слайдах:
 

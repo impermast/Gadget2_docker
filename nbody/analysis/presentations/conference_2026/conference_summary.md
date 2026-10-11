@@ -42,7 +42,9 @@ failures. Их `status`, `health` и `metrics_status` нельзя сворач�
 Editable talk source и Q&A находятся в [talk/slides.md](talk/slides.md),
 [talk/speaker_notes.md](talk/speaker_notes.md), [talk/qa.md](talk/qa.md) и
 [talk/rehearsal.md](talk/rehearsal.md); исходные draft-файлы сохранены рядом.
-До evidence freeze сохраняются
+Структурный PPTX-exporter сохранён в
+[talk/export_slides.py](talk/export_slides.py), но PDF-конверсия в текущем
+headless runtime не подтверждена. До evidence freeze сохраняются
 `visual_review_pending`, `rehearsal_pending` и `export_blocked`. Следующий
 безопасный шаг — сверить claims/figures/manifest одной analysis revision,
 провести visual review и пользовательскую репетицию; запусков и RUN_STATE этот

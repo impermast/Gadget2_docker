@@ -83,6 +83,12 @@ Capabilities: container, tools, communication, rendering/export
   remains a later check. Background
   execution/waiting primitives `nohup`, `setsid`, and `timeout` are present;
   a shell background/wait smoke check passed in 0.103 s.
+- Current M7 export check: `/usr/bin/python3` imports `python-pptx`; the new
+  `talk/export_slides.py` structurally exports 16 slides (`S01`–`S11` plus
+  `B01`–`B05`) with four embedded figures and preserved pending badges. A
+  LibreOffice 24.2.7.2 conversion attempt failed before creating PDF, including
+  for a minimal PPTX, because the headless runtime cannot write its dconf/
+  `javaldx` state; `export_blocked` remains factual.
 
 Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M0 `done` — preflight, baseline, permissions, and initial state recorded;
@@ -191,6 +197,10 @@ Artifacts: path, inputs, analysis version, last successful validation
 - `nbody/analysis/presentations/conference_2026/talk/slides.md`: evidence-linked
   editable source with 11 main + 5 backup slides, four PNG locators, C1–C4,
   9 mapped + 2 deferred coverage, and explicit pending badges.
+- `nbody/analysis/presentations/conference_2026/talk/export_slides.py`:
+  deterministic system-`python-pptx` exporter with a 16-slide/4-asset
+  structural smoke check; PDF conversion remains blocked by the headless
+  runtime and no visual freeze is claimed.
 - `nbody/analysis/presentations/conference_2026/talk/rehearsal.md`: M8
   evidence-freeze, export/visual-review, and user-rehearsal handoff; statuses
   remain `science_partial`, `visual_review_pending`, `export_blocked`, and
@@ -239,6 +249,9 @@ Decisions: choice, reason, evidence
   manifest was regenerated after M4 integration and accepted in M6.
 - PNG visual review is available through built-in `view_image`; all four new
   M7 figures were inspected, but final deck-level visual freeze remains open.
+- PPTX structure is now independently checked, but the deck-level visual gate
+  remains open until a PDF can be generated and inspected in a writable
+  LibreOffice runtime.
 - Treat disk space as a pre-run gate: 37 GiB free / 84% used at preflight.
 - Do not launch `dsidm_s2p5_D0p75_N1e5_T2` or
   `dsidm10_f01_k0_N1e5_T5` without a fresh resource/pathology check and an
