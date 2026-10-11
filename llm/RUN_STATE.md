@@ -133,8 +133,11 @@ Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
   Container `mpirun` PID 795, eight GIZMO children; watcher PID 794; started
   `2026-10-11T08:34:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
   sidm_s2p5_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root. The
-  process and parameter preflight passed; the watcher state file is expected
-  on its first update tick. Do not interpret the run until terminal.
+  process and parameter preflight passed. A read-only check found the
+  pre-fix watcher no longer present and no `run.state`; this is a lifecycle
+  issue from the empty early log, not a solver verdict. The active run is not
+  being altered or interpreted; `run.log` and the process tree remain the
+  lifecycle evidence. Fix `8b1a988` applies to future runs.
 - COMPLETED: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/cdm_N1e5_T5_k08 --type cdm --ic-file
@@ -306,6 +309,9 @@ Checkpoint commits (push status must be recorded separately):
 - `14f87f6` — exposed `--dissipation` and `--kick` in `run_sim.sh` help and
   preflight; shell syntax/dry-run and full pytest passed; pushed successfully
   to `origin/agent/dev`.
+- `8b1a988` — made the watcher tolerate empty early logs/snapshot globs under
+  `pipefail`; shell regression and full pytest passed; pushed successfully to
+  `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -350,6 +356,8 @@ Push records:
   output `9a8fe18..79232ae agent/dev -> agent/dev`
 - `push_record_checkpoint`: `14f87f6` was pushed with success, exit code 0;
   output `79232ae..14f87f6 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `8b1a988` was pushed with success, exit code 0;
+  output `038acfa..8b1a988 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
