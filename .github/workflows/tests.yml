@@ -20,8 +20,10 @@ concurrency:
 
 jobs:
   # ─── Stage 1: cheapest, most diagnostic tests ─────────────────────────────
+  # The math marker also collects registry/plotter contract tests, so the
+  # plotting stack is a required test dependency even without render output.
   math:
-    name: "1 · math — loaders unit tests"
+    name: "1 · math — analysis unit tests"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -32,7 +34,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: pip install numpy h5py pytest
+        run: python -m pip install numpy h5py pytest matplotlib pillow cycler
 
       - name: Run math tests
         run: python -m pytest tests/ -m math -v -ra --junitxml=test-results-math.xml
@@ -55,7 +57,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: pip install numpy h5py pytest
+        run: python -m pip install numpy h5py pytest matplotlib pillow cycler
 
       - name: Run golden tests
         run: python -m pytest tests/ -m golden -v -ra --junitxml=test-results-golden.xml
