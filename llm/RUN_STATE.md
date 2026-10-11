@@ -108,8 +108,18 @@ Current task / acceptance check:
   simulation or solver validation is implied.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
-- No campaign process. Preflight process scan found no matching host/container
-  compute process; no PID/job/log/limit applies. Owner: none.
+- ACTIVE: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
+  `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
+  dsidm_spin_k08_transition/cdm_N1e5_T5_k08 --type cdm --ic-file
+  /nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08 --time-max 5 --time-bet 0.1
+  --first-snapshot 0 --mpi-procs 8 --max-step 0.005 --kick 0
+  --time-limit 14400 --skip-viz --no-tg`.
+  Container `mpirun` PID 82, eight GIZMO children; started
+  `2026-10-11T07:45:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
+  cdm_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root, status=running.
+  Observation at `2026-10-11T07:46:14Z`: one snapshot, `t≈0.056`; no failure
+  signal. Do not start the next run until this process reaches a terminal status
+  and its outputs pass the post-run gate.
 
 Artifacts: path, inputs, analysis version, last successful validation
 - `llm/RUN_STATE.md`: inputs are the three plan files, repository state, and
@@ -200,6 +210,8 @@ Checkpoint commits (push status must be recorded separately):
   pytest passed; pushed successfully to `origin/agent/dev`.
 - `1b8fc5f` — M7 evidence-linked editable slide source; full pytest passed;
   pushed successfully to `origin/agent/dev`.
+- `57856d4` — RUN_STATE with M7 slide acceptance and M5 preflight approval;
+  full pytest passed; pushed successfully to `origin/agent/dev`.
 - `354f2e9` — push-policy synchronization and current M7 state; full pytest
   passed; pushed successfully to `origin/agent/dev`.
 
@@ -212,6 +224,8 @@ Push records:
   output `354f2e9..73f8abe agent/dev -> agent/dev`
 - `push_record_checkpoint`: `1b8fc5f` was pushed with success, exit code 0;
   output `2f77093..1b8fc5f agent/dev -> agent/dev`
+- `push_record_checkpoint`: `57856d4` was pushed with success, exit code 0;
+  output `1b8fc5f..57856d4 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
