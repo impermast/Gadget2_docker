@@ -2,7 +2,7 @@
 # run_sim.sh — универсальный запускатор GIZMO (CDM/SIDM)
 #
 # Использование:
-#   bash run_sim.sh --name myrun --type sidm --time-max 5.0 --sigma 10
+#   bash run_sim.sh --name myrun --type sidm --time-max 5.0 --sigma 10 --dissipation 0
 #   bash run_sim.sh --name myrun --type cdm  --time-max 0.1 --dry-run
 #
 # Обязательные:
@@ -13,6 +13,8 @@
 #   --time-max <t>       TimeMax (по умолчанию из шаблона)
 #   --time-bet <t>       TimeBetSnapshot (по умолчанию из шаблона)
 #   --sigma <s>          DM_InteractionCrossSection (только для sidm, по умолчанию 10)
+#   --dissipation <D>    DM_DissipationFactor (для dSIDM; по умолчанию из шаблона)
+#   --kick <v>           DM_KickPerCollision (для dSIDM; по умолчанию из шаблона)
 #   --ic-file <path>     InitCondFile (по умолч. /nbody/gizmo_test/halo_10000_sidm_ic)
 #   --mpi-procs <n>      число MPI процессов (по умолчанию 4)
 #   --rebuild            принудительная пересборка GIZMO
@@ -86,6 +88,8 @@ usage() {
   --time-max <t>      TimeMax (по умолчанию из шаблона)
   --time-bet <t>      TimeBetSnapshot (по умолчанию из шаблона)
   --sigma <s>         сечение SIDM (только для --type sidm, по умолч. 10)
+  --dissipation <D>   коэффициент диссипации dSIDM
+  --kick <v>          скорость kick на столкновение
   --ic-file <path>    путь к IC-файлу (без .hdf5)
   --mpi-procs <n>     число MPI процессов (по умолчанию 4)
   --rebuild           принудительная пересборка GIZMO
@@ -220,6 +224,8 @@ preflight() {
     [[ -n "$TIME_LIMIT" ]] && info "TimeLimitCPU:      $TIME_LIMIT s"
     [[ -n "$PART_ALLOC" ]] && info "PartAllocFactor:   $PART_ALLOC"
     [[ -n "$SIGMA" ]]    && info "SIDM sigma:       $SIGMA"
+    [[ -n "$DISS" ]]     && info "Dissipation D:    $DISS"
+    [[ -n "$KICK" ]]     && info "Kick velocity:     $KICK"
     [[ "$REBUILD" -eq 1 ]] && info "Пересборка:       да"
     if [[ "$TG_FLAG" -eq 1 ]]; then
         if [[ "$TG_SKIP_PROGRESS" -eq 1 ]]; then
