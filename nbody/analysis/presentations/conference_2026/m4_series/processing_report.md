@@ -1,36 +1,37 @@
-# M4 series processing report
+# M4/M6 processing report
 
-## Acceptance scope
+The explicit series index contains 9 mapped rows, with the pilot first. It
+uses manifest identities and relative `metrics_csv` and
+`series_metadata_json` paths. All mapped artifacts are `series-jz-v2`, have
+`parsed_sync_status=ok`, and passed finite Jz/mass checks.
 
-Pilot: `cdm_N1e5_T2` (`m4-k08-cdm-t2`), retained as the first entry in
-`series_index.csv`.
+The canonical manifest was generated with:
 
-Eight existing runs were processed successfully, sequentially, with exit code
-0. Every output has `analysis_schema_version=series-jz-v2`,
-`parsed_sync_status=ok`, and finite `jz_total_r5`, `jz_mass_r5`, and
-`jz_per_mass_r5` fields.
+```text
+.venv/bin/python nbody/scripts/conference/manifest.py --roots <nine explicit safe run roots> --out nbody/analysis/presentations/conference_2026/run_manifest.csv --metadata-out nbody/analysis/presentations/conference_2026/run_manifest_metadata.json
+```
 
-| run | artifact | expected rows | checks |
-|---|---|---:|---|
-| `nbody/runs/dsidm_spin_k08_transition/sidm_s2p5_N1e5_T2` | `m4-k08-sidm-t2` | 21 (T2) | passed |
-| `nbody/runs/dsidm_spin_k08_transition/dsidm_s2p5_D0p10_N1e5_T2` | `m4-k08-dsidm-d010-t2` | 21 (T2) | passed |
-| `nbody/runs/dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T2` | `m4-k08-dsidm-d025-t2` | 21 (T2) | passed |
-| `nbody/runs/dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T2` | `m4-k08-dsidm-d050-t2` | 21 (T2) | passed |
-| `nbody/runs/dissipation/test_dissipation_focused_T5/cdm_N1e5_T5` | `m4-k05-cdm-t5` | 52 (T5) | passed |
-| `nbody/runs/dissipation/test_dissipation_focused_T5/sidm10_N1e5_T5` | `m4-k05-sidm10-t5` | 52 (T5) | passed |
-| `nbody/runs/dissipation/test_dissipation_focused_T5/dsidm5_f005_k0_N1e5_T5` | `m4-k05-dsidm5-d005-t5` | 52 (T5) | passed |
-| `nbody/runs/dissipation/test_dissipation_focused_T5/dsidm10_f005_k0_N1e5_T5` | `m4-k05-dsidm10-d005-t5` | 52 (T5) | passed |
+Exit code: 0. The manifest has 11 rows: 9 safely scanned rows and 2 explicit
+deferred rows. The deferred rows are
+`dsidm_spin_k08_transition/dsidm_s2p5_D0p75_N1e5_T2` and
+`dissipation/test_dissipation_focused_T5/dsidm10_f01_k0_N1e5_T5`; both have
+`status=unknown`, `health=pathological`, `metrics_status=missing`, and notes
+`deferred:resource/pathology gate; log_scan_not_run`. Their logs were not
+scanned. Manifest metadata records `row_count=11`, `deferred_log_scan=true`,
+and the nine safe scan roots.
 
-## Deferred runs
+Campaign summary command:
 
-The following runs were not launched, by the resource/pathology gate:
+```text
+.venv/bin/python nbody/scripts/conference/summarize_campaign.py --manifest nbody/analysis/presentations/conference_2026/run_manifest.csv --series-index nbody/analysis/presentations/conference_2026/m4_series/series_index.csv --out nbody/analysis/presentations/conference_2026/campaign_metrics.csv --metadata-out nbody/analysis/presentations/conference_2026/campaign_metrics_metadata.json
+```
 
-- `nbody/runs/dsidm_spin_k08_transition/dsidm_s2p5_D0p75_N1e5_T2`
-- `nbody/runs/dissipation/test_dissipation_focused_T5/dsidm10_f01_k0_N1e5_T5`
+Exit code: 0; output has 11 rows: 9 `ok` mapped summaries and 2 `missing`
+deferred summaries. Explicit windows are T2 `[1, 2]` and T5 `[2.5, 5]`,
+encoded in the series index; no interpolation or fallback path search is
+used.
 
-## Scope exclusions
-
-No new simulations, solver runs, Telegram actions, commits, or pushes were
-performed. Planned Markdown files were not edited. This report was added
-without rerunning the analysis runner and without modifying existing outputs,
-`series_index.csv`, or source run directories.
+No new simulations, solver runs, or Telegram actions were performed. This M6
+task itself did not create a commit or push; prior-stage checkpoint commits
+exist. No plan Markdown was edited, and source run directories were not
+modified.

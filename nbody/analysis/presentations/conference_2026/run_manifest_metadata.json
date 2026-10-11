@@ -1,0 +1,104 @@
+{
+  "analysis_commits": [
+    "c6cf62ac1930bc32922ab9bdf066923f57e16602"
+  ],
+  "analysis_dirty": [
+    false
+  ],
+  "checked_at_semantics": "derived_from_newest_evidence_mtime",
+  "columns": [
+    "run_id",
+    "group",
+    "run_path",
+    "ic_path",
+    "ic_sha256",
+    "spin_k",
+    "spin_k_source",
+    "n_particles",
+    "ptype",
+    "sigma_over_m",
+    "dissipation_d",
+    "kick_velocity",
+    "velocity_scale",
+    "softening_value",
+    "softening_parameter",
+    "max_size_timestep",
+    "time_max",
+    "time_bet_snapshot",
+    "first_snapshot",
+    "time_limit_cpu",
+    "mpi_procs",
+    "run_commit",
+    "analysis_commit",
+    "analysis_dirty",
+    "analysis_patch_sha256",
+    "params_sha256",
+    "solver_source_sha256",
+    "solver_binary_sha256",
+    "snapshots",
+    "t_reached",
+    "min_systemstep",
+    "ninteractions_final",
+    "status",
+    "health",
+    "metrics_status",
+    "verdict_raw",
+    "metrics_csv",
+    "analysis_schema_version",
+    "checked_at_utc",
+    "started_at_utc",
+    "ended_at_utc",
+    "wall_minutes",
+    "timing_source",
+    "provenance_status",
+    "notes"
+  ],
+  "hash_ics": false,
+  "health_counts": {
+    "ok": 9,
+    "pathological": 2
+  },
+  "metrics_status_counts": {
+    "missing": 6,
+    "complete": 5
+  },
+  "roots": [
+    "dissipation/test_dissipation_focused_T5/cdm_N1e5_T5",
+    "dissipation/test_dissipation_focused_T5/dsidm10_f005_k0_N1e5_T5",
+    "dissipation/test_dissipation_focused_T5/dsidm5_f005_k0_N1e5_T5",
+    "dissipation/test_dissipation_focused_T5/sidm10_N1e5_T5",
+    "dsidm_spin_k08_transition/cdm_N1e5_T2",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p10_N1e5_T2",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T2",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T2",
+    "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T2"
+  ],
+  "row_count": 11,
+  "schema_version": "conference-manifest-v1",
+  "status_counts": {
+    "completed": 9,
+    "unknown": 2
+  },
+  "deferred_rows": [
+    {
+      "group": "dissipation/test_dissipation_focused_T5",
+      "run_id": "dsidm10_f01_k0_N1e5_T5"
+    },
+    {
+      "group": "dsidm_spin_k08_transition",
+      "run_id": "dsidm_s2p5_D0p75_N1e5_T2"
+    }
+  ],
+  "deferred_log_scan": true,
+  "safe_scan_roots": [
+    "dissipation/test_dissipation_focused_T5/cdm_N1e5_T5",
+    "dissipation/test_dissipation_focused_T5/dsidm10_f005_k0_N1e5_T5",
+    "dissipation/test_dissipation_focused_T5/dsidm5_f005_k0_N1e5_T5",
+    "dissipation/test_dissipation_focused_T5/sidm10_N1e5_T5",
+    "dsidm_spin_k08_transition/cdm_N1e5_T2",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p10_N1e5_T2",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p25_N1e5_T2",
+    "dsidm_spin_k08_transition/dsidm_s2p5_D0p50_N1e5_T2",
+    "dsidm_spin_k08_transition/sidm_s2p5_N1e5_T2"
+  ]
+}
