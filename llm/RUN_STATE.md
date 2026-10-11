@@ -312,6 +312,9 @@ Checkpoint commits (push status must be recorded separately):
 - `8b1a988` — made the watcher tolerate empty early logs/snapshot globs under
   `pipefail`; shell regression and full pytest passed; pushed successfully to
   `origin/agent/dev`.
+- `ce42478` — recorded the active-run analysis deferral policy in all three
+  plans and refreshed their hashes; full pytest passed; pushed successfully
+  to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -358,6 +361,8 @@ Push records:
   output `79232ae..14f87f6 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `8b1a988` was pushed with success, exit code 0;
   output `038acfa..8b1a988 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `ce42478` was pushed with success, exit code 0;
+  output `0551700..ce42478 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
