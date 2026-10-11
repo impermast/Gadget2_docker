@@ -13,6 +13,8 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 ## Что передаётся
 
 - [slides.md](slides.md) — editable slide source, 11 основных слайдов + backup.
+- [slides.pdf](slides.pdf) — сохранённый 16-страничный экспорт для проверки;
+  SHA-256 `22fbec44e277d8c1ffd0c1360e3963809c262e822eba5bea82a3a976b7f4e239`.
 - [export_slides.py](export_slides.py) — воспроизводимый системный PPTX-exporter;
   структурная проверка даёт 11 основных + 5 backup и 4 embedded PNG.
 - Для M5 lifecycle перед post-run анализом используется
