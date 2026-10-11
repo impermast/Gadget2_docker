@@ -1209,7 +1209,12 @@ def classify_series(metrics: List[SeriesMetric]) -> Tuple[str, List[str]]:
     if np.isfinite(rh[0]) and rh[0] > 0:
         notes.append(f"rho_core(r<2): start={rh[0]:.4g} final={rh[-1]:.4g} "
                      f"(x{rh[-1]/rh[0]:.2f}).")
-    min_step = float(st.min())
+    # The first snapshot can be paired with an initial sync marker whose
+    # Systemstep is a zero placeholder.  It must not veto the physical
+    # timestep-collapse check; only finite, strictly positive steps are
+    # meaningful for the ``< 1e-6`` pathology threshold.
+    positive_steps = st[np.isfinite(st) & (st > 0)]
+    min_step = float(positive_steps.min()) if positive_steps.size else math.nan
     notes.append(f"nearest systemstep: min={min_step:.3g} final={st[-1]:.3g}.")
     if len(t) >= 3:
         slope, _ = np.polyfit(t, ca, 1)
