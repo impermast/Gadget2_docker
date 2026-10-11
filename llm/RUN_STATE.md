@@ -21,7 +21,8 @@ Branch / HEAD / initial dirty paths / owned changes:
   `1b8fc5f`, M8 handoff package through locator-alignment state `c9174af`,
   policy/state
   checkpoints, and
-  push records are published; last accepted data checkpoint: `be092e3`.
+  push records are published; the first approved M5 run and its package
+  integration are accepted at `99852da`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
 
@@ -42,16 +43,18 @@ Permissions: action, scope, source of approval, remaining budget
   stage-checkpoint commits are explicitly approved for this campaign. Pushes
   require confirmation of the exact remote/ref; `origin/agent/dev` was confirmed
   for this campaign and every push below has a recorded result.
-- Fresh user approval on 2026-10-11 requests starting data collection on a
-  10-host-CPU budget. The M5 resource gate and exact command were recorded;
-  the first approved run is active below. Do not start another run until its
-  terminal status and post-run gate are recorded.
+- Fresh user approval on 2026-10-11 requests data collection on a 10-host-CPU
+  budget. The M5 resource gate and exact command were recorded; the first
+  approved run reached its terminal state, passed the post-run gate, and its
+  staging artifacts were integrated at `99852da`. Before the next sequential
+  run, repeat the resource/process gate; do not perform detailed physical
+  interpretation while a run is still active.
 
 Capabilities: container, tools, communication, rendering/export
-- Host `.venv/bin/python` is executable, Python 3.12.3. Existing container
-  `gadget-gizmo` is running the approved bounded M5 command below; read-only
-  Docker inspection required host Docker API approval. Its `/nbody` mount maps the
-  workspace `nbody`, and `/opt/gizmo-public/GIZMO` is executable (384264 bytes).
+- Host `.venv/bin/python` is executable, Python 3.12.3. Container
+  `gadget-gizmo` ran the completed approved bounded M5 command below; read-only
+  Docker inspection requires host Docker API approval. Its `/nbody` mount maps
+  the workspace `nbody`, and `/opt/gizmo-public/GIZMO` is executable (384264 bytes).
 - `/nbody/scripts/run_sim.sh`, `mpirun`, `python3`, and `bash` are present in
   the container. Existing ICs are present as
   `nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k05.hdf5` and `_k08.hdf5` (also
@@ -96,10 +99,12 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   late-time summaries are integrated and tested. A pilot plus eight safe
   existing series produced 313 metric rows; two large/pathological logs remain
   explicitly deferred by the resource gate. Data checkpoint `d161e84`.
-- M6 `done (partial/deferred)` — canonical 11-row manifest, explicit 9-row
-  series index, 11-row campaign summary and metadata accepted at `be092e3`;
-  two deferred series are visible as missing coverage.
-- M5 `in_progress` (first approved run completed; three sequential runs remain);
+- M6 `done (partial/deferred)` — canonical manifest/index/campaign package
+  now contains 12 manifest rows, 10 explicit series mappings, and 12 campaign
+  rows; two deferred series remain visible as missing coverage. The first M5
+  integration is accepted at `99852da`.
+- M5 `in_progress` (first approved run completed and integrated; three
+  sequential runs remain);
   M7
   `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
   package at `5924b52` and editable slide source at `1b8fc5f`; export and final
@@ -111,10 +116,11 @@ Current task / acceptance check:
 - M0–M6 acceptance evidence is recorded above. M4 code/data and scoped/full
   tests passed; the pilot and eight safe real-series runs were independently
   checked by the root agent. The approved M5 first run completed its terminal
-  and post-run gate; separately,
-  continue M7 export/visual work, retain the M8 handoff until a user rehearsal
-  is recorded, and integrate the first M5 staging outputs before the next
-  launch. No unapproved simulation or solver validation is implied.
+  and post-run gate, and its canonical staging outputs are integrated at
+  `99852da`. Continue M7 export/visual work, retain the M8 handoff until a
+  user rehearsal is recorded, and launch only the next approved M5 run after a
+  fresh resource gate. No intermediate physical interpretation is required;
+  inspect each run after its terminal state.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
 - COMPLETED: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
@@ -133,8 +139,10 @@ Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
   log and used-values file are retained as lifecycle evidence. Canonical
   post-run outputs were generated in `/tmp/conference_2026_m5_cdm_staging/
   prerun/m5-cdm-N1e5-T5-k08` with `series-jz-v2`; raw runner verdict is
-  `ambiguous-partial-series`, not a physical claim. Do not start the next run
-  until these outputs are integrated/accepted.
+  `ambiguous-partial-series`, not a physical claim. The package integration,
+  manifest repair, campaign regeneration, and full test gate were accepted in
+  `99852da` and pushed; the next run is now gated only by a fresh resource
+  check.
 
 Artifacts: path, inputs, analysis version, last successful validation
 - `llm/RUN_STATE.md`: inputs are the three plan files, repository state, and
@@ -143,15 +151,18 @@ Artifacts: path, inputs, analysis version, last successful validation
   or analysis artifact was generated.
 - `nbody/analysis/presentations/conference_2026/m4_pilot/`: one accepted
   healthy T=2 pilot with `series-jz-v2` metrics and metadata.
-- `nbody/analysis/presentations/conference_2026/m4_series/`: eight accepted
-  safe series, corrected explicit `series_index.csv`, and `processing_report.md`;
-  two large/pathological series are deferred and were not launched.
+- `nbody/analysis/presentations/conference_2026/m4_series/`: nine legacy
+  accepted safe series plus the integrated first M5 mapping, corrected explicit
+  `series_index.csv`, and `processing_report.md`; two large/pathological series
+  are deferred and were not launched.
 - `nbody/analysis/presentations/conference_2026/run_manifest.csv` and
-  `run_manifest_metadata.json`: 11 manifest rows, 9 safe scans and 2 explicit
-  deferred rows; no large deferred log was scanned.
+  `run_manifest_metadata.json`: 12 manifest rows, 10 completed/healthy rows
+  including the accepted M5 CDM T5 run, and 2 explicit deferred rows; no
+  large deferred log was scanned.
 - `nbody/analysis/presentations/conference_2026/campaign_metrics.csv` and
-  `campaign_metrics_metadata.json`: 11 summary rows, 9 `ok` and 2 `missing`,
-  fixed T2/T5 windows, no interpolation or implicit fallback.
+  `campaign_metrics_metadata.json`: 12 summary rows, the new M5 row mapped
+  with 52 points and a T5-late window, 2 deferred rows still `missing`, fixed
+  T2/T5 windows, no interpolation or implicit fallback.
 - `nbody/analysis/presentations/conference_2026/claims.csv` and `reproduce.md`:
   four conservative claims, explicit source locators, and a reproducible figure
   command; the two deferred runs remain missing evidence.
@@ -178,10 +189,14 @@ Artifacts: path, inputs, analysis version, last successful validation
 - `/tmp/conference_2026_m5_cdm_staging/prerun/m5-cdm-N1e5-T5-k08/`: accepted
   staging output for the completed first M5 run (`metrics_series.csv`,
   `series_metadata.json`, `summary_partial_series.txt`, and static PNG);
-  package integration is the next bounded step.
+  package integration is recorded at `99852da`.
+- `nbody/analysis/presentations/conference_2026/m5_series/prerun/
+  m5-cdm-N1e5-T5-k08/`: accepted package copy with `series-jz-v2` metrics,
+  metadata, raw partial-series summary, and static PNG. The raw
+  `ambiguous-partial-series` label remains diagnostic only.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
-  M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
-  above; final package regeneration is pending M4.
+  M1 schema/CLI/parser tests and the accepted package regeneration used for
+  the 12-row manifest; the two deferred rows remain explicit and unscanned.
 - Jz/frame branch: 28 targeted tests passed; known intentional rotation-frame
   migration remains visible for integration review.
 - Dissipation branch: 20 tests passed; deterministic 15-row validation CSV,
@@ -218,12 +233,12 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Integrate and independently accept the first M5 staging artifacts, update
-  its manifest/series index without overwriting legacy outputs, and record the
-  fixed analysis revision.
-2. Only after that gate, launch the next approved sequential k08 T=5 run; keep
-  partial/pathological outcomes visible and never treat them as a negative
-  physical result.
+1. Repeat the resource/process gate and launch the next approved sequential
+  k08 T=5 run; keep partial/pathological outcomes visible and do not analyze
+  physical meaning until the run is terminal.
+2. After that run terminates, run the canonical post-run gate, integrate its
+  staging outputs without overwriting legacy artifacts, and checkpoint/push
+  the stage before launching the next run.
 3. Finish the M7 export/visual gate (or retain `export_blocked`) and conduct a
   user rehearsal from the M8 handoff; keep future pushes gated by the confirmed
   `origin/agent/dev` ref and factual command output.
@@ -268,6 +283,9 @@ Checkpoint commits (push status must be recorded separately):
   full pytest passed; pushed successfully to `origin/agent/dev`.
 - `4e03416` — fixed zero initial timestep placeholder handling and added
   regression tests; full pytest passed; pushed successfully to `origin/agent/dev`.
+- `99852da` — integrated the completed first M5 CDM T5 staging artifacts,
+  repaired the manifest CSV encoding, regenerated campaign summaries, and
+  passed full pytest; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -304,6 +322,8 @@ Push records:
   output `7ba3b2d..c9174af agent/dev -> agent/dev`
 - `push_record_checkpoint`: `4e03416` was pushed with success, exit code 0;
   output `f961802..4e03416 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `99852da` was pushed with success, exit code 0;
+  output `44fe5af..99852da agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
