@@ -396,6 +396,9 @@ start_watcher() {
 
     # Telegram: счётчик циклов для прогресса
     local tg_cycle=0
+    # Не считать старый .gizmo_run.param-usedvalues признаком завершения до
+    # того, как будет обнаружен именно этот запуск.
+    local seen_run=0
 
     (
     while true; do
@@ -407,14 +410,26 @@ start_watcher() {
                 python3 "$TG_SCRIPT" --event progress --state "$state_file" 2>/dev/null || true
             fi
         fi
-        # Проверяем, жив ли mpirun
+        # Проверяем, жив ли mpirun/GIZMO именно из каталога этого запуска.
+        # В argv mpirun путь run_dir не присутствует: параметр передаётся
+        # относительно cwd как .gizmo_run.param.
         local pid=""
         local alive=0
-        pid=$(pgrep -f "mpirun.*${run_dir}" 2>/dev/null | head -1)
+        local candidate candidate_cwd candidate_cmdline
+        while read -r candidate; do
+            [[ -n "$candidate" && -r "/proc/${candidate}/cwd" ]] || continue
+            candidate_cwd=$(readlink "/proc/${candidate}/cwd" 2>/dev/null || true)
+            [[ "$candidate_cwd" == "$run_dir" ]] || continue
+            candidate_cmdline=$(tr '\0' ' ' < "/proc/${candidate}/cmdline" 2>/dev/null || true)
+            [[ "$candidate_cmdline" == *".gizmo_run.param"* ]] || continue
+            pid="$candidate"
+            break
+        done < <( { pgrep -x mpirun 2>/dev/null; pgrep -x "$(basename "$GIZMO_BIN")" 2>/dev/null; } | sort -n -u )
         if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
             alive=1
+            seen_run=1
         fi
-        if [[ "$alive" -eq 0 ]]; then
+        if [[ "$alive" -eq 0 && "$seen_run" -eq 1 ]]; then
             # возможно mpirun уже завершился — проверяем последнюю запись в .gizmo_run.param-usedvalues
             if [[ -f "${run_dir}/.gizmo_run.param-usedvalues" ]]; then
                 # симуляция завершилась — выходим
