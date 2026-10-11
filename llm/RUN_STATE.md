@@ -88,16 +88,15 @@ Capabilities: container, tools, communication, rendering/export
   independently verified, while full deck visual freeze remains open. Background
   execution/waiting primitives `nohup`, `setsid`, and `timeout` are present;
   a shell background/wait smoke check passed in 0.103 s.
-- Current M7 export check: `/usr/bin/python3` imports `python-pptx`; the new
-  `talk/export_slides.py` structurally exports 16 slides (`S01`–`S11` plus
-  `B01`–`B05`) with four embedded figures and preserved pending badges. A
-  LibreOffice 24.2.7.2 now converts the 16-slide PPTX to a 16-page PDF using an
-  isolated writable profile; `pdfinfo` and `pdftoppm` first/last checks passed.
-  Stable ignored artifacts are now `talk/slides.pptx` (sha256
-  `ec6e80da230611b3972825e60316b24e3ded82ca8745ca275cb6fa6f986807a3`) and
-  `talk/slides.pdf` (sha256
-  `22fbec44e277d8c1ffd0c1360e3963809c262e822eba5bea82a3a976b7f4e239`).
-  Full deck visual freeze and user rehearsal remain pending.
+- Current M7 export check: `/usr/bin/python3` imports `python-pptx`; exporter
+  patch `18f690f` structurally emits 16 slides (`S01`–`S11` plus `B01`–`B05`),
+  removes markdown image/backup artefacts from bullets, and enlarges
+  single-figure panels without crossing slide bounds. The regenerated PPTX
+  passed these structural checks. LibreOffice 24.2.7.2 currently returns
+  without creating a PDF in this runtime even with isolated profiles; the
+  previously verified PDF hash is therefore historical evidence, not
+  validation of the patched exporter. Full deck visual freeze and user
+  rehearsal remain pending until a fresh PDF export succeeds.
 
 Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M0 `done` — preflight, baseline, permissions, and initial state recorded;
@@ -218,8 +217,8 @@ Artifacts: path, inputs, analysis version, last successful validation
   9 mapped + 2 deferred coverage, and explicit pending badges.
 - `nbody/analysis/presentations/conference_2026/talk/export_slides.py`:
   deterministic system-`python-pptx` exporter with a 16-slide/4-asset
-  structural smoke check; PDF conversion is verified, while no full visual
-  freeze is claimed.
+  structural smoke check; the markdown sanitation/layout patch is accepted,
+  while fresh PDF conversion and full visual freeze remain pending.
 - `nbody/scripts/conference/post_run_gate.py` plus
   `tests/test_post_run_gate.py`: current M5 lifecycle gate; targeted project
   tests pass (`5 passed`), and it must be invoked only after terminal status.
@@ -387,6 +386,10 @@ Checkpoint commits (push status must be recorded separately):
   D0p50 incomplete outcome, refreshed M5/M6 ledgers and RUN_STATE; targeted
   ledger/package checks and `git diff --check` passed; pushed successfully to
   `origin/agent/dev`.
+- `18f690f` — sanitized markdown image/backup text in the M7 exporter and
+  enlarged single-figure panels; parser/PPTX structural checks and
+  `git diff --check` passed; fresh PDF conversion remains pending; pushed
+  successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -457,6 +460,8 @@ Push records:
   output `e2249bb..5d17fa9 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `0f30af8` was pushed with success, exit code 0;
   output `5d17fa9..0f30af8 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `18f690f` was pushed with success, exit code 0;
+  output `2e4824f..18f690f agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
