@@ -321,6 +321,11 @@ Checkpoint commits (push status must be recorded separately):
   passed; pushed successfully to `origin/agent/dev`.
 - `42e58d1` — recorded the robust-watcher checkpoint and its clean repository
   state; full pytest passed; pushed successfully to `origin/agent/dev`.
+- `5ec3235` — synchronized this RUN_STATE with the robust-watcher push record;
+  full pytest passed; pushed successfully to `origin/agent/dev`.
+- `11549e2` — aligned canonical M7/M8 talk sources and retained draft/skeleton
+  lifecycle notes; local-link check and full pytest passed; pushed successfully
+  to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -373,6 +378,10 @@ Push records:
   output `f962f74..8479b5a agent/dev -> agent/dev`
 - `push_record_checkpoint`: `42e58d1` was pushed with success, exit code 0;
   output `8479b5a..42e58d1 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `5ec3235` was pushed with success, exit code 0;
+  output `42e58d1..5ec3235 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `11549e2` was pushed with success, exit code 0;
+  output `5ec3235..11549e2 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
