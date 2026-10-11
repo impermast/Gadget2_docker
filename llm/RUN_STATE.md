@@ -48,7 +48,8 @@ Permissions: action, scope, source of approval, remaining budget
   approved run reached its terminal state, passed the post-run gate, and its
   staging artifacts were integrated at `99852da`. Before the next sequential
   run, repeat the resource/process gate; do not perform detailed physical
-  interpretation while a run is still active.
+  interpretation while a run is still active. The next approved run is now
+  active below.
 
 Capabilities: container, tools, communication, rendering/export
 - Host `.venv/bin/python` is executable, Python 3.12.3. Container
@@ -123,6 +124,17 @@ Current task / acceptance check:
   inspect each run after its terminal state.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
+- ACTIVE: `dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08`; command inside
+  `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
+  dsidm_spin_k08_transition/sidm_s2p5_N1e5_T5_k08 --type sidm --sigma 2.5
+  --dissipation 0 --ic-file /nbody/ics/dwarf_rot_N1e5/dwarf_rot_N1e5_k08
+  --time-max 5 --time-bet 0.1 --first-snapshot 0 --mpi-procs 8
+  --max-step 0.005 --kick 0 --time-limit 14400 --skip-viz --no-tg`.
+  Container `mpirun` PID 795, eight GIZMO children; watcher PID 794; started
+  `2026-10-11T08:34:08Z`; log `/nbody/runs/dsidm_spin_k08_transition/
+  sidm_s2p5_N1e5_T5_k08/run.log`; `TimeLimitCPU=14400`, owner=root. The
+  process and parameter preflight passed; the watcher state file is expected
+  on its first update tick. Do not interpret the run until terminal.
 - COMPLETED: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
   `gadget-gizmo`: `bash /nbody/scripts/run_sim.sh --name
   dsidm_spin_k08_transition/cdm_N1e5_T5_k08 --type cdm --ic-file
@@ -233,9 +245,8 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Repeat the resource/process gate and launch the next approved sequential
-  k08 T=5 run; keep partial/pathological outcomes visible and do not analyze
-  physical meaning until the run is terminal.
+1. Leave the active SIDM run untouched; drain only bounded process output as
+  needed to prevent session blockage, without analyzing intermediate physics.
 2. After that run terminates, run the canonical post-run gate, integrate its
   staging outputs without overwriting legacy artifacts, and checkpoint/push
   the stage before launching the next run.
@@ -286,6 +297,9 @@ Checkpoint commits (push status must be recorded separately):
 - `99852da` — integrated the completed first M5 CDM T5 staging artifacts,
   repaired the manifest CSV encoding, regenerated campaign summaries, and
   passed full pytest; pushed successfully to `origin/agent/dev`.
+- `90f1bf0` — recorded the accepted M5 integration and the gate for the
+  active sequential SIDM run; full pytest passed; pushed successfully to
+  `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -324,6 +338,8 @@ Push records:
   output `f961802..4e03416 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `99852da` was pushed with success, exit code 0;
   output `44fe5af..99852da agent/dev -> agent/dev`
+- `push_record_checkpoint`: `90f1bf0` was pushed with success, exit code 0;
+  output `99852da..90f1bf0 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
