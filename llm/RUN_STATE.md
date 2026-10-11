@@ -348,6 +348,9 @@ Checkpoint commits (push status must be recorded separately):
   `python -m pip`; clean CI-like math/golden runs and full pytest passed. GitHub
   Actions run `38126878913` completed both jobs successfully; pushed to
   `origin/agent/dev`.
+- `b6c5e95` — added the reproducible system-`python-pptx` M7 exporter and
+  documented the verified PPTX structure plus the still-blocked LibreOffice
+  PDF gate; full pytest passed, and no status badge was advanced.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -408,6 +411,8 @@ Push records:
   output `9b58ce7..d85e3d0 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `1cc33c7` was pushed with success, exit code 0;
   output `8c6debe..1cc33c7 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `b6c5e95` was pushed with success, exit code 0;
+  output `5171893..b6c5e95 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
