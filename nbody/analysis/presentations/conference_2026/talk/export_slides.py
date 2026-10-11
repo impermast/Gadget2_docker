@@ -23,7 +23,11 @@ def parse(path):
             cur = {"title": clean(line[4:]), "lines": [], "images": []}
         elif cur is not None and line.strip():
             m = IMG.search(line)
-            if m: cur["images"].append((m.group(1), m.group(2)))
+            if m:
+                cur["images"].append((m.group(1), m.group(2)))
+                continue
+            if line.lstrip().startswith("## Backup"):
+                continue
             cur["lines"].append(clean(line))
     if cur: slides.append(cur)
     if len(slides) != 16:
@@ -61,11 +65,16 @@ def main(argv=None):
         for i, (alt, rel) in enumerate(item["images"][:2]):
             p = ((args.asset_root or args.slides.parent) / rel).resolve()
             if not p.is_file(): continue
-            left = .55 + i * 6.35
-            s.shapes.add_picture(str(p), Inches(left), Inches(1.25), width=Inches(5.95), height=Inches(3.55))
+            single = len(item["images"]) == 1
+            width = 8.2 if single else 5.95
+            height = 3.9 if single else 3.55
+            left = (13.333 - width) / 2 if single else .55 + i * 6.35
+            s.shapes.add_picture(str(p), Inches(left), Inches(1.25), width=Inches(width), height=Inches(height))
         text_lines = [x for x in item["lines"] if not x.startswith("![") and not x.startswith("Source:")]
         tx, tw, ty = (.7, 12, 1.25)
-        add_text(s, "\n".join("• " + x for x in text_lines), tx, ty if not item["images"] else 5.0, tw, 1.95 if item["images"] else 5.8, 12)
+        image_text_y = 5.35 if len(item["images"]) == 1 else 5.0
+        image_text_h = 1.6 if len(item["images"]) == 1 else 1.95
+        add_text(s, "\n".join("• " + x for x in text_lines), tx, ty if not item["images"] else image_text_y, tw, image_text_h if item["images"] else 5.8, 12)
     args.output.parent.mkdir(parents=True, exist_ok=True); prs.save(args.output)
     print(f"created {args.output} slides={len(slides)} assets={sum(len(x['images']) for x in slides)}")
 
