@@ -17,8 +17,9 @@ Orchestration policy (current user override):
   bounded correction; no parallel delegation is allowed.
 
 Branch / HEAD / initial dirty paths / owned changes:
-- Branch: `agent/dev`; current local HEAD includes accepted M7 evidence commit
-  `5924b52`; last accepted data checkpoint: `be092e3`.
+- Branch: `agent/dev`; current local and remote HEAD: `354f2e9`; accepted M7
+  evidence commit `5924b52` and policy/state checkpoint are published; last
+  accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
 
@@ -36,8 +37,8 @@ Permissions: action, scope, source of approval, remaining budget
 - Without a fresh explicit approval: no new simulations, no GIZMO solver
   validation, no sigma/m=5 runs, no Telegram/external messages. Local
   stage-checkpoint commits are explicitly approved for this campaign. Pushes
-  require confirmation of the exact remote/ref by the safety gate; the current
-  M7 commit is local and `push_pending`.
+  require confirmation of the exact remote/ref; `origin/agent/dev` was confirmed
+  for the two commits recorded below and both pushes succeeded.
 - Remaining budget: no heavy-run budget approved; no simulation was launched.
 
 Capabilities: container, tools, communication, rendering/export
@@ -148,8 +149,8 @@ Decisions: choice, reason, evidence
   of any earlier parallel/max-reasoning delegation wording.
 - Use one local stage-checkpoint commit after each accepted M-stage; stage only
   explicit paths, record SHA/scope/tests here, then push only to a confirmed
-  remote/ref and record the factual result. The current M7 push is pending the
-  safety confirmation of `origin/agent/dev`.
+  remote/ref and record the factual result. `origin/agent/dev` is confirmed for
+  the published M7 and policy/state checkpoints below.
 - Do not start any simulation or solver validation: explicitly outside current
   permissions; no matching process was running.
 - Keep pathological runs in the manifest with independent status/health and
@@ -172,8 +173,8 @@ Next actions: 1..3 concrete steps
    claim IDs have explicit locators; keep `science_partial` and deferred rows.
 2. Export the slide source (or record `export_blocked`), inspect the rendered
    output, and reconcile notes/Q&A with the final claims and limitations.
-3. Prepare M8 handoff/rehearsal checklist and, after remote/ref confirmation,
-   push the local stage commits; treat deferred logs as a separate resource
+3. Prepare M8 handoff/rehearsal checklist; keep future pushes gated by explicit
+   remote/ref confirmation and treat deferred logs as a separate resource
    decision, not an automatic launch.
 
 Checkpoint commits (push status must be recorded separately):
@@ -185,8 +186,15 @@ Checkpoint commits (push status must be recorded separately):
 - `be092e3` — accepted M6 manifest/index/campaign summary; full pytest passed.
 - `b76500e` — M7 talk outline/notes/Q&A drafts; full pytest passed.
 - `5924b52` — M7 figures, claims, reproducibility runner and manifest; full
-  pytest passed; `push_pending` for `origin/agent/dev` because the safety gate
-  rejected the unverified destination (no successful push output).
+  pytest passed; pushed successfully to `origin/agent/dev`.
+- `354f2e9` — push-policy synchronization and current M7 state; full pytest
+  passed; pushed successfully to `origin/agent/dev`.
+
+Push records:
+- `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
+- `push_ref`: `agent/dev`
+- `push_command`: `git push origin agent/dev`
+- `push_result`: success, exit code 0; output `f7e5150..354f2e9 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
