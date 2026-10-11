@@ -17,8 +17,8 @@ Orchestration policy (current user override):
   bounded correction; no parallel delegation is allowed.
 
 Branch / HEAD / initial dirty paths / owned changes:
-- Branch: `agent/dev`; M7 evidence commit `5924b52`, policy/state checkpoint
-  `354f2e9`, and its push-record checkpoint `73f8abe` are published; last
+- Branch: `agent/dev`; M7 evidence commit `5924b52`, editable slide source
+  `1b8fc5f`, policy/state checkpoints, and push records are published; last
   accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
@@ -33,17 +33,20 @@ Permissions: action, scope, source of approval, remaining budget
 - Source: explicit campaign-start request for M0 and orchestration by the root
   agent.
 - Allowed now: local text/code edits, synthetic and targeted tests, bounded
-  inspection/post-processing of existing data, and M4 implementation/review.
+  inspection/post-processing of existing data, M4 implementation/review, and
+  the newly approved bounded M5 simulation preflight/run below.
 - Without a fresh explicit approval: no new simulations, no GIZMO solver
   validation, no sigma/m=5 runs, no Telegram/external messages. Local
   stage-checkpoint commits are explicitly approved for this campaign. Pushes
   require confirmation of the exact remote/ref; `origin/agent/dev` was confirmed
   for the two commits recorded below and both pushes succeeded.
-- Remaining budget: no heavy-run budget approved; no simulation was launched.
+- Fresh user approval on 2026-10-11 requests starting data collection on a
+  10-host-CPU budget. No solver run has launched yet; the M5 resource gate and
+  exact command must be recorded before execution.
 
 Capabilities: container, tools, communication, rendering/export
-- Host `.venv/bin/python` is executable, Python 3.12.3. Container
-  `gadget-gizmo` is running (`Up 2 hours` at the check); read-only Docker
+- Host `.venv/bin/python` is executable, Python 3.12.3. Existing container
+  `gadget-gizmo` is stopped (exit 255, idle-loop command); read-only Docker
   inspection required host Docker API approval. Its `/nbody` mount maps the
   workspace `nbody`, and `/opt/gizmo-public/GIZMO` is executable (384264 bytes).
 - `/nbody/scripts/run_sim.sh`, `mpirun`, `python3`, and `bash` are present in
@@ -94,15 +97,15 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
   series index, 11-row campaign summary and metadata accepted at `be092e3`;
   two deferred series are visible as missing coverage.
 - M5 `pending`; M7 `in_progress` — talk drafts are at `b76500e`, figures and
-  claims/evidence package at `5924b52`; editable slide integration, export,
-  final visual freeze, and rehearsal remain pending; M8 `pending`.
+  claims/evidence package at `5924b52` and editable slide source at `1b8fc5f`;
+  export, final visual freeze, and rehearsal remain pending; M8 `pending`.
 
 Current task / acceptance check:
 - M0–M6 acceptance evidence is recorded above. M4 code/data and scoped/full
   tests passed; the pilot and eight safe real-series runs were independently
-  checked by the root agent. Current task: insert the accepted figures and
-  claim locators into an editable slide source, then perform export/visual and
-  rehearsal checks. No new simulation or solver validation is implied.
+  checked by the root agent. Current tasks: run the approved M5 preflight and,
+  separately, finish M7 export/visual and rehearsal checks. No unapproved
+  simulation or solver validation is implied.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
 - No campaign process. Preflight process scan found no matching host/container
@@ -133,6 +136,9 @@ Artifacts: path, inputs, analysis version, last successful validation
 - `nbody/scripts/analysis/runners/make_conference_figures.py`: explicit-CSV
   runner, no glob/fallback/HDF5/log reads; py_compile, --help, runner, and full
   pytest passed.
+- `nbody/analysis/presentations/conference_2026/talk/slides.md`: evidence-linked
+  editable source with 11 main + 5 backup slides, four PNG locators, C1–C4,
+  9 mapped + 2 deferred coverage, and explicit pending badges.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
   above; final package regeneration is pending M4.
@@ -151,8 +157,11 @@ Decisions: choice, reason, evidence
   explicit paths, record SHA/scope/tests here, then push only to a confirmed
   remote/ref and record the factual result. `origin/agent/dev` is confirmed for
   the published M7 and policy/state checkpoints below.
-- Do not start any simulation or solver validation: explicitly outside current
-  permissions; no matching process was running.
+- Do not start any simulation outside the approved M5 block. The user now
+  requests data collection on a 10-host-CPU budget; preserve the plan's 8-MPI
+  scientific control unless the user explicitly asks to change MPI count.
+  First start only the existing container, run dry-run/resource checks, then
+  launch the four target runs sequentially with bounded monitoring.
 - Keep pathological runs in the manifest with independent status/health and
   diagnostic flags; do not discard them or downgrade the evidence to failed.
 - Conference package permissions were corrected with `g+rwX`; the canonical
@@ -169,13 +178,15 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Create/update the editable slide source so the four accepted figures and
-   claim IDs have explicit locators; keep `science_partial` and deferred rows.
-2. Export the slide source (or record `export_blocked`), inspect the rendered
-   output, and reconcile notes/Q&A with the final claims and limitations.
-3. Prepare M8 handoff/rehearsal checklist; keep future pushes gated by explicit
-   remote/ref confirmation and treat deferred logs as a separate resource
-   decision, not an automatic launch.
+1. Start the existing `gadget-gizmo`, verify the M5 dry-run and resource gate,
+   then launch the approved k08 T=5 block sequentially at 8 MPI under a
+   10-host-CPU budget; monitor limits and preserve partial outcomes.
+2. Analyze completed/partial M5 runs with canonical checks and update manifest,
+   claims, figures, and `science_partial`/coverage status; never treat timeout
+   or pathology as a negative physical result.
+3. Export the editable slide source (or record `export_blocked`), inspect the
+   rendered output, and prepare M8 handoff/rehearsal; keep future pushes gated
+   by explicit remote/ref confirmation.
 
 Checkpoint commits (push status must be recorded separately):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
@@ -187,6 +198,8 @@ Checkpoint commits (push status must be recorded separately):
 - `b76500e` — M7 talk outline/notes/Q&A drafts; full pytest passed.
 - `5924b52` — M7 figures, claims, reproducibility runner and manifest; full
   pytest passed; pushed successfully to `origin/agent/dev`.
+- `1b8fc5f` — M7 evidence-linked editable slide source; full pytest passed;
+  pushed successfully to `origin/agent/dev`.
 - `354f2e9` — push-policy synchronization and current M7 state; full pytest
   passed; pushed successfully to `origin/agent/dev`.
 
@@ -197,6 +210,8 @@ Push records:
 - `push_result`: success, exit code 0; output `f7e5150..354f2e9 agent/dev -> agent/dev`
 - `push_record_checkpoint`: `73f8abe` was pushed with success, exit code 0;
   output `354f2e9..73f8abe agent/dev -> agent/dev`
+- `push_record_checkpoint`: `1b8fc5f` was pushed with success, exit code 0;
+  output `2f77093..1b8fc5f agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
