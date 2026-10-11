@@ -484,8 +484,9 @@ start_watcher() {
             status="STOPPED"
         fi
 
-        # Пишем state-файл
-        cat > "$state_file" << EOF
+        # Пишем state-файл. Ошибка диска не должна убить watcher: основной
+        # run.log и финальный статус запуска остаются независимыми evidence.
+        if ! cat > "$state_file" << EOF
 STATUS=${status}
 RUN_NAME=${RUN_NAME}
 SIM_TYPE=$(echo "$SIM_TYPE" | tr '[:lower:]' '[:upper:]')
@@ -499,8 +500,11 @@ MEM_MB=${mem_mb}
 ELAPSED_MIN=${elapsed_min}
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 EOF
+        then
+            warn "Не удалось обновить lifecycle state: ${state_file}"
+        fi
 
-        sleep 60
+        sleep 60 || true
     done
     ) &
     WATCHER_PID=$!
@@ -557,8 +561,17 @@ run_simulation() {
     fi
     # --oversubscribe: OpenMPI в этом контейнере видит меньше слотов (8), чем
     # физических ядер (16), без флага -np >8 отказывается стартовать.
+    # Не позволяем pipefail потерять статус mpirun до остановки watcher и
+    # финального STATUS=FAILED. Сохраняем коды обеих частей pipeline сразу.
+    set +e
     mpirun --allow-run-as-root --oversubscribe -np "$MPI_PROCS" "$GIZMO_BIN" ".gizmo_run.param" "${restart_arg[@]}" 2>&1 | tee "$log_file"
-    local status=$?
+    local -a pipeline_status=("${PIPESTATUS[@]}")
+    set -e
+    local status="${pipeline_status[0]:-1}"
+    local tee_status="${pipeline_status[1]:-1}"
+    if [[ "$status" -eq 0 && "$tee_status" -ne 0 ]]; then
+        status="$tee_status"
+    fi
 
     # Останавливаем watcher
     stop_watcher
