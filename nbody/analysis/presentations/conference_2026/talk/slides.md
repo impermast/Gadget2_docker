@@ -4,7 +4,7 @@
 `visual_review_pending` · `rehearsal_pending` · M5 не одобрен/не завершён
 
 11 основных слайдов + backup. Числа и статусы ниже имеют explicit relative locator;
-старые PNG не считаются новым evidence. Заметки и timing: [speaker_notes_draft.md](speaker_notes_draft.md).
+старые PNG не считаются новым evidence. Заметки и timing: [speaker_notes.md](speaker_notes.md).
 
 ## S01 — Вопрос и область вывода (0:45)
 
@@ -45,7 +45,7 @@ CDM/SIDM/dSIDM, изолированное NFW-гало, вращающиеся 
 
 В пакете **9 mapped + 2 deferred** серии. `status`, `health`, `metrics_status`
 независимы; missing/pathological не становятся нулями или `failed`. Legacy k05 T5
-не matched k08 T5; M5 отсутствует/не одобрен. **M7-C06 · provisional.** Источник:
+не matched k08 T5; M5 ещё не завершён/frozen для claims. **M7-C06 · provisional.** Источник:
 `run_manifest.csv`; `campaign_metrics.csv` (`series_mapping_status`).
 
 ## S07 — T2 evidence (1:20)
@@ -86,7 +86,7 @@ validation. **M7-C09 · provisional.** Источник: `run_manifest.csv`; `ca
 `M4 → (M5 при одобрении) → M6 → M7`: freeze claims/figures, visual review, затем
 пользовательская репетиция. Сейчас `science_partial`, `visual_review_pending`,
 `rehearsal_pending`. **M7-C11 · provisional.** Источник: `claims.csv`;
-`speaker_notes_draft.md`.
+`speaker_notes.md`.
 
 ## Backup (не считать основными)
 
@@ -107,7 +107,7 @@ Deferred = отсутствие evidence, не failure и не отрицате�
 
 ### B04 — Q&A
 
-Ответы: [qa_draft.md](qa_draft.md). Число без locator остаётся `pending`.
+Ответы: [qa.md](qa.md). Число без locator остаётся `pending`.
 
 ### B05 — Gate
 

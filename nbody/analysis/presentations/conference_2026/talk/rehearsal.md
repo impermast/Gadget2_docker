@@ -12,9 +12,11 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 ## Что передаётся
 
 - [slides.md](slides.md) — editable slide source, 11 основных слайдов + backup.
-- [speaker_notes_draft.md](speaker_notes_draft.md) — черновые notes и переходы.
-- [qa_draft.md](qa_draft.md) — методические Q&A; ответы без locator остаются
-  `pending`.
+- [speaker_notes.md](speaker_notes.md) — финальные evidence-aware notes и
+  переходы; [speaker_notes_draft.md](speaker_notes_draft.md) сохранён как
+  исходный черновик.
+- [qa.md](qa.md) — финальные методические Q&A; [qa_draft.md](qa_draft.md)
+  сохранён как исходный черновик, ответы без locator остаются `pending`.
 - [deck_outline.md](deck_outline.md) — claim-by-claim skeleton и ограничения.
 - [claims.csv](../claims.csv), [campaign_metrics.csv](../campaign_metrics.csv),
   [run_manifest.csv](../run_manifest.csv),
@@ -38,7 +40,8 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
   `r<5 kpc`; `spin_k` не называть измеренным spin.
 - [ ] Сверить каждый показанный figure с `figure_manifest.csv`, входным
   revision и разрешённым locator'ом; старые PNG — candidate-only до проверки.
-- [ ] Зафиксировать QA-ответы и ограничения в [qa_draft.md](qa_draft.md).
+- [ ] Зафиксировать QA-ответы и ограничения в [qa.md](qa.md), сверив их с
+  исходным [qa_draft.md](qa_draft.md).
 
 ## Export and visual review gate
 
@@ -57,13 +60,13 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 
 ## Пользовательский rehearsal checklist
 
-1. Открыть `slides.md` и `speaker_notes_draft.md` рядом; проговорить вопрос,
+1. Открыть `slides.md` и `speaker_notes.md` рядом; проговорить вопрос,
    scope и method без добавления чисел, которых нет в locator'ах.
 2. Для S07–S10 вслух назвать evidence status и limitation: незавершённый
    M5 не скрывать, а узкий вывод не расширять до «dSIDM не образует диск».
 3. Проверить переходы S06→S07 и S08→S09: controls, pathology и aperture
    transfer должны быть различены.
-4. Использовать [qa_draft.md](qa_draft.md) для вопросов про D, равновесие IC,
+4. Использовать [qa.md](qa.md) для вопросов про D, равновесие IC,
    угловой момент, апертуру и solver validation; неизвестное отвечать как
    `pending`, а не угадывать.
 5. Отметить фактическое время, вопросы и места, требующие правки, в отдельном
@@ -76,8 +79,8 @@ evidence freeze из versioned CSV/manifest и explicit locator'ов.
 ```sh
 cd /home/kds/sci/gadget2_docker
 sed -n '1,220p' nbody/analysis/presentations/conference_2026/talk/slides.md
-sed -n '1,220p' nbody/analysis/presentations/conference_2026/talk/speaker_notes_draft.md
-sed -n '1,220p' nbody/analysis/presentations/conference_2026/talk/qa_draft.md
+sed -n '1,220p' nbody/analysis/presentations/conference_2026/talk/speaker_notes.md
+sed -n '1,220p' nbody/analysis/presentations/conference_2026/talk/qa.md
 rg -n 'M7-C|science_partial|visual_review_pending|rehearsal_pending|export_blocked' \
   nbody/analysis/presentations/conference_2026/talk \
   nbody/analysis/presentations/conference_2026/claims.csv

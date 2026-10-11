@@ -39,9 +39,9 @@ failures. Их `status`, `health` и `metrics_status` нельзя сворач�
 ## Handoff state
 
 Editable talk source и Q&A находятся в [talk/slides.md](talk/slides.md),
-[talk/speaker_notes_draft.md](talk/speaker_notes_draft.md),
-[talk/qa_draft.md](talk/qa_draft.md) и
-[talk/rehearsal.md](talk/rehearsal.md). До evidence freeze сохраняются
+[talk/speaker_notes.md](talk/speaker_notes.md), [talk/qa.md](talk/qa.md) и
+[talk/rehearsal.md](talk/rehearsal.md); исходные draft-файлы сохранены рядом.
+До evidence freeze сохраняются
 `visual_review_pending`, `rehearsal_pending` и `export_blocked`. Следующий
 безопасный шаг — сверить claims/figures/manifest одной analysis revision,
 провести visual review и пользовательскую репетицию; запусков и RUN_STATE этот
