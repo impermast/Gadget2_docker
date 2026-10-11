@@ -18,7 +18,8 @@ Orchestration policy (current user override):
 
 Branch / HEAD / initial dirty paths / owned changes:
 - Branch: `agent/dev`; M7 evidence commit `5924b52`, editable slide source
-  `1b8fc5f`, M8 rehearsal/handoff `130df5d`, policy/state checkpoints, and
+  `1b8fc5f`, M8 rehearsal/handoff `130df5d`, current state checkpoint
+  `e07cd13`, policy/state checkpoints, and
   push records are published; last accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
@@ -228,6 +229,8 @@ Checkpoint commits (push status must be recorded separately):
   successfully to `origin/agent/dev`.
 - `130df5d` — accepted M8 rehearsal/handoff checklist; full pytest passed;
   pushed successfully to `origin/agent/dev`.
+- `e07cd13` — current RUN_STATE with M8 handoff and active M5 run; full pytest
+  passed; pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -246,6 +249,8 @@ Push records:
   output `7403778..0ebcd6d agent/dev -> agent/dev`
 - `push_record_checkpoint`: `130df5d` was pushed with success, exit code 0;
   output `0ebcd6d..130df5d agent/dev -> agent/dev`
+- `push_record_checkpoint`: `e07cd13` was pushed with success, exit code 0;
+  output `130df5d..e07cd13 agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
