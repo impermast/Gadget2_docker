@@ -18,8 +18,8 @@ Orchestration policy (current user override):
 
 Branch / HEAD / initial dirty paths / owned changes:
 - Branch: `agent/dev`; M7 evidence commit `5924b52`, editable slide source
-  `1b8fc5f`, policy/state checkpoints, and push records are published; last
-  accepted data checkpoint: `be092e3`.
+  `1b8fc5f`, M8 rehearsal/handoff `130df5d`, policy/state checkpoints, and
+  push records are published; last accepted data checkpoint: `be092e3`.
 - Plan files are campaign-owned specifications; their current hashes are
   recorded above and their checkpoint/push workflow is synchronized below.
 
@@ -39,15 +39,16 @@ Permissions: action, scope, source of approval, remaining budget
   validation, no sigma/m=5 runs, no Telegram/external messages. Local
   stage-checkpoint commits are explicitly approved for this campaign. Pushes
   require confirmation of the exact remote/ref; `origin/agent/dev` was confirmed
-  for the two commits recorded below and both pushes succeeded.
+  for this campaign and every push below has a recorded result.
 - Fresh user approval on 2026-10-11 requests starting data collection on a
-  10-host-CPU budget. No solver run has launched yet; the M5 resource gate and
-  exact command must be recorded before execution.
+  10-host-CPU budget. The M5 resource gate and exact command were recorded;
+  the first approved run is active below. Do not start another run until its
+  terminal status and post-run gate are recorded.
 
 Capabilities: container, tools, communication, rendering/export
 - Host `.venv/bin/python` is executable, Python 3.12.3. Existing container
-  `gadget-gizmo` is stopped (exit 255, idle-loop command); read-only Docker
-  inspection required host Docker API approval. Its `/nbody` mount maps the
+  `gadget-gizmo` is running the approved bounded M5 command below; read-only
+  Docker inspection required host Docker API approval. Its `/nbody` mount maps the
   workspace `nbody`, and `/opt/gizmo-public/GIZMO` is executable (384264 bytes).
 - `/nbody/scripts/run_sim.sh`, `mpirun`, `python3`, and `bash` are present in
   the container. Existing ICs are present as
@@ -96,16 +97,19 @@ Milestones: M0..M8 -> pending | in_progress | done | blocked | deferred
 - M6 `done (partial/deferred)` — canonical 11-row manifest, explicit 9-row
   series index, 11-row campaign summary and metadata accepted at `be092e3`;
   two deferred series are visible as missing coverage.
-- M5 `pending`; M7 `in_progress` — talk drafts are at `b76500e`, figures and
-  claims/evidence package at `5924b52` and editable slide source at `1b8fc5f`;
-  export, final visual freeze, and rehearsal remain pending; M8 `pending`.
+- M5 `in_progress` (first approved run active; post-run gate pending); M7
+  `in_progress` — talk drafts are at `b76500e`, figures and claims/evidence
+  package at `5924b52` and editable slide source at `1b8fc5f`; export and final
+  visual freeze remain pending. M8 handoff/rehearsal checklist is accepted at
+  `130df5d`; user rehearsal remains `rehearsal_pending`.
 
 Current task / acceptance check:
 - M0–M6 acceptance evidence is recorded above. M4 code/data and scoped/full
   tests passed; the pilot and eight safe real-series runs were independently
-  checked by the root agent. Current tasks: run the approved M5 preflight and,
-  separately, finish M7 export/visual and rehearsal checks. No unapproved
-  simulation or solver validation is implied.
+  checked by the root agent. The approved M5 first run is active; separately,
+  continue M7 export/visual work and retain the M8 handoff until a user
+  rehearsal is recorded. No unapproved simulation or solver validation is
+  implied.
 
 Processes: run_id, exact command, PID/job ID, started_at, log, limit, owner
 - ACTIVE: `dsidm_spin_k08_transition/cdm_N1e5_T5_k08`; command inside
@@ -149,6 +153,10 @@ Artifacts: path, inputs, analysis version, last successful validation
 - `nbody/analysis/presentations/conference_2026/talk/slides.md`: evidence-linked
   editable source with 11 main + 5 backup slides, four PNG locators, C1–C4,
   9 mapped + 2 deferred coverage, and explicit pending badges.
+- `nbody/analysis/presentations/conference_2026/talk/rehearsal.md`: M8
+  evidence-freeze, export/visual-review, and user-rehearsal handoff; statuses
+  remain `science_partial`, `visual_review_pending`, `export_blocked`, and
+  `rehearsal_pending`.
 - `nbody/scripts/conference/manifest.py`, `tests/test_conference_manifest.py`:
   M1 schema/CLI/parser tests and actual 11-run scan evidence as summarized
   above; final package regeneration is pending M4.
@@ -188,15 +196,15 @@ Pending questions: ID, requested choice, channel, dependent tasks
   calendar timing only, not on M1–M3.
 
 Next actions: 1..3 concrete steps
-1. Start the existing `gadget-gizmo`, verify the M5 dry-run and resource gate,
-   then launch the approved k08 T=5 block sequentially at 8 MPI under a
-   10-host-CPU budget; monitor limits and preserve partial outcomes.
+1. Let the active approved k08 T=5 run reach a terminal status; then apply the
+   canonical post-run gate before deciding whether to start the next sequential
+   run. Preserve partial outcomes and never treat timeout or pathology as a
+   negative physical result.
 2. Analyze completed/partial M5 runs with canonical checks and update manifest,
-   claims, figures, and `science_partial`/coverage status; never treat timeout
-   or pathology as a negative physical result.
-3. Export the editable slide source (or record `export_blocked`), inspect the
-   rendered output, and prepare M8 handoff/rehearsal; keep future pushes gated
-   by explicit remote/ref confirmation.
+   claims, figures, and `science_partial`/coverage status.
+3. Finish the M7 export/visual gate (or retain `export_blocked`) and conduct a
+   user rehearsal from the M8 handoff; keep future pushes gated by the confirmed
+   `origin/agent/dev` ref and factual command output.
 
 Checkpoint commits (push status must be recorded separately):
 - `5503e8e` — M0 plan/backlog/state documents; full pytest passed.
@@ -214,6 +222,12 @@ Checkpoint commits (push status must be recorded separately):
   full pytest passed; pushed successfully to `origin/agent/dev`.
 - `354f2e9` — push-policy synchronization and current M7 state; full pytest
   passed; pushed successfully to `origin/agent/dev`.
+- `7403778` — active M5 command/PID and resource state; full pytest passed;
+  pushed successfully to `origin/agent/dev`.
+- `0ebcd6d` — fixed run watcher process detection; full pytest passed; pushed
+  successfully to `origin/agent/dev`.
+- `130df5d` — accepted M8 rehearsal/handoff checklist; full pytest passed;
+  pushed successfully to `origin/agent/dev`.
 
 Push records:
 - `push_remote`: `origin` (`git@github.com:impermast/Gadget2_docker.git`)
@@ -226,6 +240,12 @@ Push records:
   output `2f77093..1b8fc5f agent/dev -> agent/dev`
 - `push_record_checkpoint`: `57856d4` was pushed with success, exit code 0;
   output `1b8fc5f..57856d4 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `7403778` was pushed with success, exit code 0;
+  output `57856d4..7403778 agent/dev -> agent/dev`
+- `push_record_checkpoint`: `0ebcd6d` was pushed with success, exit code 0;
+  output `7403778..0ebcd6d agent/dev -> agent/dev`
+- `push_record_checkpoint`: `130df5d` was pushed with success, exit code 0;
+  output `0ebcd6d..130df5d agent/dev -> agent/dev`
 
 Resume: what to inspect before any new launch
 - Read this file; verify branch/HEAD, permissions, live processes, target run
