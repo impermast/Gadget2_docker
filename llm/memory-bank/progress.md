@@ -1,5 +1,22 @@
 # Progress
 
+## 2026-10-12 — spin-k08 D=0.50 timestep-control follow-up
+
+- Завершённый `dsidm_s2p5_D0p50_N1e5_T5_k08_retry2` проанализирован каноническим
+  `make_prerun_plots.py --plots series_evolution`: 52 снапшота, `t=0..5`,
+  машинный verdict `no-disk-before-pathology`. До численной патологии форма
+  остаётся толстой (`min c/a=0.815`, `min z/R=0.591`), а поздняя
+  вращательная поддержка падает до `|vrot|/sigma=0.009`; минимальный
+  положительный `Systemstep=7.45e-08`.
+- Повторный анализ без контакт-листа завершён с `ALL CHECKS PASSED`; summary,
+  CSV и shape-график находятся в
+  `nbody/analysis/prerun/dsidm_s2p5_D0p50_N1e5_T5_k08_retry2/`.
+- Запущен последовательный контрольный прогон
+  `dsidm_s2p5_D0p50_N1e5_T3p5_k08_dt001` (`k=0.8`, `sigma/m=2.5`, `D=0.50`,
+  `MaxSizeTimestep=0.001`, 4 MPI ranks). На последней проверке процесс GIZMO
+  активен; следующий научный выбор откладывается до terminal gate этого
+  прогона. Параллельные серии не запускать.
+
 ## 2026-10-09 — локальные skills + глобальный TG MCP
 
 - Проектные скиллы (`check-run`, `gizmo-sim`, `make-plots`) убраны из глобальных
