@@ -44,7 +44,7 @@ from analysis.loaders import prepare_profile_data  # noqa: E402
 from analysis.paths import AnalysisPaths  # noqa: E402
 from analysis.plotter import NbodyPlotter  # noqa: E402
 from analysis.registry import find  # noqa: E402
-from analysis.style import PlotSettings, RunPaths, SimulationInfo  # noqa: E402
+from analysis.style import PlotSettings, RunPaths  # noqa: E402
 
 # Plots, которые строит именно этот runner (profile-compare группа).
 # Остальные plots блока campaigns имеют собственные runner'ы
@@ -71,6 +71,9 @@ def main() -> int:
     ap.add_argument("--plots", default=None,
                     help="подмножество имён реестра (дефолт: все campaigns-plots)")
     ap.add_argument("--rcore", type=float, default=50.0)
+    ap.add_argument("--radial-range", type=float, nargs=2, default=None,
+                    metavar=("RMIN", "RMAX"),
+                    help="display-only x-range in kpc for radial comparison plots")
     ap.add_argument("--ptype", type=int, default=3)
     args = ap.parse_args()
 
@@ -103,35 +106,50 @@ def main() -> int:
 
     series = []
     sigmas, rho_cores, used_labels = [], [], []
+    baseline_rho_core, baseline_label = None, None
     for run_root, label in zip(args.runs, labels):
         run = RunPaths(run_root)
         snap = run.latest_snapshot()
-        info = SimulationInfo.from_snapshot(snap, name=label,
-                                            particle_type=args.ptype)
         prof = prepare_profile_data(snap, rcore=args.rcore)
         prof["label"] = label
         series.append(prof)
         print(f"[INFO] {label}: snap={snap.name} t={prof['time']:.3f} "
               f"sigma={prof['cross_section']:g} "
               f"rho_core(r<{args.rcore:g})={prof['rho_core']:.3e}")
-        if info.cross_section and info.cross_section > 0:
-            sigmas.append(info.cross_section)
+        cross_section = float(prof["cross_section"])
+        if cross_section > 0:
+            sigmas.append(cross_section)
             rho_cores.append(prof["rho_core"])
             used_labels.append(label)
+        elif cross_section == 0 and baseline_rho_core is None:
+            baseline_rho_core = prof["rho_core"]
+            baseline_label = label
 
     # Все compare-plots из реестра: profile compare (3) + delta-графики
     # (log_rho_compare, rot_curve_compare); core_density_vs_sigma — отдельно.
     profile_plot_names = [n for n in campaign_names
                           if n != "core_density_vs_sigma"]
-    jobs = {name: {"data": {"series": series}} for name in profile_plot_names}
+    plot_config = {}
+    if args.radial_range is not None:
+        rmin, rmax = map(float, args.radial_range)
+        if not (0.0 < rmin < rmax):
+            raise SystemExit("[FAIL] --radial-range must satisfy 0 < RMIN < RMAX")
+        plot_config["xlim"] = (rmin, rmax)
+    jobs = {
+        name: {"data": {"series": series}, "config": dict(plot_config)}
+        for name in profile_plot_names
+    }
     results = plotter.make_plots(jobs, output_dir=outdir)
 
     if "core_density_vs_sigma" in campaign_names:
         if len(sigmas) >= 2:
+            core_data = {"sigma": sigmas, "rho_core": rho_cores,
+                         "labels": used_labels}
+            if baseline_rho_core is not None:
+                core_data["baseline_rho_core"] = baseline_rho_core
+                core_data["baseline_label"] = baseline_label
             results["core_density_vs_sigma"] = plotter.make_plot(
-                "core_density_vs_sigma",
-                {"sigma": sigmas, "rho_core": rho_cores, "labels": used_labels},
-                output_dir=outdir)
+                "core_density_vs_sigma", core_data, output_dir=outdir)
         else:
             print("[WARN] core_density_vs_sigma skipped: нужно >=2 SIDM-прогонов "
                   "с sigma>0")

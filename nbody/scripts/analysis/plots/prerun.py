@@ -195,7 +195,7 @@ class ShapePanelPlot(BasePlot):
     default_config = {
         "title": "Shape series comparison",
         "dpi": 170,
-        "figsize": (8.5, 5.0),
+        "figsize": (11.5, 5.8),
         "filename": "shape_panel_{key}.png",
     }
 
@@ -233,12 +233,32 @@ class ShapePanelPlot(BasePlot):
             ax.set_title(title)
             ax.set_xlabel("Time [code units]")
             ax.set_ylabel(key)
+            thresholds = {
+                "ca_r5": (0.75, "provisional guide < 0.75"),
+                "z_rms_over_R_rms_r5": (0.55, "provisional guide < 0.55"),
+                "vrot_over_sigma_r5": (0.15, "provisional guide > 0.15"),
+            }
+            if key in thresholds:
+                threshold, note = thresholds[key]
+                ax.axhline(threshold, color="0.25", ls="--", lw=1.1)
+                ax.text(0.99, threshold, note, transform=ax.get_yaxis_transform(),
+                        ha="right", va="bottom", fontsize=7, color="0.25",
+                        bbox=dict(facecolor="white", alpha=0.75,
+                                  edgecolor="none", pad=1.5))
+                all_values = np.concatenate([
+                    np.asarray(s["value"], dtype=float) for s in panel["series"]])
+                finite = all_values[np.isfinite(all_values)]
+                default_top = 0.45 if key == "vrot_over_sigma_r5" else 1.05
+                ymax = max(default_top,
+                           float(np.max(finite)) * 1.05 if finite.size else 0.0)
+                ax.set_ylim(0.0, ymax)
             if key in {"ninteractions_total", "rho_core_r2"} and last_y is not None \
                     and any(_math.isfinite(v) and v > 0 for v in np.ravel(last_y)):
                 ax.set_yscale("log")
             ax.grid(True, alpha=0.3)
-            ax.legend(frameon=False, fontsize=8)
-            fig.tight_layout()
+            ax.legend(frameon=False, fontsize=7.5, loc="upper left",
+                      bbox_to_anchor=(1.02, 1.0), borderaxespad=0.0)
+            fig.subplots_adjust(left=0.11, right=0.73, top=0.90, bottom=0.12)
             fname = str(config.get("filename", "shape_panel_{key}.png")).format(key=key)
             paths.append(self.settings.save_figure(fig, fname, dpi=config.get("dpi")))
             plt.close(fig)

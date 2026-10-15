@@ -126,7 +126,7 @@ CAMPAIGNS — сравнение группы прогонов и диагнос
 
 | plot | что показывает | данные | вход | выходной файл |
 |---|---|---|---|---|
-| `core_density_vs_sigma` | rho_core vs sigma/m по прогонам (тренд «больше sigma — мягче ядро») | series | runs | `core_density_vs_sigma.png` |
+| `core_density_vs_sigma` | Относительное изменение rho_core к CDM при изменении sigma/m | series | runs | `core_density_vs_sigma.png` |
 | `criteria_time_panel` | Панель временных критериев disk-transition (dSIDM-серия) | load_metrics_series | runs | `diag_criteria_time_panel.png` |
 | `density_compare` | Сравнение rho(r) группы прогонов на одних осях | series | runs | `density_compare.png` |
 | `diag_eloss_vs_f` | Потери энергии vs фактор диссипации (dSIDM-серия) | load_metrics_series | runs | `diag_eloss_vs_f.png` |
@@ -145,7 +145,7 @@ CAMPAIGNS — сравнение группы прогонов и диагнос
 
 - **runner:** `runners/make_campaign_plots.py`
 - **inputs:** runs
-- **config keys:** dpi, figsize_key, marker, title, xlabel, xlim, xscale, ylabel, ylim, yscale
+- **config keys:** baseline_label, dpi, figsize_key, fractional_title, fractional_ylabel, marker, title, xlabel, xlim, xscale, ylabel, ylim, yscale
 
 ### `criteria_time_panel`
 
@@ -217,7 +217,7 @@ CAMPAIGNS — сравнение группы прогонов и диагнос
 
 - **runner:** `runners/make_campaign_morphology_plots.py`
 - **inputs:** runs
-- **config keys:** baseline_index, cmap, dpi, eps, lim, title, vmax
+- **config keys:** baseline_index, cmap, color_quantile, dpi, eps, lim, smooth_radius, title, vmax, vmax_cap, vmax_floor
 
 ### `visual_morphology_montage`
 

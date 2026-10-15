@@ -44,7 +44,9 @@ from analysis.loaders import (  # noqa: E402
     prepare_visual_snapshot,
     projection_histograms,
     radial_morphology_profiles,
+    resolve_metrics_path,
 )
+from analysis.labels import compact_run_label  # noqa: E402
 from analysis.paths import AnalysisPaths  # noqa: E402
 from analysis.plotter import NbodyPlotter  # noqa: E402
 from analysis.registry import find  # noqa: E402
@@ -74,11 +76,7 @@ PREFERRED_ORDER = [
 
 
 def short_label(name: str) -> str:
-    label = name.replace("_N1e5", "").replace("_T5", "").replace("_T2", "")
-    label = label.replace("dsidm", "dSIDM σ=").replace("sidm", "SIDM σ=").replace("cdm", "CDM")
-    label = label.replace("_f005", ", f=0.05").replace("_f01", ", f=0.10").replace("_f02", ", f=0.20")
-    label = label.replace("_k0", "")
-    return label
+    return compact_run_label(name)
 
 
 def discover_runs(group_root: Path, explicit: Optional[List[str]]) -> List[Path]:
@@ -90,8 +88,8 @@ def discover_runs(group_root: Path, explicit: Optional[List[str]]) -> List[Path]
     return sorted(runs, key=lambda p: (order.get(p.name, 999), p.name))
 
 
-def read_last_metrics(run: Path, metrics_rel: str) -> Optional[Dict[str, float]]:
-    path = run / metrics_rel
+def read_last_metrics(run: Path, metrics_rel: str) -> Optional[Dict[str, object]]:
+    path = resolve_metrics_path(run, metrics_rel)
     if not path.exists():
         return None
     with path.open(newline="") as f:
@@ -123,6 +121,7 @@ def read_last_metrics(run: Path, metrics_rel: str) -> Optional[Dict[str, float]]
         "ninteractions_final": flt("ninteractions_total", 0.0),
         "disk_score": disk_score,
         "time": flt("time"),
+        "metrics_source": str(path),
     }
 
 
@@ -151,31 +150,46 @@ def metric_from_profile(profile: Dict[str, object],
 
 
 def write_visual_summary(outdir: Path, rows: List[Dict[str, object]],
-                         made: List[Path], warnings: List[str]) -> Path:
+                         made: List[Path], warnings: List[str],
+                         nmax: Optional[int]) -> Path:
     path = outdir / "visual_summary.txt"
     lines = [
         "VISUAL MORPHOLOGY PACKAGE SUMMARY",
         f"Runs used: {len(rows)}",
         "",
         "Final/available metrics:",
-        "| run | time | c/a r<5 | z/R r<5 | |vrot|/sigma | NInteractions | disk_score |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| run | plot label | metrics source | time | c/a r<5 | z/R r<5 | "
+        "|vrot|/sigma | NInteractions | exploratory score (not classifier) |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|",
     ]
     for r in rows:
         lines.append(
-            f"| {r['label']} | {float(r['time']):.3f} | {float(r['ca_final']):.3f} | "
+            f"| {r['run']} | {r['label']} | {r['metrics_source']} | "
+            f"{float(r['time']):.3f} | {float(r['ca_final']):.3f} | "
             f"{float(r['thickness_final']):.3f} | {float(r['vrot_final']):.3f} | "
             f"{float(r['ninteractions_final']):.0f} | {float(r['disk_score']):.3f} |"
         )
+    sample_note = "all particles" if not nmax else f"random sample, nmax={nmax}"
     lines += ["", "Generated files:"]
     lines += [f"- {p.name} ({p.stat().st_size} bytes)" for p in made if p.exists()]
     if warnings:
         lines += ["", "Warnings/skips:"] + [f"- {w}" for w in warnings]
     lines += [
         "",
-        "Interpretation note: this package is visual/comparative. A dark-disk claim "
-        "requires thin edge-on morphology, low c/a and z/R, a coherent R-vphi branch, "
-        "and significant rotation support versus CDM/SIDM controls.",
+        f"Morphology maps and radial profiles use {sample_note} from the latest snapshot.",
+        "Dashboard metrics prefer the canonical metrics_series.csv resolved from "
+        "the run-local or analysis/prerun location; the source is reported per run. "
+        "If unavailable, they are recomputed from the plotted particle sample.",
+        "Radial-profile curves use the separate radial_morphology_profiles estimator; "
+        "do not read their vrot/sigma values as canonical series metrics. Use one "
+        "estimator consistently for numerical comparisons.",
+        "Surface-density residuals use 7x7-pixel box smoothing and a shared symmetric "
+        "99th-percentile scale (bounded to 0.05-1 dex); exact zero-residual controls "
+        "are omitted from that panel only.",
+        "The disk_score column is an exploratory rank, not a detector or acceptance test. "
+        "Reference cuts c/a<0.75, z/R<0.55, vrot/sigma>0.15 are provisional guides "
+        "and are not calibrated for this IC. A dark-disk claim also requires thin "
+        "edge-on morphology, a coherent R-vphi branch, and comparison with controls.",
     ]
     path.write_text("\n".join(lines) + "\n")
     return path
@@ -252,8 +266,13 @@ def main() -> int:
         rad = radial_morphology_profiles(visual, radii)
         rad["label"] = label
         prof["label"] = label
-        summary = (read_last_metrics(run, args.metrics_rel)
-                   or metric_from_profile(prof, visual))
+        summary = read_last_metrics(run, args.metrics_rel)
+        if summary is None:
+            summary = metric_from_profile(prof, visual)
+            summary["metrics_source"] = f"visual particle sample (n={len(visual['positions'])})"
+        else:
+            summary["metrics_source"] = f"canonical series: {summary['metrics_source']}"
+        summary["run"] = run.name
         summary["label"] = label
         labels.append(label)
         times.append(float(visual["time"]))
@@ -302,7 +321,8 @@ def main() -> int:
         raise SystemExit("[FAIL] не осталось plots после фильтра --plots")
     results = plotter.make_plots(jobs, output_dir=outdir)
     made = sorted({p for paths in results.values() for p in paths})
-    summary_path = write_visual_summary(outdir, summaries, made, warnings)
+    summary_path = write_visual_summary(outdir, summaries, made, warnings,
+                                        nmax=args.nmax)
     made.append(summary_path)
 
     print("=" * 72)

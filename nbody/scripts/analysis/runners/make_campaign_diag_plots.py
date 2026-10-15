@@ -42,6 +42,7 @@ from analysis.loaders import (  # noqa: E402
     load_metrics_series,
     prepare_visual_snapshot,
 )
+from analysis.labels import compact_run_label  # noqa: E402
 from analysis.paths import AnalysisPaths  # noqa: E402
 from analysis.plotter import NbodyPlotter  # noqa: E402
 from analysis.registry import find  # noqa: E402
@@ -103,6 +104,20 @@ def _pick_metric_key(data: Dict[str, np.ndarray], names: List[str]) -> Optional[
         if n in data:
             return n
     return None
+
+
+def _mark_partial_series(series: List[Dict[str, object]]) -> None:
+    ends = [float(np.nanmax(s["times"])) for s in series
+            if len(s["times"]) and np.isfinite(s["times"]).any()]
+    if not ends:
+        return
+    common_end = max(ends)
+    for s in series:
+        times = np.asarray(s["times"], dtype=float)
+        if times.size and np.isfinite(times).any():
+            end = float(np.nanmax(times))
+            if end < common_end - 1e-8:
+                s["label"] = f"{s['label']} · partial t={end:.2f}"
 
 
 def main() -> int:
@@ -178,7 +193,7 @@ def main() -> int:
                 continue
             f_set.append(d)
             measured.append(mv[1])
-            labels.append(run.name.replace("_N1e5_T2", ""))
+            labels.append(compact_run_label(run.name))
             print(f"[INFO] eloss {run.name}: D={d:.3f} dE/E={mv[1]:.4f}")
         if f_set:
             jobs["diag_eloss_vs_f"] = {
@@ -210,11 +225,17 @@ def main() -> int:
                 "ca": mdata[ca_k],
                 "thickness": mdata[th_k],
                 "vrot_over_sigma": mdata[vr_k],
-                "label": name.replace("_N1e5_T2", ""),
+                "label": compact_run_label(name),
             })
             print(f"[INFO] criteria {name}: {len(mdata['time'])} точек")
         if series:
-            jobs["criteria_time_panel"] = {"data": {"series": series}}
+            _mark_partial_series(series)
+            xmax = max(float(np.nanmax(s["times"])) for s in series
+                       if len(s["times"]) and np.isfinite(s["times"]).any())
+            jobs["criteria_time_panel"] = {
+                "data": {"series": series},
+                "config": {"xlim": (0.0, xmax)},
+            }
 
     # ---- 3) runaway_timestep_panel ----
     if args.runaway_runs and "runaway_timestep_panel" in wanted:
@@ -234,10 +255,11 @@ def main() -> int:
                 "times": mdata["time"],
                 "ninteractions": mdata[ni_k],
                 "dt_min": mdata[dt_k],
-                "label": name.replace("_N1e5_T2", ""),
+                "label": compact_run_label(name),
             })
             print(f"[INFO] runaway {name}: {len(mdata['time'])} точек")
         if series:
+            _mark_partial_series(series)
             jobs["runaway_timestep_panel"] = {"data": {"series": series}}
 
     if not jobs:

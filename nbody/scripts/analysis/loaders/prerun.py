@@ -1427,6 +1427,8 @@ def write_shape_text_report(summaries: List[ShapeSummary], path: Path,
 
 def prepare_shape_figure_data(runs: List[Path], metrics_rel: str) -> Dict[str, list]:
     """Данные 5 compare-панелей shape_compare для plots/prerun.py (shape_panel)."""
+    from analysis.labels import compact_run_label
+
     specs = [
         ("c/a r<5", "ca_r5"),
         ("z_rms/R_rms r<5", "z_rms_over_R_rms_r5"),
@@ -1434,13 +1436,20 @@ def prepare_shape_figure_data(runs: List[Path], metrics_rel: str) -> Dict[str, l
         ("NInteractions total", "ninteractions_total"),
         ("rho_core r<2", "rho_core_r2"),
     ]
+    run_rows = [(run, read_shape_metrics(resolve_metrics_path(run, metrics_rel)))
+                for run in runs]
+    final_times = [_sfloat(rows[-1], "time") for _, rows in run_rows]
+    common_end = max((t for t in final_times if math.isfinite(t)), default=math.nan)
     panels = []
     for title, key in specs:
         series = []
-        for run in runs:
-            rows = read_shape_metrics(resolve_metrics_path(run, metrics_rel))
+        for (run, rows), final_time in zip(run_rows, final_times):
+            label = compact_run_label(run.name)
+            if math.isfinite(common_end) and math.isfinite(final_time) \
+                    and final_time < common_end - 1e-8:
+                label += f" · partial t={final_time:.2f}"
             series.append({
-                "label": run.name.replace("_N1e5_T2", ""),
+                "label": label,
                 "time": np.asarray([_sfloat(r, "time") for r in rows]),
                 "value": np.asarray([_sfloat(r, key) for r in rows])})
         panels.append({"title": title, "key": key, "series": series})

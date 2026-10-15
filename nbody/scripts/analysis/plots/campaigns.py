@@ -369,21 +369,27 @@ class RotCurveComparePlot(_DeltaComparePlot):
 class CoreDensityVsSigmaPlot(BasePlot):
     name = "core_density_vs_sigma"
     block = "campaigns"
-    summary = "rho_core vs sigma/m по прогонам (тренд «больше sigma — мягче ядро»)"
+    summary = "Относительное изменение rho_core к CDM при изменении sigma/m"
     data_source = "series"
     inputs = ('runs',)
     description = (
-        "Core density (в фиксированном радиусе) как функция SIDM cross-section "
-        "по нескольким прогонам. Данные готовит compare_runs.py: sigma из "
-        "заголовков снапшотов, rho_core из prepare_profile_data()."
+        "Изменение core density относительно CDM в фиксированном радиусе как "
+        "функция SIDM cross-section. Если CDM reference не передан, показывает "
+        "абсолютную rho_core. Данные берет compare_runs.py из snapshot headers "
+        "и prepare_profile_data()."
     )
     data_contract = {
         "sigma": F(("S",)),
         "rho_core": F(("S",)),
         "labels": F(("S",), dtype="str", required=False),
+        "baseline_rho_core": F((), required=False),
+        "baseline_label": F((), dtype="str", required=False),
     }
     default_config = {
-        "title": "Core density vs SIDM cross-section",
+        "title": "Core-density change vs CDM",
+        "fractional_title": "T=1 core-density shift relative to CDM",
+        "fractional_ylabel": r"$\Delta\rho_{\rm core}/\rho_{\rm CDM}$ [%]",
+        "baseline_label": "CDM reference",
         "xlabel": r"$\sigma_{\rm SIDM}$ [cm$^2$/g]",
         "ylabel": r"$\rho_{\rm core}$",
         "xscale": "log",
@@ -401,21 +407,56 @@ class CoreDensityVsSigmaPlot(BasePlot):
 
         sigma = np.asarray(data["sigma"], dtype=float)
         rho_core = np.asarray(data["rho_core"], dtype=float)
-        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
-        ax.plot(sigma, rho_core, config["marker"],
-                color=self.settings.palette[0],
-                ms=self.settings.marker_size + 2,
-                lw=self.settings.line_width_main)
         labels = data.get("labels")
-        if labels is not None:
-            for x, y, lab in zip(sigma, rho_core, labels):
-                ax.annotate(str(lab), (x, y), textcoords="offset points",
-                            xytext=(6, 4), fontsize=self.settings.font_size)
+        baseline = data.get("baseline_rho_core")
+        fig, ax = plt.subplots(figsize=self.settings.figsize(config["figsize_key"]))
+        ylim = config.get("ylim")
+        if baseline is not None and float(baseline) > 0:
+            change_pct = 100.0 * (rho_core / float(baseline) - 1.0)
+            order = np.argsort(sigma)
+            ax.plot(sigma[order], change_pct[order], config["marker"],
+                    color=self.settings.palette[0],
+                    ms=self.settings.marker_size + 2,
+                    lw=self.settings.line_width_main)
+            ax.axhline(0.0, color="0.25", linestyle="--", linewidth=1.0)
+            for j, i in enumerate(order):
+                label = str(labels[i]) if labels is not None else f"sigma={sigma[i]:g}"
+                is_rightmost = j == len(order) - 1
+                ax.annotate(f"{label}\n{change_pct[i]:+.2f}%",
+                            (sigma[i], change_pct[i]), textcoords="offset points",
+                            xytext=(-8, 7) if is_rightmost else (8, 7),
+                            ha="right" if is_rightmost else "left",
+                            fontsize=self.settings.font_size - 1)
+            limit = max(1.0, float(np.nanmax(np.abs(change_pct))) * 1.35)
+            if ylim is None:
+                ylim = (-limit, limit)
+            title = config.get("fractional_title", config.get("title"))
+            ylabel = config.get("fractional_ylabel")
+            yscale = "linear"
+            baseline_label = data.get("baseline_label", "CDM reference")
+            ax.text(0.02, 0.98,
+                    f"Reference: {baseline_label}; rho_core={float(baseline):.4e}",
+                    transform=ax.transAxes, ha="left", va="top",
+                    fontsize=self.settings.font_size - 1)
+        else:
+            for i, (x, y) in enumerate(zip(sigma, rho_core)):
+                label = str(labels[i]) if labels is not None else f"run {i + 1}"
+                ax.plot([x], [y], config["marker"],
+                        color=self.settings.palette[i % len(self.settings.palette)],
+                        ms=self.settings.marker_size + 2,
+                        label=f"{label}: $\\rho$={y:.4e}")
+            if ylim is None and rho_core.size and np.all(rho_core > 0):
+                ylim = (float(np.min(rho_core)) * 0.5,
+                        float(np.max(rho_core)) * 2.0)
+            title = config.get("title")
+            ylabel = config.get("ylabel")
+            yscale = config.get("yscale")
+            if labels is not None:
+                ax.legend(frameon=False, loc="best", fontsize=self.settings.font_size - 1)
         self.settings.style_axis(
-            ax, title=config.get("title"), xlabel=config.get("xlabel"),
-            ylabel=config.get("ylabel"), xscale=config.get("xscale"),
-            yscale=config.get("yscale"), xlim=config.get("xlim"),
-            ylim=config.get("ylim"), grid=True)
+            ax, title=title, xlabel=config.get("xlabel"), ylabel=ylabel,
+            xscale=config.get("xscale"), yscale=yscale, xlim=config.get("xlim"),
+            ylim=ylim, grid=True)
         fig.tight_layout()
         path = self.settings.save_figure(fig, config["filename"],
                                          dpi=config.get("dpi"))
@@ -451,30 +492,63 @@ class VisualMorphologyMontagePlot(BasePlot):
         vmax = float(np.percentile(pos, 99.7)) if len(pos) else 1.0
         norm = LogNorm(vmin=vmin, vmax=max(vmax, vmin * 10.0))
         n = len(labels)
-        fig, axs = plt.subplots(n, 2, figsize=(8.8, max(2.0 * n, 3.2)), squeeze=False, constrained_layout=True)
+        fig, axs = plt.subplots(
+            n, 2, figsize=(7.5, max(2.45 * n + 1.0, 4.0)), squeeze=False)
+        fig.subplots_adjust(left=0.075, right=0.90, top=0.96, bottom=0.035,
+                            wspace=0.12, hspace=0.25)
         extent = [-config["lim"], config["lim"], -config["lim"], config["lim"]]
         last = None
         for i, label in enumerate(labels):
-            panels = [(face[i], "face-on  x-y", "y [kpc]"), (edge[i], "edge-on  x-z", "z [kpc]")]
-            for j, (img, subtitle, ylabel) in enumerate(panels):
+            for j, (img, ylabel) in enumerate(((face[i], "y [kpc]"),
+                                                (edge[i], "z [kpc]"))):
                 ax = axs[i, j]
-                last = ax.imshow(img, origin="lower", extent=extent, norm=norm, cmap=config["cmap"], interpolation="nearest", aspect="equal")
-                ax.set_xlabel("x [kpc]")
-                ax.set_ylabel(ylabel)
-                ax.set_title(subtitle if i == 0 else None)
-                ax.text(0.03, 0.94, label, transform=ax.transAxes, ha="left", va="top", color="white", fontsize=9, weight="bold", bbox=dict(facecolor="black", alpha=0.45, edgecolor="none", pad=2.5))
-                if np.isfinite(times[i]):
-                    ax.text(0.97, 0.05, f"t={times[i]:.2f}", transform=ax.transAxes, ha="right", va="bottom", color="white", fontsize=8, bbox=dict(facecolor="black", alpha=0.35, edgecolor="none", pad=2.0))
-                ax.tick_params(labelsize=8)
-        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+                last = ax.imshow(img, origin="lower", extent=extent, norm=norm,
+                                 cmap=config["cmap"], interpolation="nearest",
+                                 aspect="equal")
+                ax.set_ylabel(ylabel if j == 0 else "")
+                ax.set_xlabel("x [kpc]" if i == n - 1 else "")
+                if i == 0:
+                    ax.set_title("Face-on (x-y)" if j == 0 else "Edge-on (x-z)",
+                                 fontsize=10, pad=5)
+                if j == 0:
+                    ax.text(0.035, 0.94, label, transform=ax.transAxes,
+                            ha="left", va="top", color="white", fontsize=8,
+                            weight="bold", bbox=dict(facecolor="black", alpha=0.5,
+                            edgecolor="none", pad=2.2))
+                if j == 1 and np.isfinite(times[i]):
+                    ax.text(0.96, 0.05, f"t={times[i]:.2f}", transform=ax.transAxes,
+                            ha="right", va="bottom", color="white", fontsize=8,
+                            bbox=dict(facecolor="black", alpha=0.4,
+                            edgecolor="none", pad=2.0))
+                ax.set_xticks([-10, 0, 10])
+                ax.set_yticks([-10, 0, 10])
+                ax.tick_params(labelsize=7, pad=2,
+                               labelleft=(j == 0), labelbottom=(i == n - 1))
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold", y=0.995)
         if last is not None:
-            cbar = fig.colorbar(last, ax=axs.ravel().tolist(), shrink=0.86, pad=0.015)
-            cbar.set_label("projected mass per pixel")
+            cax = fig.add_axes([0.925, 0.12, 0.016, 0.76])
+            cbar = fig.colorbar(last, cax=cax)
+            cbar.set_label("projected mass per pixel", fontsize=9)
+            cbar.ax.tick_params(labelsize=8)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
 
 
+
+
+def _box_smooth2d(values: np.ndarray, radius: int) -> np.ndarray:
+    """Separable box smoothing without an extra SciPy dependency."""
+    arr = np.asarray(values, dtype=float)
+    if radius <= 0:
+        return arr
+    width = 2 * radius + 1
+    padded = np.pad(arr, ((radius, radius), (0, 0)), mode="edge")
+    cumulative = np.pad(np.cumsum(padded, axis=0), ((1, 0), (0, 0)))
+    vertical = (cumulative[width:] - cumulative[:-width]) / width
+    padded = np.pad(vertical, ((0, 0), (radius, radius)), mode="edge")
+    cumulative = np.pad(np.cumsum(padded, axis=1), ((0, 0), (1, 0)))
+    return (cumulative[:, width:] - cumulative[:, :-width]) / width
 
 
 @register
@@ -485,35 +559,90 @@ class SurfaceDensityResidualsPlot(BasePlot):
     summary = "Остатки поверхностной плотности vs CDM-база"
     data_source = "prepare_visual_snapshot"
     inputs = ('runs',)
-    description = "Residual maps log10 Sigma_model - log10 Sigma_baseline for face-on and edge-on projections."
+    description = "Box-smoothed log10 Sigma residuals for face-on and edge-on projections; identical zero-residual controls are omitted."
     data_contract = {"labels": F(("S",), dtype="str"), "faceon": F(("S", "B", "B")), "edgeon": F(("S", "B", "B"))}
-    default_config = {"title": "Surface-density residuals vs CDM", "baseline_index": 0, "lim": 12.0, "eps": 1e-12, "cmap": "RdBu_r", "vmax": 1.0, "dpi": 190, "filename": "02_surface_density_residual_vs_cdm_final.png"}
+    default_config = {"title": "Smoothed surface-density residuals vs CDM", "baseline_index": 0, "lim": 12.0, "eps": 1e-12, "smooth_radius": 3, "cmap": "RdBu_r", "vmax": None, "vmax_floor": 0.05, "vmax_cap": 1.0, "color_quantile": 99.0, "dpi": 190, "filename": "02_surface_density_residual_vs_cdm_final.png"}
 
     def render(self, data, config):
         labels = list(data["labels"])
         face = np.asarray(data["faceon"], dtype=float)
         edge = np.asarray(data["edgeon"], dtype=float)
         base = int(config.get("baseline_index", 0))
-        rows = [i for i in range(len(labels)) if i != base]
+        eps = float(config.get("eps", 1e-12))
+        radius = int(config.get("smooth_radius", 2))
+        base_face = _box_smooth2d(face[base], radius)
+        base_edge = _box_smooth2d(edge[base], radius)
+        residuals, omitted_identical = {}, []
+        for i in range(len(labels)):
+            if i == base:
+                continue
+            face_delta = np.log10(_box_smooth2d(face[i], radius) + eps) \
+                - np.log10(base_face + eps)
+            edge_delta = np.log10(_box_smooth2d(edge[i], radius) + eps) \
+                - np.log10(base_edge + eps)
+            if (np.nanmax(np.abs(face_delta)) <= 1e-12
+                    and np.nanmax(np.abs(edge_delta)) <= 1e-12):
+                omitted_identical.append(labels[i])
+            else:
+                residuals[i] = (face_delta, edge_delta)
+        rows = list(residuals)
         if not rows:
             rows = [base]
-        fig, axs = plt.subplots(len(rows), 2, figsize=(8.8, max(2.0 * len(rows), 3.0)), squeeze=False, constrained_layout=True)
+            residuals[base] = (np.zeros_like(base_face), np.zeros_like(base_edge))
+        all_abs = np.concatenate([np.abs(delta).ravel()
+                                  for pair in residuals.values() for delta in pair])
+        configured_vmax = config.get("vmax")
+        if configured_vmax is None:
+            finite_abs = all_abs[np.isfinite(all_abs)]
+            robust_vmax = (float(np.percentile(finite_abs,
+                                               float(config.get("color_quantile", 99.0))))
+                           if finite_abs.size else float(config["vmax_floor"]))
+            vmax = min(float(config["vmax_cap"]),
+                       max(float(config["vmax_floor"]), robust_vmax))
+        else:
+            vmax = float(configured_vmax)
+        nrows = len(rows)
+        fig, axs = plt.subplots(
+            nrows, 2, figsize=(7.5, max(2.45 * nrows + 1.0, 4.0)), squeeze=False)
+        fig.subplots_adjust(left=0.075, right=0.90, top=0.96,
+                            bottom=0.075 if omitted_identical else 0.035,
+                            wspace=0.12, hspace=0.25)
         extent = [-config["lim"], config["lim"], -config["lim"], config["lim"]]
-        norm = TwoSlopeNorm(vmin=-config["vmax"], vcenter=0.0, vmax=config["vmax"])
+        norm = TwoSlopeNorm(vmin=-vmax, vcenter=0.0, vmax=vmax)
         last = None
         for rr, i in enumerate(rows):
-            for j, (arr, brr, title, ylabel) in enumerate([(face[i], face[base], "face-on residual", "y [kpc]"), (edge[i], edge[base], "edge-on residual", "z [kpc]")]):
-                resid = np.log10(arr + config["eps"]) - np.log10(brr + config["eps"])
+            face_delta, edge_delta = residuals[i]
+            for j, (resid, ylabel) in enumerate(((face_delta, "y [kpc]"),
+                                                 (edge_delta, "z [kpc]"))):
                 ax = axs[rr, j]
-                last = ax.imshow(resid, origin="lower", extent=extent, norm=norm, cmap=config["cmap"], interpolation="nearest", aspect="equal")
-                ax.set_xlabel("x [kpc]"); ax.set_ylabel(ylabel)
-                ax.set_title(title if rr == 0 else None)
-                ax.text(0.03, 0.94, f"{labels[i]} − {labels[base]}", transform=ax.transAxes, ha="left", va="top", color="black", fontsize=9, weight="bold", bbox=dict(facecolor="white", alpha=0.65, edgecolor="none", pad=2.5))
-                ax.tick_params(labelsize=8)
-        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+                last = ax.imshow(resid, origin="lower", extent=extent, norm=norm,
+                                 cmap=config["cmap"], interpolation="nearest",
+                                 aspect="equal")
+                ax.set_ylabel(ylabel if j == 0 else "")
+                ax.set_xlabel("x [kpc]" if rr == nrows - 1 else "")
+                if rr == 0:
+                    ax.set_title("Face-on residual" if j == 0 else "Edge-on residual",
+                                 fontsize=10, pad=5)
+                if j == 0:
+                    ax.text(0.035, 0.94, f"{labels[i]} − {labels[base]}",
+                            transform=ax.transAxes, ha="left", va="top",
+                            color="black", fontsize=8, weight="bold",
+                            bbox=dict(facecolor="white", alpha=0.7,
+                                      edgecolor="none", pad=2.2))
+                ax.set_xticks([-10, 0, 10])
+                ax.set_yticks([-10, 0, 10])
+                ax.tick_params(labelsize=7, pad=2,
+                               labelleft=(j == 0), labelbottom=(rr == nrows - 1))
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold", y=0.995)
+        note = f"{2 * radius + 1}x{2 * radius + 1}-pixel box smoothing; shared color range ±{vmax:.2f} dex"
+        if omitted_identical:
+            note += "; omitted zero-residual controls: " + ", ".join(omitted_identical)
+        fig.text(0.5, 0.018, note, ha="center", va="bottom", fontsize=8, color="0.3")
         if last is not None:
-            cbar = fig.colorbar(last, ax=axs.ravel().tolist(), shrink=0.86, pad=0.015)
-            cbar.set_label(r"$\Delta \log_{10}\Sigma$")
+            cax = fig.add_axes([0.925, 0.12, 0.016, 0.76])
+            cbar = fig.colorbar(last, cax=cax)
+            cbar.set_label(r"smoothed $\Delta \log_{10}\Sigma$", fontsize=9)
+            cbar.ax.tick_params(labelsize=8)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
@@ -540,15 +669,21 @@ class MorphologyProfilesComparePlot(BasePlot):
             validate_fields(f"{self.name}.series[{i}]", s, {"label": F((), dtype="str"), "radii": F(("R",)), "ba": F(("R",)), "ca": F(("R",)), "thickness": F(("R",)), "vrot_over_sigma": F(("R",))})
 
     def render(self, data, config):
-        fig, axs = plt.subplots(2, 2, figsize=(9.6, 6.8), sharex=True, constrained_layout=True)
+        fig, axs = plt.subplots(2, 2, figsize=(10.5, 7.5), sharex=True)
         specs = [("ba", "b/a (<r)", (0.0, 1.08)), ("ca", "c/a (<r)", (0.0, 1.08)), ("thickness", r"$z_{rms}/R_{rms}$ (<r)", (0.0, 1.1)), ("vrot_over_sigma", r"$|\langle v_\phi\rangle|/\sigma_{3D}$ (<r)", (0.0, None))]
         for si, s in enumerate(data["series"]):
             color = self.settings.palette[si % len(self.settings.palette)]
             for ax, (key, ylabel, ylim) in zip(axs.ravel(), specs):
                 ax.plot(s["radii"], s[key], lw=1.8, color=color, label=s["label"])
-                self.settings.style_axis(ax, xlabel="r [kpc]", ylabel=ylabel, xscale="log", ylim=ylim, grid=True)
-        axs[0, 0].legend(frameon=False, fontsize=8)
+                self.settings.style_axis(ax, xlabel="r [kpc]", ylabel=ylabel,
+                                         xscale="log", ylim=ylim, grid=True)
+        handles, labels = axs[0, 0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.01),
+                   ncol=min(3, max(1, len(labels))), frameon=False, fontsize=8,
+                   columnspacing=1.0, handlelength=2.0)
         fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        fig.subplots_adjust(left=0.09, right=0.98, top=0.90, bottom=0.20,
+                            wspace=0.32, hspace=0.25)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
@@ -573,21 +708,30 @@ class PhaseSpaceComparePlot(BasePlot):
         phase = np.asarray(data["phase"], dtype=float)
         extent = tuple(np.asarray(data["extent"], dtype=float))
         n = len(labels); cols = min(3, n); rows = int(np.ceil(n / cols))
-        fig, axs = plt.subplots(rows, cols, figsize=(3.4 * cols, 2.8 * rows), squeeze=False, constrained_layout=True)
+        fig, axs = plt.subplots(rows, cols,
+                                figsize=(4.0 * cols + 1.0, 3.25 * rows),
+                                squeeze=False)
+        fig.subplots_adjust(left=0.075, right=0.90, top=0.93, bottom=0.07,
+                            wspace=0.25, hspace=0.30)
         vals = phase[np.isfinite(phase) & (phase > 0)]
         norm = LogNorm(vmin=max(np.percentile(vals, 1), config["floor"]) if len(vals) else config["floor"], vmax=np.percentile(vals, 99.7) if len(vals) else 1.0)
         last = None
         for i, ax in enumerate(axs.ravel()):
             if i >= n:
                 ax.axis("off"); continue
-            last = ax.imshow(phase[i], origin="lower", extent=extent, aspect="auto", norm=norm, cmap=config["cmap"], interpolation="nearest")
+            last = ax.imshow(phase[i], origin="lower", extent=extent, aspect="auto",
+                             norm=norm, cmap=config["cmap"], interpolation="nearest")
             ax.axhline(0.0, color="w", lw=0.8, ls=":", alpha=0.85)
-            ax.set_title(labels[i], fontsize=10, weight="bold")
-            ax.set_xlabel("R [kpc]"); ax.set_ylabel(r"$v_\phi$ [km/s]")
-        fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+            ax.set_title(labels[i], fontsize=9, weight="bold", pad=4)
+            ax.set_xlabel("R [kpc]", fontsize=9)
+            ax.set_ylabel(r"$v_\phi$ [km/s]", fontsize=9)
+            ax.tick_params(labelsize=8)
+        fig.suptitle(config.get("title"), fontsize=13, weight="bold", y=0.99)
         if last is not None:
-            cbar = fig.colorbar(last, ax=axs.ravel().tolist(), shrink=0.86, pad=0.015)
-            cbar.set_label("projected mass")
+            cax = fig.add_axes([0.925, 0.14, 0.016, 0.72])
+            cbar = fig.colorbar(last, cax=cax)
+            cbar.set_label("projected mass", fontsize=9)
+            cbar.ax.tick_params(labelsize=8)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
@@ -605,22 +749,38 @@ class DiskDashboardPlot(BasePlot):
     inputs = ('runs',)
     description = "Compact presentation dashboard combining final metric bars, morphology time-series and interaction/core evolution."
     data_contract = {"summary_labels": F(("S",), dtype="str"), "ca_final": F(("S",)), "thickness_final": F(("S",)), "vrot_final": F(("S",)), "ninteractions_final": F(("S",)), "disk_score": F(("S",)), "metric_series": F(("S",), dtype="any", required=False)}
-    default_config = {"title": "Dark-disk candidate dashboard", "dpi": 190, "filename": "05_disk_dashboard.png"}
+    default_config = {"title": "T=1 morphology and interaction diagnostics", "dpi": 190, "filename": "05_disk_dashboard.png"}
 
     def render(self, data, config):
         labels = [str(x) for x in data["summary_labels"]]
-        x = np.arange(len(labels))
-        fig, axs = plt.subplots(2, 2, figsize=(11.0, 6.8), constrained_layout=True)
-        bar_specs = [("ca_final", "final c/a r<5", (0, 1.05)), ("thickness_final", r"final $z_{rms}/R_{rms}$ r<5", (0, 1.05)), ("vrot_final", r"final $|vrot|/\sigma$ r<5", (0, None)), ("disk_score", "heuristic disk score", (0, None))]
-        for ax, (key, ylabel, ylim) in zip(axs.ravel(), bar_specs):
+        y = np.arange(len(labels))
+        fig, axs = plt.subplots(2, 2, figsize=(12.0, 8.0))
+        bar_specs = [("ca_final", "final c/a (r<5)", (0, 1.05)),
+                     ("thickness_final", r"final $z_{rms}/R_{rms}$ (r<5)", (0, 1.05)),
+                     ("vrot_final", r"final $|v_{rot}|/\sigma$ (r<5)", None),
+                     ("ninteractions_final", "total interactions by T=1", None)]
+        for ax, (key, xlabel, xlim) in zip(axs.ravel(), bar_specs):
             vals = np.asarray(data[key], dtype=float)
-            ax.bar(x, vals, color=[self.settings.palette[i % len(self.settings.palette)] for i in x], alpha=0.9)
-            ax.set_xticks(x); ax.set_xticklabels(labels, rotation=28, ha="right", fontsize=8)
-            self.settings.style_axis(ax, ylabel=ylabel, ylim=ylim, grid={"enabled": True, "axis": "y", "alpha": 0.25})
+            ax.barh(y, vals,
+                    color=[self.settings.palette[i % len(self.settings.palette)] for i in y],
+                    alpha=0.9, height=0.72)
+            ax.set_yticks(y)
+            ax.set_yticklabels(labels, fontsize=8)
+            ax.invert_yaxis()
+            if xlim is not None:
+                ax.set_xlim(*xlim)
+            self.settings.style_axis(ax, xlabel=xlabel,
+                                     grid={"enabled": True, "axis": "x", "alpha": 0.25})
             if key in {"ca_final", "thickness_final", "vrot_final"}:
-                ref = {"ca_final": 0.75, "thickness_final": 0.55, "vrot_final": 0.15}[key]
-                ax.axhline(ref, color="0.25", lw=0.9, ls=":")
+                ref = {"ca_final": 0.75, "thickness_final": 0.55,
+                       "vrot_final": 0.15}[key]
+                ax.axvline(ref, color="0.25", lw=0.9, ls=":")
         fig.suptitle(config.get("title"), fontsize=13, weight="bold")
+        fig.text(0.5, 0.025,
+                 "Dotted cuts are provisional guides, not calibrated for this IC or a disk classification.",
+                 ha="center", va="bottom", fontsize=8, color="0.3")
+        fig.subplots_adjust(left=0.16, right=0.98, top=0.91, bottom=0.13,
+                            wspace=0.35, hspace=0.35)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
@@ -753,9 +913,9 @@ class CriteriaTimePanelPlot(BasePlot):
         "ylim_ca": (0.70, 1.00),
         "ylim_thickness": (0.40, 0.80),
         "ylim_vrot": (0.0, 0.45),
-        "xlim": (0.0, 2.0),
-        "figsize": (8.2, 9.0),
-        "legend_font_size": None,
+        "xlim": None,
+        "figsize": (11.2, 9.0),
+        "legend_font_size": 7.5,
         "dpi": 200,
         "filename": "diag_criteria_time_panel.png",
     }
@@ -779,20 +939,25 @@ class CriteriaTimePanelPlot(BasePlot):
                         np.asarray(s[key], dtype=float),
                         color=color, lw=2.2, label=s.get("label"))
             ax.axhline(thr, ls="--", lw=1.4, color="0.35", zorder=2)
+            ax.text(0.99, thr, f"provisional guide: {thr:g}",
+                    transform=ax.get_yaxis_transform(), ha="right", va="bottom",
+                    fontsize=7, color="0.25",
+                    bbox=dict(facecolor="white", alpha=0.75,
+                              edgecolor="none", pad=1.5))
             self.settings.style_axis(ax, ylabel=ylab, xlim=config.get("xlim"),
                                      ylim=ylim, grid=True)
         axs[-1].set_xlabel(config["xlabel"])
 
         handles, labels = axs[0].get_legend_handles_labels()
         fs = config.get("legend_font_size") or self.settings.legend_font_size
-        # Легенда в свободной верхней зоне нижней панели (|Vrot|/sigma мал).
-        fig.legend(handles, labels, loc="upper right",
-                   bbox_to_anchor=(0.995, 0.335), fontsize=fs,
-                   frameon=True, framealpha=0.92, borderaxespad=0.4)
+        fig.legend(handles, labels, loc="center left",
+                   bbox_to_anchor=(0.76, 0.5), fontsize=fs,
+                   frameon=False, borderaxespad=0.0)
         if config.get("title"):
             fig.suptitle(config["title"], fontsize=self.settings.title_size,
                          weight="bold")
-        fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.99))
+        fig.subplots_adjust(left=0.12, right=0.74, bottom=0.08, top=0.92,
+                            hspace=0.08)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
@@ -836,7 +1001,7 @@ class RunawayTimestepPanelPlot(BasePlot):
         "ni_yscale": "log",
         "dt_yscale": "log",
         "xlim": None,
-        "figsize": (8.6, 7.2),
+        "figsize": (11.2, 7.2),
         "dpi": 200,
         "filename": "diag_runaway_timestep_panel.png",
     }
@@ -879,9 +1044,10 @@ class RunawayTimestepPanelPlot(BasePlot):
                 ax.set_xlim(*config["xlim"])
         if handles:
             fig.legend(handles, [h.get_label() for h in handles],
-                       loc="upper right", fontsize=self.settings.legend_font_size,
-                       frameon=True, framealpha=0.92)
-        fig.tight_layout()
+                       loc="center left", bbox_to_anchor=(0.76, 0.5),
+                       fontsize=7.5, frameon=False)
+        fig.subplots_adjust(left=0.12, right=0.74, bottom=0.10, top=0.92,
+                            hspace=0.08)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
         return path
