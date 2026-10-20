@@ -9,8 +9,8 @@ metadata:
 
 ## Preamble
 
-1. Read `.clinerules/00-entrypoint.md` if present.
-2. Read `llm/rules/` and `llm/memory-bank/` for current project state.
+1. Read `AGENTS.md` and the four `llm/` contract/state files from bootstrap.
+2. Read only run-specific canonical evidence needed for this check; do not recursively load llm or auto-load session/completed-plan history. Important durable records only under the PROJECT gate; never journal routine monitoring.
 3. Communicate with the user in Russian.
 
 ## Purpose

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Gizmo Sim"
+  short_description: "Run, debug, or plan GIZMO CDM/SIDM simulations and GalIC ICs"
+  default_prompt: "Use $gizmo-sim to run or debug a controlled CDM/SIDM simulation in this repo."
+policy:
+  allow_implicit_invocation: false

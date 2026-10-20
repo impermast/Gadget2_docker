@@ -9,8 +9,8 @@ metadata:
 
 ## Preamble (always do first)
 
-1. Read `.clinerules/00-entrypoint.md`.
-2. Read every file in `llm/rules/` and `llm/memory-bank/`.
+1. Read `AGENTS.md` and the four `llm/` contract/state files from bootstrap.
+2. Load only required canonical evidence and this skill; do not recursively load llm, sessions, or completed plans. `llm/records/` is important durable knowledge, not a journal; default to no new record and follow the PROJECT gate.
 3. Communicate with the user in Russian.
 
 ## Canonical tools
@@ -76,7 +76,7 @@ Protocol:
 1. Prepare or reuse a JSON config for `generate_ics.sh`.
 2. Run: `bash /nbody/scripts/generate_ics.sh --config <path/to/config.json>`.
 3. Verify output `nbody/ics/<run_name>/<run_name>.hdf5` exists (presence only, never open it).
-4. Record the generated IC path in `llm/memory-bank/experimentLog.md`.
+4. Record the generated IC path in the canonical run/IC manifest; update ACTIVE only if the checkpoint changes. No routine llm record.
 5. Optionally continue to Mode: run with `--ic-file` pointing at the new IC.
 
 JSON config format:
@@ -132,11 +132,11 @@ Steps:
 6. Validate: read `run_dir/experiment.md` (full config + log) and `run_dir/snapshot_check.txt`. Check exit status and that snapshot files exist (names/sizes only, never open contents).
 7. Telegram notifications are AUTOMATIC: `run_sim.sh` sends START/FINISH/ERROR to Telegram by default when `/nbody/tg/telegram.conf` exists — the agent must not pass any TG flags or send messages itself (opt-out only via `--no-tg`; periodic progress via `--tg-progress` or `--tg-interval <n>`).
 8. Optionally visualize through `make-plots`; the canonical runner writes to `/nbody/analysis/core/<run>/`, not the run's legacy `plots/` directory.
-9. Append a concise `experiment.md` summary to `llm/memory-bank/experimentLog.md`.
+9. Preserve the canonical `experiment.md` with run evidence; update PLAN/ACTIVE when obligations or checkpoint change. Create/update `llm/records/` only if the PROJECT important-knowledge gate is satisfied.
 
 What `run_sim.sh` does internally (for reference): creates `nbody/runs/<name>/` with `configs/` and `output/`; copies template `.param` and `Config.sh` from `nbody/gizmo_test/`; patches only `InitCondFile`, `OutputDir`, `TimeMax`, `TimeBetSnapshot`, `SigmaSIDM`; preflight checks (IC exists, output dir free, binary ready, deps available); rebuilds GIZMO only if `Config.sh` changed (md5 check); runs `mpirun` with `tee run.log`; validates the last snapshot via `check_snapshot.py`; writes `experiment.md`. Plot outputs are routed separately to `nbody/analysis/` by analysis runners.
 
-Report in Russian: interpreted parameters; exact command; run status; output paths (run dir, log, snapshots); snapshot check summary; memory-bank update status.
+Report in Russian: interpreted parameters; exact command; run status; output paths (run dir, log, snapshots); snapshot check summary; PLAN/ACTIVE checkpoint update status (no routine records).
 
 ## Hard safety rules (all modes)
 

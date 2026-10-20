@@ -123,16 +123,16 @@ telegram.conf
 .tgbot_state.json
 *.log
 
-# LLM infrastructure
-# NOTE (git policy): llm/ is TRACKED on the agent/dev branch so that the bot's
-# working process is version-controlled. It must NOT be tracked on master.
-# After merging agent/dev into master, untrack it again per the documented
-# merge procedure in llm/rules/02-workflow.md.
+# Private Pi/bili transcripts can contain prompts, tool output, and sensitive data.
+# Keep sessions local even when the rest of llm/ is tracked on this branch.
+llm/sessions/
+
 
 # Misc
 GEMINI.md
 .clineignore
-.clinerules/
+.clinerules/*
+!.clinerules/00-entrypoint.md
 # Cline workspace state (if any) stays ignored; project skills ARE tracked here
 .cline/*
 !.cline/skills

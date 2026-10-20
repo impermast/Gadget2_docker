@@ -1,0 +1,7 @@
+{
+  "$schema": "https://pi.dev/schemas/settings.schema.json",
+  "sessionDir": "llm/sessions",
+  "packages": [
+    "/home/kds/progs/harness/workspaces/billion-context-pi"
+  ]
+}
