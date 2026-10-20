@@ -46,9 +46,9 @@ GIZMO_SRC="/opt/gizmo-public"
 GIZMO_BIN="${GIZMO_SRC}/GIZMO"
 TEMPLATE_DIR="/nbody/gizmo_test"
 BASE_DIR="/nbody/runs"
-# experimentLog.md лежит на хосте вне точки монтирования /nbody.
-# Внутри контейнера записываем лог в директорию прогона.
-# На хосте можно вручную объединить: cat ${RUN_DIR}/experiment.md >> llm/memory-bank/experimentLog.md
+# experiment.md/run.state in each run directory are canonical run evidence.
+# Update project memory selectively; never append routine logs to llm/records/.
+# See llm/PROJECT.md for the important-knowledge-only records gate.
 EXPERIMENT_LOG=""
 
 # ======== Парсинг аргументов ========
@@ -411,7 +411,7 @@ start_watcher() {
         # Telegram: прогресс по расписанию
         if [[ "$TG_FLAG" -eq 1 && "$TG_SKIP_PROGRESS" -eq 0 ]]; then
             tg_cycle=$((tg_cycle + 1))
-            if [[ $((tg_cycle * 60)) -ge $((TG_INTERVAL * 60)) ]] || [[ "$tg_cycle" -eq 1 ]]; then
+            if [[ "$tg_cycle" -ge "$TG_INTERVAL" ]]; then
                 tg_cycle=0
                 python3 "$TG_SCRIPT" --event progress --state "$state_file" 2>/dev/null || true
             fi

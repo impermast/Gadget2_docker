@@ -28,6 +28,18 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("tg_event")
+PROGRESS_MIN_INTERVAL_SECONDS = 30 * 60
+
+
+def progress_cooldown_remaining(state_path: str, now: Optional[float] = None) -> float:
+    """Return seconds until the next progress message is allowed for this run."""
+    marker = Path(state_path).with_name(".tg_progress_last_sent")
+    try:
+        last_sent = float(marker.read_text().strip())
+    except (OSError, ValueError):
+        return 0.0
+    current_time = time.time() if now is None else now
+    return max(0.0, PROGRESS_MIN_INTERVAL_SECONDS - (current_time - last_sent))
 
 
 class StateAdapter:
@@ -188,6 +200,11 @@ def send_progress(tg: TgNotify, args) -> bool:
         logger.warning("State-файл не указан или не существует: %s", args.state)
         return False
 
+    remaining = progress_cooldown_remaining(args.state)
+    if remaining > 0:
+        logger.info("PROGRESS для этого прогона отложен ещё на %.0f с", remaining)
+        return True
+
     msg = build_progress_message(args.state)
     if not msg:
         logger.warning("Не удалось сформировать сообщение прогресса (state пуст?)")
@@ -195,6 +212,11 @@ def send_progress(tg: TgNotify, args) -> bool:
 
     try:
         tg.send_message(msg, parse_mode=None)
+        marker = Path(args.state).with_name(".tg_progress_last_sent")
+        try:
+            marker.write_text(f"{time.time():.6f}\n")
+        except OSError as e:
+            logger.warning("Не удалось сохранить cooldown Telegram: %s", e)
         name = args.name or os.path.basename(os.path.dirname(args.state))
         logger.info("Отправлено уведомление PROGRESS для %s", name)
         return True
