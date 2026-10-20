@@ -133,7 +133,7 @@ class SeriesEvolutionPlot(BasePlot):
         "ninteractions_total": F(("T",)),
     }
     default_config = {
-        "title": "Partial series evolution",
+        "title": "Run-series evolution",
         "dpi": 150,
         "figsize": (12, 9),
         "filename": "series_evolution.png",
@@ -161,9 +161,16 @@ class SeriesEvolutionPlot(BasePlot):
                               label="mean|vphi| r<5")
         axes[2].set_ylabel("mean|vphi|")
         ax2 = axes[2].twinx()
-        (ln2,) = ax2.plot(t, ni, marker="s", lw=1.2, ms=4, color="tab:red",
-                          label="NInteractions total")
-        ax2.set_yscale("log")
+        positive_ni = np.isfinite(ni) & (ni > 0)
+        if positive_ni.any():
+            (ln2,) = ax2.plot(t[positive_ni], ni[positive_ni], marker="s",
+                              lw=1.2, ms=4, color="tab:red",
+                              label="NInteractions total")
+            ax2.set_yscale("log")
+        else:
+            ax2.set_ylim(0, 1)
+            (ln2,) = ax2.plot([], [], marker="s", lw=1.2, ms=4,
+                              color="tab:red", label="NInteractions total = 0")
         ax2.set_ylabel("NInteractions")
         axes[2].set_xlabel("Time [code units]")
         axes[2].grid(True, alpha=0.3)

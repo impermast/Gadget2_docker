@@ -41,6 +41,7 @@ from analysis.loaders import (  # noqa: E402
     interacted_kinetic_energy,
     load_metrics_series,
     prepare_visual_snapshot,
+    resolve_metrics_path,
 )
 from analysis.labels import compact_run_label  # noqa: E402
 from analysis.paths import AnalysisPaths  # noqa: E402
@@ -87,7 +88,7 @@ def _kinetic_loss(run: Path, baseline_k: Optional[float], ptype: int) -> Optiona
 
 
 def _find_metrics(run: Path, metrics_rel: str) -> Optional[Dict[str, np.ndarray]]:
-    path = run / metrics_rel
+    path = resolve_metrics_path(run, metrics_rel)
     if not path.exists():
         return None
     try:

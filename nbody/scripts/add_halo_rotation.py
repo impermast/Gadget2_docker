@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-add_halo_rotation.py — наложить азимутальный поток (net rotation) на
-существующий DM-only IC.
+LEGACY/DEPRECATED: add a prescribed azimuthal velocity to a DM-only IC.
 
-Механика: для каждой частицы v_phi_target = k * v_circ(r), к текущей
-скорости добавляется приращение (v_phi_target - v_phi_current) в плоскости
-xy — случайные скорости сохраняются, добавляется чистый поток вокруг оси z.
-v_circ(r) берётся из rotcurve.txt (GalIC) или вычисляется из M(<r) частиц.
+Do not use for new ICs: this historical implementation has a v_phi sign
+mismatch and clamps rotcurve interpolation outside its tabulated range. The
+replacement for controlled rotating spherical halos is halo_spin_bias.py,
+which flips selected retrograde v_phi values and targets measured Bullock
+lambda-prime. This file is retained only for provenance/reproduction of old ICs.
 
 Использование:
     python3 add_halo_rotation.py --ic in.hdf5 --output out.hdf5 --k 0.5 \
@@ -40,6 +40,8 @@ def vcirc_interp(r_query, r_s, m_cum):
 
 
 def main():
+    print("[DEPRECATED] Known v_phi sign mismatch and rotcurve edge clamping; "
+          "do not use for new ICs. See halo_spin_bias.py.", file=sys.stderr)
     ap = argparse.ArgumentParser()
     ap.add_argument("--ic", required=True)
     ap.add_argument("--output", required=True)

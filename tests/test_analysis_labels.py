@@ -13,6 +13,7 @@ def test_compact_run_labels_keep_model_and_parameters():
     assert compact_run_label("20261012_cdm_rotN1e6_T1") == "CDM (12 Oct)"
     assert compact_run_label("20261012_sidm_s2p5_rotN1e6_T1") == "SIDM σ=2.5 (elastic)"
     assert compact_run_label("20261014_dsidm_s0p5_fdiss0p1_rotN1e6_T1") == "dSIDM σ=0.5, f=0.1"
+    assert compact_run_label("20261015_dsidm_s0p5_f0p1_rotN1e6_T3_mpi10") == "dSIDM σ=0.5, f=0.1"
     assert compact_run_label("20261013_sidm_s1_fdiss0p5_rotN1e6_T1") == "SIDM σ=1, diss=0.5"
 
 

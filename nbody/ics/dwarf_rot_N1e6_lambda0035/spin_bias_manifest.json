@@ -1,0 +1,59 @@
+{
+  "run_name": "dwarf_rot_N1e6_lambda0035",
+  "output_ic": "nbody/ics/dwarf_rot_N1e6_lambda0035/dwarf_rot_N1e6_lambda0035.hdf5",
+  "source_ic": "nbody/ics/dwarf_N1e6/dwarf_N1e6.hdf5",
+  "source_sha256": "c016e820b1fc8492556e0d3eb5302f0a614a21315fe25a1be75f741b33d7027f",
+  "output_sha256": "308599c843f887a574b5c0773591d906d6c80c4c15da4bec85fb9489d84b1c0a",
+  "source_galic_model": {
+    "profile": "NFW-fit halo",
+    "particle_count": 1000000,
+    "particle_type": 3,
+    "concentration": 15,
+    "V200_km_s": 30,
+    "halo_velocity_structure": 0,
+    "total_mass_code_units_1e10_Msun": 0.6276338808675064,
+    "particle_mass_code_units_1e10_Msun": 6.276337671806687e-7,
+    "NFW_fit_scale_radius_kpc": 1.4415040054184698
+  },
+  "rotation": {
+    "method": "retrograde_vphi_sign_flip_v1",
+    "axis": "+z",
+    "random_seed": 12345,
+    "target_bullock_lambda_prime": 0.035,
+    "measured_initial_bullock_lambda_prime": 0.00011185979014047682,
+    "measured_final_bullock_lambda_prime": 0.03501866777819749,
+    "target_vector_error_lambda": 0.00011679100169690625,
+    "flip_candidates_all_halo": 499505,
+    "particles_flipped_all_halo": 192158,
+    "particles_flipped_currently_inside_R200": 148271,
+    "particles_flipped_currently_outside_R200": 43887
+  },
+  "aperture": {
+    "definition": "spherical-overdensity 200 times critical density",
+    "H0_km_s_kpc": 0.1,
+    "R200_kpc": 27.5151507788026,
+    "M200_code_units_1e10_Msun": 0.4843676606851659,
+    "V200_km_s": 27.51513832932376,
+    "note": "H0=0.1 is the project working convention; the snapshot's nominal GalIC V200=30/R200=30 convention is retained as source provenance. Keep this aperture convention explicit in later comparisons."
+  },
+  "validation": {
+    "positions_bitwise_unchanged": true,
+    "masses_bitwise_unchanged": true,
+    "particle_ids_bitwise_unchanged": true,
+    "particle_ids_unique": true,
+    "particle_count_unchanged": true,
+    "all_coordinates_velocities_and_masses_finite": true,
+    "all_particle_masses_positive": true,
+    "header_particle_count_is_1000000_in_parttype3": true,
+    "rotated_particle_velocity_change_is_azimuthal_up_to_float32_roundoff": true,
+    "source_file_modified": false,
+    "gizmo_run_started": false
+  },
+  "provenance": {
+    "generator": "nbody/scripts/halo_spin_bias.py",
+    "units": "kpc, km/s, 1e10 Msun",
+    "G_code": 43007.1,
+    "lambda_tolerance": 0.0005,
+    "method_note": "Seeded random subset of all retrograde particles across the halo; selection is not cut at the current R200. Only v_phi is reversed, preserving positions, masses, particle IDs, and particle speed before file-storage roundoff."
+  }
+}

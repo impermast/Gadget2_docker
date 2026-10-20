@@ -309,7 +309,7 @@ class LogRhoComparePlot(_DeltaComparePlot):
                       "label": F((), dtype="str", required=False)}
     data_contract = _series_list_contract()
     default_config = {
-        "title": "Log density profiles: CDM vs SIDM",
+        "title": "Density profiles and residuals relative to CDM",
         "top_ylabel": r"$\rho(r)$",
         "diff_ylabel": r"$\Delta\log_{10}\rho$ vs CDM",
         "xlabel": "r [kpc]",
@@ -346,7 +346,7 @@ class RotCurveComparePlot(_DeltaComparePlot):
                       "label": F((), dtype="str", required=False)}
     data_contract = _series_list_contract()
     default_config = {
-        "title": "Rotation curves: CDM vs SIDM",
+        "title": "Circular-speed profiles and residuals relative to CDM",
         "top_ylabel": r"$v_{\rm circ}(r)$ [km/s]",
         "diff_ylabel": r"$\Delta v_{\rm circ}$ [km/s]",
         "xlabel": "r [kpc]",
@@ -604,8 +604,8 @@ class SurfaceDensityResidualsPlot(BasePlot):
         nrows = len(rows)
         fig, axs = plt.subplots(
             nrows, 2, figsize=(7.5, max(2.45 * nrows + 1.0, 4.0)), squeeze=False)
-        fig.subplots_adjust(left=0.075, right=0.90, top=0.96,
-                            bottom=0.075 if omitted_identical else 0.035,
+        fig.subplots_adjust(left=0.075, right=0.90, top=0.88,
+                            bottom=0.08 if omitted_identical else 0.07,
                             wspace=0.12, hspace=0.25)
         extent = [-config["lim"], config["lim"], -config["lim"], config["lim"]]
         norm = TwoSlopeNorm(vmin=-vmax, vcenter=0.0, vmax=vmax)
@@ -634,14 +634,12 @@ class SurfaceDensityResidualsPlot(BasePlot):
                 ax.tick_params(labelsize=7, pad=2,
                                labelleft=(j == 0), labelbottom=(rr == nrows - 1))
         fig.suptitle(config.get("title"), fontsize=13, weight="bold", y=0.995)
-        note = f"{2 * radius + 1}x{2 * radius + 1}-pixel box smoothing; shared color range ±{vmax:.2f} dex"
-        if omitted_identical:
-            note += "; omitted zero-residual controls: " + ", ".join(omitted_identical)
-        fig.text(0.5, 0.018, note, ha="center", va="bottom", fontsize=8, color="0.3")
         if last is not None:
             cax = fig.add_axes([0.925, 0.12, 0.016, 0.76])
             cbar = fig.colorbar(last, cax=cax)
-            cbar.set_label(r"smoothed $\Delta \log_{10}\Sigma$", fontsize=9)
+            cbar.set_label(
+                rf"{2 * radius + 1}×{2 * radius + 1}-px smoothed "
+                r"$\Delta \log_{10}\Sigma$", fontsize=9)
             cbar.ax.tick_params(labelsize=8)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
@@ -711,7 +709,7 @@ class PhaseSpaceComparePlot(BasePlot):
         fig, axs = plt.subplots(rows, cols,
                                 figsize=(4.0 * cols + 1.0, 3.25 * rows),
                                 squeeze=False)
-        fig.subplots_adjust(left=0.075, right=0.90, top=0.93, bottom=0.07,
+        fig.subplots_adjust(left=0.075, right=0.90, top=0.88, bottom=0.07,
                             wspace=0.25, hspace=0.30)
         vals = phase[np.isfinite(phase) & (phase > 0)]
         norm = LogNorm(vmin=max(np.percentile(vals, 1), config["floor"]) if len(vals) else config["floor"], vmax=np.percentile(vals, 99.7) if len(vals) else 1.0)
@@ -749,7 +747,7 @@ class DiskDashboardPlot(BasePlot):
     inputs = ('runs',)
     description = "Compact presentation dashboard combining final metric bars, morphology time-series and interaction/core evolution."
     data_contract = {"summary_labels": F(("S",), dtype="str"), "ca_final": F(("S",)), "thickness_final": F(("S",)), "vrot_final": F(("S",)), "ninteractions_final": F(("S",)), "disk_score": F(("S",)), "metric_series": F(("S",), dtype="any", required=False)}
-    default_config = {"title": "T=1 morphology and interaction diagnostics", "dpi": 190, "filename": "05_disk_dashboard.png"}
+    default_config = {"title": "Final-snapshot morphology and interaction diagnostics", "dpi": 190, "filename": "05_disk_dashboard.png"}
 
     def render(self, data, config):
         labels = [str(x) for x in data["summary_labels"]]
@@ -758,7 +756,7 @@ class DiskDashboardPlot(BasePlot):
         bar_specs = [("ca_final", "final c/a (r<5)", (0, 1.05)),
                      ("thickness_final", r"final $z_{rms}/R_{rms}$ (r<5)", (0, 1.05)),
                      ("vrot_final", r"final $|v_{rot}|/\sigma$ (r<5)", None),
-                     ("ninteractions_final", "total interactions by T=1", None)]
+                     ("ninteractions_final", "cumulative interactions (final snapshot)", None)]
         for ax, (key, xlabel, xlim) in zip(axs.ravel(), bar_specs):
             vals = np.asarray(data[key], dtype=float)
             ax.barh(y, vals,
@@ -902,7 +900,7 @@ class CriteriaTimePanelPlot(BasePlot):
         _validate_series_list(self.name, data, self.inner_contract)
 
     default_config = {
-        "title": None,
+        "title": "Morphology criteria over time (exploratory)",
         "xlabel": "t [code time]",
         "threshold_ca": 0.75,
         "threshold_thickness": 0.55,
@@ -956,7 +954,7 @@ class CriteriaTimePanelPlot(BasePlot):
         if config.get("title"):
             fig.suptitle(config["title"], fontsize=self.settings.title_size,
                          weight="bold")
-        fig.subplots_adjust(left=0.12, right=0.74, bottom=0.08, top=0.92,
+        fig.subplots_adjust(left=0.12, right=0.74, bottom=0.08, top=0.88,
                             hspace=0.08)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)
@@ -994,7 +992,7 @@ class RunawayTimestepPanelPlot(BasePlot):
         _validate_series_list(self.name, data, self.inner_contract)
 
     default_config = {
-        "title": None,
+        "title": "Interaction rate and timestep over time",
         "xlabel": "t [code time]",
         "ni_ylabel": "interactions / snapshot",
         "dt_ylabel": r"$\min dt$ [code t]",
@@ -1018,17 +1016,25 @@ class RunawayTimestepPanelPlot(BasePlot):
             color = s.get("color") or self.settings.palette[i % len(self.settings.palette)]
             label = s.get("label")
 
-            # rate per snapshot: diff of cumulative; fallback cumulative
+            # Rate per snapshot: diff of cumulative; exclude zero-duration
+            # duplicate terminal samples from the per-snapshot series.
             rate = np.diff(ni)
+            delta_t = np.diff(times)
             mid_t = 0.5 * (times[1:] + times[:-1]) if len(times) > 1 else times
-            ok = np.isfinite(rate) & (rate > 0)
+            ok = (np.isfinite(rate) & (rate > 0) & np.isfinite(delta_t)
+                  & (delta_t > 1e-8))
+            has_cumulative = np.isfinite(ni) & (ni > 0)
             if ok.any():
                 ln, = ax_ni.plot(mid_t[ok], rate[ok], color=color, lw=2.2,
                                  label=label)
-                handles.append(ln)
-            else:
+            elif has_cumulative.any():
                 ln, = ax_ni.plot(times, ni, color=color, lw=2.2, label=label)
-                handles.append(ln)
+            else:
+                # A zero-interaction control has no visible trace on a log axis;
+                # retain it in the legend instead of implying data are missing.
+                ln, = ax_ni.plot([], [], color=color, lw=2.2,
+                                 label=f"{label} (no interactions)")
+            handles.append(ln)
 
             okdt = np.isfinite(dt) & (dt > 0)
             ax_dt.plot(times[okdt], dt[okdt], color=color, lw=2.2,
@@ -1046,7 +1052,10 @@ class RunawayTimestepPanelPlot(BasePlot):
             fig.legend(handles, [h.get_label() for h in handles],
                        loc="center left", bbox_to_anchor=(0.76, 0.5),
                        fontsize=7.5, frameon=False)
-        fig.subplots_adjust(left=0.12, right=0.74, bottom=0.10, top=0.92,
+        if config.get("title"):
+            fig.suptitle(config["title"], fontsize=self.settings.title_size,
+                         weight="bold")
+        fig.subplots_adjust(left=0.12, right=0.74, bottom=0.10, top=0.88,
                             hspace=0.08)
         path = self.settings.save_figure(fig, config["filename"], dpi=config.get("dpi"))
         plt.close(fig)

@@ -6,6 +6,7 @@ import pytest
 pytestmark = pytest.mark.math
 
 from analysis.paths import AnalysisPaths, BLOCK_NAMES, default_analysis_root
+from analysis.loaders import resolve_metrics_path
 
 
 def test_artifact_dir_layout(tmp_path, monkeypatch):
@@ -36,3 +37,15 @@ def test_bad_segments_rejected(tmp_path, monkeypatch):
 def test_env_root_overrides(tmp_path, monkeypatch):
     monkeypatch.setenv("NBODY_ANALYSIS_ROOT", str(tmp_path / "custom"))
     assert default_analysis_root() == tmp_path / "custom"
+
+
+def test_resolve_metrics_path_uses_canonical_prerun_output(tmp_path, monkeypatch):
+    analysis_root = tmp_path / "analysis"
+    monkeypatch.setenv("NBODY_ANALYSIS_ROOT", str(analysis_root))
+    run_root = tmp_path / "runs" / "example_run"
+    run_root.mkdir(parents=True)
+    expected = AnalysisPaths().prerun_dir("example_run") / "metrics_series.csv"
+    expected.write_text("time\n0.0\n", encoding="utf-8")
+
+    assert resolve_metrics_path(
+        run_root, "partial_analysis/metrics_series.csv") == expected

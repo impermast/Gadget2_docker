@@ -35,6 +35,10 @@ def compact_run_label(run_name: str | Path) -> str:
     label = model + (f" σ={sigma}" if sigma is not None else "")
 
     f_match = re.search(r"(?:^|_)fdiss(\d+(?:p\d+)?)(?:_|$)", lowered)
+    if model == "dSIDM" and f_match is None:
+        # Some canonical run IDs encode f_diss as `_f0p1` rather than
+        # `_fdiss0p1`; preserve the configured value in compact labels.
+        f_match = re.search(r"(?:^|_)f(\d+(?:p\d+)?)(?:_|$)", lowered)
     d_match = re.search(r"(?:^|_)d(\d+(?:p\d+)?)(?:_|$)", lowered)
     if model == "dSIDM" and f_match:
         label += f", f={_number(f_match.group(1))}"

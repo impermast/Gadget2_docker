@@ -1184,7 +1184,7 @@ def prepare_series_frames(run_root: Path, ptype: int = 3,
     return frames
 
 def classify_series(metrics: List[SeriesMetric]) -> Tuple[str, List[str]]:
-    """Вердикт по частичной серии (classify_series из analyze_series.py)."""
+    """Heuristic disk/pathology screen; it does not judge run completion."""
     times = np.array([m.time for m in metrics], dtype=float)
     cas = np.array([m.ca_r5 for m in metrics], dtype=float)
     thick = np.array([m.z_rms_over_R_rms_r5 for m in metrics], dtype=float)
@@ -1239,15 +1239,16 @@ def classify_series(metrics: List[SeriesMetric]) -> Tuple[str, List[str]]:
         notes.append("Interpretation: numerical pathology appears before clear "
                      "disk-like flattening.")
     else:
-        verdict = "ambiguous-partial-series"
-        notes.append("Interpretation: partial data are ambiguous; inspect static "
-                     "contact sheets and metrics before choosing next parameters.")
+        verdict = "no-provisional-disk-signature"
+        notes.append("Interpretation: no provisional disk-like threshold was "
+                     "triggered; compare static morphology with matched controls. "
+                     "This is not a run-completion judgment.")
     return verdict, notes
 
 
 def write_series_summary(metrics: List[SeriesMetric], verdict: str,
                          notes: List[str], out: Path, made: Iterable[Path]) -> None:
-    lines = ["PARTIAL SERIES DIAGNOSTIC SUMMARY", f"Verdict: {verdict}", "",
+    lines = ["SERIES DIAGNOSTIC SUMMARY", f"Heuristic verdict: {verdict}", "",
              "Key notes:"] + [f"- {n}" for n in notes] + ["", "Generated files:"]
     lines += [f"- {p.name} ({p.stat().st_size} bytes)" for p in made if p.exists()]
     lines += ["",

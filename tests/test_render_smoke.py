@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import sys
+import warnings
 from pathlib import Path
 
 import pytest
@@ -59,6 +60,24 @@ def test_core_plots_render_on_fixture(prof, parts, tmp_path):
         else:
             data = prof
         _render(spec.name, data, tmp_path / spec.name)
+
+
+def test_series_evolution_handles_zero_interactions(tmp_path):
+    """CDM series with NI=0 remains explicit and warning-free."""
+    import numpy as np
+
+    data = {
+        "time": np.asarray([0.0, 1.0, 2.0]),
+        "rho_core_r2": np.asarray([0.0022, 0.0021, 0.0020]),
+        "ca_r5": np.asarray([0.995, 0.994, 0.993]),
+        "z_rms_over_R_rms_r5": np.asarray([0.705, 0.706, 0.707]),
+        "mean_vphi_r5": np.asarray([8.0, 7.9, 7.8]),
+        "ninteractions_total": np.zeros(3),
+    }
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _render("series_evolution", data, tmp_path)
+    assert not any("no positive values" in str(w.message).lower() for w in caught)
 
 
 def test_registry_describe_and_markdown_cover_all():

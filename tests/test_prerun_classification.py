@@ -1,4 +1,4 @@
-"""Regression tests for partial-series classification."""
+"""Regression tests for series morphology classification."""
 
 from types import SimpleNamespace
 
@@ -28,7 +28,7 @@ def test_zero_initial_step_is_ignored_for_pathology_classification():
         _metric(2.0, 0.002),
     ])
 
-    assert verdict == "ambiguous-partial-series"
+    assert verdict == "no-provisional-disk-signature"
     assert any("min=0.00122" in note for note in notes)
 
 
